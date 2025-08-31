@@ -382,7 +382,7 @@ async function checkStreamStatus() {
     try {
         // Проверяем не чаще чем раз в 2 секунды
         const now = Date.now();
-        if (now - lastUpdateTime < 20000) return;
+        if (now - lastUpdateTime < 2000) return;
         
         lastUpdateTime = now;
         
@@ -614,5 +614,6 @@ async function checkStreamStatus() {
     </script>
 </body>
 </html>
+
 
 
