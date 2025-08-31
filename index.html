@@ -273,28 +273,34 @@
         }
 
         // ===== ЗАГРУЗКА ДАННЫХ =====
-        async function loadInitialData() {
-            try {
-                const [casinosData, streamStatus] = await Promise.allSettled([
-                    fetch('data_default.json').then(r => r.json()),
-                    fetch('https://go-5zty.onrender.com/status').then(r => r.json())
-                ]);
+async function loadInitialData() {
+    try {
+        const [casinosData, streamStatus] = await Promise.allSettled([
+            fetch('https://go-5zty.onrender.com/casino-data').then(r => r.json()),
+            fetch('https://go-5zty.onrender.com/status').then(r => r.json())
+        ]);
 
-                if (casinosData.status === 'fulfilled') {
-                    allCasinos = casinosData.value.casinos || [];
-                    renderFilters(casinosData.value.categories || []);
-                    renderCasinos();
-                }
-
-                if (streamStatus.status === 'fulfilled' && streamStatus.value.isStreamLive) {
-                    showStreamBanner(streamStatus.value);
-                }
-
-            } catch (error) {
-                console.error('Ошибка загрузки:', error);
-                showError('Ошибка при загрузке данных');
-            }
+        if (casinosData.status === 'fulfilled') {
+            allCasinos = casinosData.value.casinos || [];
+            renderFilters(casinosData.value.categories || []);
+            renderCasinos();
+        } else {
+            // Fallback на локальный файл
+            const localData = await fetch('data_default.json').then(r => r.json());
+            allCasinos = localData.casinos || [];
+            renderFilters(localData.categories || []);
+            renderCasinos();
         }
+
+        if (streamStatus.status === 'fulfilled' && streamStatus.value.isStreamLive) {
+            showStreamBanner(streamStatus.value);
+        }
+
+    } catch (error) {
+        console.error('Ошибка загрузки:', error);
+        showError('Ошибка при загрузке данных');
+    }
+}
 
         // ===== ОСТАЛЬНОЙ КОД ОСТАЕТСЯ ПРЕЖНИМ =====
         // [Здесь должен быть ваш существующий JavaScript код]
@@ -334,3 +340,4 @@
     </script>
 </body>
 </html>
+
