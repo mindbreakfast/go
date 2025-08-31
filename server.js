@@ -2,6 +2,12 @@ const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 
 const app = express();
+// Добавьте в начало server.js после express()
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+});
 const PORT = process.env.PORT || 3000;
 
 // ==== НАСТРОЙКИ ====
@@ -140,3 +146,4 @@ app.listen(PORT, () => {
     console.log('💾 Статус хранится в памяти');
     console.log('===================================');
 });
+
