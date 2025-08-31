@@ -19,6 +19,7 @@ const bot = new TelegramBot(TOKEN, {
         limit: 1,
         params: {
             allowed_updates: ['message', 'callback_query']
+        }
     }
 });
 
@@ -141,3 +142,4 @@ app.listen(PORT, () => {
     console.log(`🤖 Bot token: ${TOKEN ? 'SET' : 'MISSING'}`);
     console.log('✅ Бот готов к работе');
 });
+
