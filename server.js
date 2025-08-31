@@ -8,7 +8,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 
 // ==== НАСТРОЙКИ ====
-const TOKEN = process.env.BOT_TOKEN || '8368808338:AAF25l680ekIKpzQyvDj9pKc2zByrJx9dII';
+const TOKEN = process.env.BOT_TOKEN || '8368808338:AAFQswtEUrguFKjLajbqRTKvUpsQypoWZ8k';
 const ADMINS = [1777213824];
 const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app';
 // ===================
@@ -113,3 +113,4 @@ app.listen(PORT, () => {
     console.log(`🚀 Server started on port ${PORT}`);
     console.log(`🤖 Webhook set for token: ${TOKEN ? 'SET' : 'MISSING'}`);
 });
+
