@@ -2,28 +2,26 @@ const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 
 const app = express();
-const TOKEN = '8368808338:AAF25l680ekIKpzQyvDj9pKc2zByrJx9dII'; // ЗАМЕНИТЕ НА РЕАЛЬНЫЙ ТОКЕН!
-const WEB_APP_URL = '
-'; // ЗАМЕНИТЕ НА ВАШ URL
+const PORT = process.env.PORT || 3000;
 
-// ID администраторов (узнать через @userinfobot)
-const ADMINS = [1777213824]; // ЗАМЕНИТЕ НА ВАШ ID
+// ==== НАСТРОЙКИ ====
+const TOKEN = process.env.BOT_TOKEN || '8368808338:AAF25l680ekIKpzQyvDj9pKc2zByrJx9dII';
+const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app';
+const ADMINS = [1777213824]; // Ваш ID
+// ===================
 
 const bot = new TelegramBot(TOKEN, { 
-    polling: true 
+    polling: true,
+    onlyFirstMatch: true
 });
 
-// ===== ПРОВЕРКА ПРАВ =====
+// Проверка прав
 function isAdmin(userId) {
     return ADMINS.includes(Number(userId));
 }
 
-// ===== ОБРАБОТКА КОМАНД =====
-
-// Команда /start - ДЛЯ ВСЕХ
+// Команда /start
 bot.onText(/\/start/, (msg) => {
-    console.log('Получена команда /start от:', msg.from.id);
-    
     const keyboard = {
         reply_markup: {
             inline_keyboard: [[
@@ -35,63 +33,33 @@ bot.onText(/\/start/, (msg) => {
         }
     };
     
-    bot.sendMessage(msg.chat.id, 'Добро пожаловать! Нажмите кнопку ниже:', keyboard);
+    bot.sendMessage(msg.chat.id, 'Добро пожаловать! Нажмите кнопку ниже:', keyboard)
+        .catch(error => console.log('Ошибка отправки:', error));
 });
 
-// Команда /help - ДЛЯ ВСЕХ
-bot.onText(/\/help/, (msg) => {
-    console.log('Получена команда /help');
-    bot.sendMessage(msg.chat.id, 'Справка по командам...');
-});
-
-// Команда /live - ТОЛЬКО ДЛЯ АДМИНОВ
-bot.onText(/\/live (.+)/, (msg, match) => {
-    console.log('Получена команда /live от:', msg.from.id);
-    
+// Команда /stop
+bot.onText(/\/stop/, (msg) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
     }
-    
+    bot.sendMessage(msg.chat.id, '✅ Стрим остановлен');
+});
+
+// Команда /live
+bot.onText(/\/live (.+)/, (msg, match) => {
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
+    }
     const streamUrl = match[1];
     bot.sendMessage(msg.chat.id, `✅ Стрим запущен: ${streamUrl}`);
 });
 
-// Команда /stop - ТОЛЬКО ДЛЯ АДМИНОВ
-bot.onText(/\/stop/, (msg) => {
-    console.log('Получена команда /stop от:', msg.from.id);
-    
-    if (!isAdmin(msg.from.id)) {
-        return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
-    }
-    
-    bot.sendMessage(msg.chat.id, '✅ Стрим остановлен');
+// Веб-сервер
+app.get('/', (req, res) => {
+    res.send('CasinoHub Bot Server is running!');
 });
 
-// Команда /add - ТОЛЬКО ДЛЯ АДМИНОВ
-bot.onText(/\/add/, (msg) => {
-    console.log('Получена команда /add от:', msg.from.id);
-    
-    if (!isAdmin(msg.from.id)) {
-        return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
-    }
-    
-    bot.sendMessage(msg.chat.id, 'Добавление казино...');
+app.listen(PORT, () => {
+    console.log(`🚀 Server started on port ${PORT}`);
+    console.log(`🤖 Bot token: ${TOKEN ? 'SET' : 'MISSING'}`);
 });
-
-// ===== ЗАПУСК СЕРВЕРА =====
-app.use(express.static('public'));
-
-app.listen(3000, () => {
-    console.log('🚀 Сервер запущен на порту 3000');
-    console.log('🤖 Бот инициализирован');
-    
-    // Проверка токена
-    if (!TOKEN || TOKEN.includes('ВАШ_ТОКЕН')) {
-        console.error('❌ ОШИБКА: Токен не настроен!');
-        return;
-    }
-    
-    console.log('✅ Токен установлен');
-    console.log('✅ Ожидаю сообщения...');
-});
-
