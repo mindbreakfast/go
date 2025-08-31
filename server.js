@@ -1,6 +1,28 @@
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const app = express();
+const ADMINS = [1777213824]; // Замените на реальные ID
+
+// Функция проверки прав
+function isAdmin(userId) {
+    return ADMINS.includes(userId);
+}
+
+// В обработчиках команд добавьте проверку:
+bot.onText(/\/live (.+)/, (msg, match) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    
+    if (!isAdmin(userId)) {
+        return bot.sendMessage(chatId, '❌ Эта команда только для администратора!');
+    }
+    
+    // Остальная логика команды...
+    const streamUrl = match[1];
+    bot.sendMessage(chatId, `Стрим запущен! Ссылка: ${streamUrl}`);
+});
+
+// ниже все остальное
 
 // Замените на ваш токен от @BotFather
 const TOKEN = '8368808338:AAGyyuxvjGJ---R0YZVSv9IIwiDQWcQjUi8';
