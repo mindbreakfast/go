@@ -515,6 +515,32 @@
     // Делаем функции глобальными для обработчиков в HTML
     window.openCasino = openCasino;
     window.toggleDetails = toggleDetails;
+		</script>
+			<script>
+		// Проверка статуса стрима
+async function checkStreamStatus() {
+    try {
+        const response = await fetch('https://raw.githubusercontent.com/ваш-username/ваш-репозиторий/main/status.json');
+        const status = await response.json();
+        
+        if (status.isStreamLive) {
+            // Показать баннер
+            document.getElementById('streamBanner').style.display = 'block';
+            document.getElementById('streamLink').href = status.streamUrl;
+        } else {
+            // Скрыть баннер
+            document.getElementById('streamBanner').style.display = 'none';
+        }
+    } catch (error) {
+        console.log('Не удалось проверить статус стрима');
+    }
+}
+
+// Проверять каждые 30 секунд
+checkStreamStatus();
+setInterval(checkStreamStatus, 30000);
+	
 	</script>
 </body>
+
 </html>
