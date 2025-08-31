@@ -3,16 +3,34 @@
     {
       "id": 1,
       "name": "Cryptoboss",
-      "promocode": "BOSS200",
+      "promocode": "SASH",
       "promoDescription": "200% на первый депозит + 100 фриспинов",
       "description": "Лучшее крипто-казино с моментальными выплатами и щедрыми бонусами. Поддержка 24/7.",
       "url": "https://cryptoboss.com/?ref=streamer123",
       "registeredUrl": "https://cryptoboss.com/games",
       "showRegisteredButton": true,
       "hiddenKeywords": ["Cryptoboss", "Крипто босс", "КБ", "crypto"],
+      "category": "kb",
+      "isActive": true
+    },
+
+
+
+    {
+      "id": 3,
+      "name": "Kush",
+      "promocode": "SASH",
+      "promoDescription": "200% на первый депозит + 100 фриспинов",
+      "description": "Лучшее крипто-казино с моментальными выплатами и щедрыми бонусами. Поддержка 24/7.",
+      "url": "https://play-kush-one.com/d2aee114a",
+      "registeredUrl": "",
+      "showRegisteredButton": false,
+      "hiddenKeywords": ["kush", "куш"],
       "category": "crypto",
       "isActive": true
     },
+
+
     {
       "id": 2,
       "name": "Vulcan Vegas",
@@ -28,8 +46,9 @@
     }
   ],
   "categories": [
-    {"id": "crypto", "name": "Крипто"},
+    {"id": "kb", "name": "КБ"},
     {"id": "popular", "name": "Популярные"},
     {"id": "new", "name": "Новые"}
+    {"id": "royal", "name": "Роялы"}
   ]
 }
