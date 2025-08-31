@@ -1,5 +1,3 @@
-
-https://gogo-kohl-beta.vercel.app
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 
@@ -96,3 +94,4 @@ app.listen(3000, () => {
     console.log('✅ Токен установлен');
     console.log('✅ Ожидаю сообщения...');
 });
+
