@@ -11,7 +11,6 @@ const ADMINS = [1777213824];
 const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app';
 // ===================
 
-// Создаем бота с новым токеном
 const bot = new TelegramBot(TOKEN, { 
     polling: {
         interval: 300,
@@ -35,7 +34,11 @@ async function updateStreamStatus(isLive, streamUrl = '') {
         };
         
         await fs.writeFile('status.json', JSON.stringify(statusData, null, 2));
-        console.log('✅ Статус стрима обновлен');
+        
+        // Логируем содержимое файла для debug
+        const fileContent = await fs.readFile('status.json', 'utf8');
+        console.log('📁 Содержимое status.json:', fileContent);
+        
         return true;
         
     } catch (error) {
@@ -120,6 +123,26 @@ app.get('/casino-data', async (req, res) => {
     }
 });
 
+// Endpoint для debug
+app.get('/debug-status', async (req, res) => {
+    try {
+        const statusData = await fs.readFile('status.json', 'utf8');
+        const fileStats = await fs.stat('status.json');
+        
+        res.json({
+            fileExists: true,
+            fileSize: fileStats.size,
+            content: JSON.parse(statusData),
+            rawContent: statusData
+        });
+    } catch (error) {
+        res.json({
+            fileExists: false,
+            error: error.message
+        });
+    }
+});
+
 // Запускаем сервер
 app.listen(PORT, () => {
     console.log('===================================');
@@ -129,12 +152,4 @@ app.listen(PORT, () => {
     console.log('👑 Админы:', ADMINS.join(', '));
     console.log('🌐 WebApp URL:', WEB_APP_URL);
     console.log('===================================');
-    
-    // Проверяем подключение к Telegram API
-    bot.getMe().then(botInfo => {
-        console.log('✅ Бот успешно подключен к Telegram API');
-        console.log('🤖 Username бота:', botInfo.username);
-    }).catch(error => {
-        console.log('❌ Ошибка подключения к Telegram API:', error.message);
-    });
 });
