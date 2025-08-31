@@ -13,11 +13,8 @@
       "category": "kb",
       "isActive": true
     },
-
-
-
     {
-      "id": 3,
+      "id": 2,
       "name": "Kush",
       "promocode": "SASH",
       "promoDescription": "200% на первый депозит + 100 фриспинов",
@@ -29,10 +26,8 @@
       "category": "crypto",
       "isActive": true
     },
-
-
     {
-      "id": 2,
+      "id": 3,
       "name": "Vulcan Vegas",
       "promocode": "VULCAN100",
       "promoDescription": "100% бонус на первый депозит до 1000$",
@@ -52,3 +47,4 @@
     {"id": "royal", "name": "Роялы"}
   ]
 }
+
