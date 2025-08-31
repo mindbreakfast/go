@@ -5,7 +5,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Замените на ваш реальный токен!
-const TOKEN = '8368808338:AAGyyuxvjGJ---R0YZVSv9IIwiDQWcQjUi8';
+const TOKEN = '8368808338:AAF25l680ekIKpzQyvDj9pKc2zByrJx9dII';
 const bot = new TelegramBot(TOKEN, {polling: true});
 
 // Простейшая команда для теста
@@ -39,4 +39,5 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
   console.log('Bot is waiting for messages...');
+
 });
