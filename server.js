@@ -6,7 +6,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ==== НАСТРОЙКИ ====
-const TOKEN = process.env.BOT_TOKEN || '8368808338:AAFQswtEUrguFKjLajbqRTKvUpsQypoWZ8k';
+const TOKEN = process.env.BOT_TOKEN || '8368808338:AAECcdNDbVJkwlgTlXV_aVnhxrG3wdKRW2A';
 const ADMINS = [1777213824];
 const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app';
 // ===================
@@ -159,4 +159,5 @@ app.listen(PORT, () => {
     // Запускаем polling через 3 секунды после старта сервера
     setTimeout(startSmartPolling, 3000);
 });
+
 
