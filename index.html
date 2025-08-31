@@ -383,31 +383,39 @@
         }
 
         // ===== ЗАГРУЗКА ДАННЫХ =====
-        async function loadInitialData() {
-            try {
-                const [casinosData, streamStatus] = await Promise.allSettled([
-                    fetch('data_default.json').then(r => r.json()),
-                    fetch('https://go-5zty.onrender.com/status').then(r => r.json())
-                ]);
+async function loadInitialData() {
+    try {
+        // Сначала пробуем загрузить локальные данные для скорости
+        const localResponse = await fetch('data_default.json');
+        const localData = await localResponse.json();
+        allCasinos = localData.casinos || [];
+        renderFilters(localData.categories || []);
+        renderCasinos();
 
-                if (casinosData.status === 'fulfilled') {
-                    allCasinos = casinosData.value.casinos || [];
-                    renderFilters(casinosData.value.categories || []);
-                    renderCasinos();
-                } else {
-                    showError('Не удалось загрузить список казино');
-                }
-
-                if (streamStatus.status === 'fulfilled' && streamStatus.value.isStreamLive) {
-                    showStreamBanner(streamStatus.value);
-                }
-
-            } catch (error) {
-                console.error('Ошибка загрузки:', error);
-                showError('Ошибка при загрузке данных');
+        // Затем пробуем загрузить статус стрима с сервера
+        try {
+            const streamResponse = await fetch('https://your-bot-name.onrender.com/status');
+            const streamStatus = await streamResponse.json();
+            
+            if (streamStatus.isStreamLive) {
+                showStreamBanner(streamStatus);
             }
+        } catch (streamError) {
+            console.log('Не удалось загрузить статус стрима:', streamError);
         }
 
+    } catch (error) {
+        console.error('Ошибка загрузки:', error);
+        showError('Ошибка при загрузке данных');
+    }
+}
+
+
+
+
+
+
+        
         // ===== ПОИСК И ФИЛЬТРАЦИЯ =====
         function filterCasinos() {
             if (allCasinos.length === 0) return [];
@@ -613,3 +621,4 @@
     </script>
 </body>
 </html>
+
