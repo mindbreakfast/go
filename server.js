@@ -3,8 +3,6 @@ const express = require('express');
 const fs = require('fs').promises;
 
 const app = express();
-app.use(express.json());
-
 const PORT = process.env.PORT || 3000;
 
 // ==== НАСТРОЙКИ ====
@@ -13,15 +11,16 @@ const ADMINS = [1777213824];
 const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app';
 // ===================
 
-const bot = new TelegramBot(TOKEN);
-
-// Включаем webhook вместо polling
-bot.setWebHook(`https://your-bot-name.onrender.com/bot${TOKEN}`);
-
-// Обрабатываем webhook запросы
-app.post(`/bot${TOKEN}`, (req, res) => {
-    bot.processUpdate(req.body);
-    res.sendStatus(200);
+// Создаем бота с опциями
+const bot = new TelegramBot(TOKEN, {
+    polling: {
+        interval: 300,
+        autoStart: false,
+        params: {
+            timeout: 10,
+            limit: 1
+        }
+    }
 });
 
 // Проверка прав
@@ -63,11 +62,14 @@ bot.onText(/\/start/, (msg) => {
         }
     };
     
-    bot.sendMessage(msg.chat.id, 'Добро пожаловать! Нажмите кнопку ниже:', keyboard);
+    bot.sendMessage(msg.chat.id, 'Добро пожаловать! Нажмите кнопку ниже:', keyboard)
+        .catch(error => console.log('Ошибка отправки:', error));
 });
 
 // Команда /live
 bot.onText(/\/live (.+)/, async (msg, match) => {
+    console.log('Получен /live от:', msg.from.id);
+    
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
     }
@@ -83,6 +85,8 @@ bot.onText(/\/live (.+)/, async (msg, match) => {
 
 // Команда /stop
 bot.onText(/\/stop/, async (msg) => {
+    console.log('Получен /stop от:', msg.from.id);
+    
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
     }
@@ -109,8 +113,32 @@ app.get('/status', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server started on port ${PORT}`);
-    console.log(`🤖 Webhook set for token: ${TOKEN ? 'SET' : 'MISSING'}`);
-});
+// Запускаем бота с обработкой ошибок
+async function startBot() {
+    try {
+        // Закрываем все предыдущие соединения
+        await bot.closeWebHook();
+        console.log('✅ Старые webhooks закрыты');
+        
+        // Ждем секунду
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Запускаем polling
+        await bot.startPolling();
+        console.log('✅ Polling запущен');
+        
+        // Запускаем сервер
+        app.listen(PORT, () => {
+            console.log(`🚀 Server started on port ${PORT}`);
+            console.log(`🤖 Bot token: ${TOKEN ? 'SET' : 'MISSING'}`);
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка запуска бота:', error);
+        // Перезапускаем через 5 секунд
+        setTimeout(startBot, 5000);
+    }
+}
 
+// Запускаем все
+startBot();
