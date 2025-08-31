@@ -3,16 +3,25 @@ const express = require('express');
 const fs = require('fs').promises;
 
 const app = express();
+app.use(express.json());
+
 const PORT = process.env.PORT || 3000;
 
 // ==== НАСТРОЙКИ ====
 const TOKEN = process.env.BOT_TOKEN || '8368808338:AAF25l680ekIKpzQyvDj9pKc2zByrJx9dII';
 const ADMINS = [1777213824];
+const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app';
 // ===================
 
-const bot = new TelegramBot(TOKEN, { 
-    polling: true,
-    onlyFirstMatch: true
+const bot = new TelegramBot(TOKEN);
+
+// Включаем webhook вместо polling
+bot.setWebHook(`https://your-bot-name.onrender.com/bot${TOKEN}`);
+
+// Обрабатываем webhook запросы
+app.post(`/bot${TOKEN}`, (req, res) => {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
 });
 
 // Проверка прав
@@ -29,9 +38,8 @@ async function updateStreamStatus(isLive, streamUrl = '') {
             lastUpdated: new Date().toISOString()
         };
         
-        // Сохраняем в файл (Render позволяет писать файлы во временную файловую систему)
         await fs.writeFile('status.json', JSON.stringify(statusData, null, 2));
-        console.log('✅ Статус стрима обновлен:', statusData);
+        console.log('✅ Статус стрима обновлен');
         return true;
         
     } catch (error) {
@@ -49,20 +57,17 @@ bot.onText(/\/start/, (msg) => {
             inline_keyboard: [[
                 {
                     text: '🎰 ОТКРЫТЬ СПИСОК КАЗИНО',
-                    web_app: { url: 'https://gogo-kohl-beta.vercel.app' }
+                    web_app: { url: WEB_APP_URL }
                 }
             ]]
         }
     };
     
-    bot.sendMessage(msg.chat.id, 'Добро пожаловать! Нажмите кнопку ниже:', keyboard)
-        .catch(error => console.log('Ошибка отправки:', error));
+    bot.sendMessage(msg.chat.id, 'Добро пожаловать! Нажмите кнопку ниже:', keyboard);
 });
 
 // Команда /live
 bot.onText(/\/live (.+)/, async (msg, match) => {
-    console.log('Получен /live от:', msg.from.id);
-    
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
     }
@@ -70,41 +75,31 @@ bot.onText(/\/live (.+)/, async (msg, match) => {
     const streamUrl = match[1];
     const success = await updateStreamStatus(true, streamUrl);
     
-    if (success) {
-        bot.sendMessage(msg.chat.id, `✅ Стрим запущен: ${streamUrl}`);
-    } else {
-        bot.sendMessage(msg.chat.id, '❌ Ошибка обновления статуса');
-    }
+    bot.sendMessage(msg.chat.id, success ? 
+        `✅ Стрим запущен: ${streamUrl}` : 
+        '❌ Ошибка обновления статуса'
+    );
 });
 
 // Команда /stop
 bot.onText(/\/stop/, async (msg) => {
-    console.log('Получен /stop от:', msg.from.id);
-    
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
     }
     
     const success = await updateStreamStatus(false);
-    
-    if (success) {
-        bot.sendMessage(msg.chat.id, '✅ Стрим остановлен');
-    } else {
-        bot.sendMessage(msg.chat.id, '❌ Ошибка обновления статуса');
-    }
+    bot.sendMessage(msg.chat.id, success ? 
+        '✅ Стрим остановлен' : 
+        '❌ Ошибка обновления статуса'
+    );
 });
 
-// Веб-сервер для проверки работы
+// Веб-сервер
 app.get('/', (req, res) => {
-    res.send(`
-        <h1>CasinoHub Bot Server</h1>
-        <p>Бот работает! Токен: ${TOKEN ? 'установлен' : 'отсутствует'}</p>
-        <p>Админы: ${ADMINS.join(', ')}</p>
-        <p><a href="https://t.me/your_bot_username">Написать боту</a></p>
-    `);
+    res.send('CasinoHub Bot Server is running!');
 });
 
-// Новый endpoint для проверки статуса стрима
+// Endpoint для проверки статуса
 app.get('/status', async (req, res) => {
     try {
         const statusData = await fs.readFile('status.json', 'utf8');
@@ -116,6 +111,5 @@ app.get('/status', async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`🚀 Server started on port ${PORT}`);
-    console.log(`🤖 Bot token: ${TOKEN ? 'SET' : 'MISSING'}`);
-    console.log(`👑 Admins: ${ADMINS.join(', ')}`);
+    console.log(`🤖 Webhook set for token: ${TOKEN ? 'SET' : 'MISSING'}`);
 });
