@@ -15,6 +15,8 @@
             --secondary-color: #f8f9fa;
             --promo-bg: #ffeb3b;
             --promo-text: #333333;
+            --error-color: #ff4757;
+            --success-color: #2ed573;
         }
 
         .theme-dark {
@@ -26,6 +28,8 @@
             --secondary-color: #2a2a2a;
             --promo-bg: #ffeb3b;
             --promo-text: #000000;
+            --error-color: #ff6b81;
+            --success-color: #7bed9f;
         }
 
         * {
@@ -33,7 +37,7 @@
             padding: 0;
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            transition: background-color 0.3s, color 0.3s;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
 
         body {
@@ -49,6 +53,7 @@
             margin-bottom: 15px;
             padding: 10px;
             border-bottom: 1px solid var(--border-color);
+            position: relative;
         }
 
         .theme-switcher {
@@ -58,9 +63,14 @@
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 20px;
-            padding: 5px 10px;
+            padding: 8px 12px;
             cursor: pointer;
             font-size: 12px;
+            color: var(--text-color);
+        }
+
+        .theme-switcher:hover {
+            opacity: 0.8;
         }
 
         .stream-banner {
@@ -70,17 +80,28 @@
             border-radius: 12px;
             margin-bottom: 15px;
             text-align: center;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .stream-banner a {
             color: white;
             font-weight: bold;
             background: rgba(0, 0, 0, 0.3);
-            padding: 8px 15px;
-            border-radius: 20px;
+            padding: 10px 20px;
+            border-radius: 25px;
             text-decoration: none;
             display: inline-block;
             margin-top: 10px;
+            transition: background-color 0.2s ease;
+        }
+
+        .stream-banner a:hover {
+            background: rgba(0, 0, 0, 0.5);
         }
 
         .search-container {
@@ -103,6 +124,11 @@
             color: var(--text-color);
         }
 
+        #searchInput:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(64, 167, 227, 0.2);
+        }
+
         .filters {
             display: flex;
             flex-wrap: wrap;
@@ -112,17 +138,23 @@
 
         .filter-chip {
             background: var(--secondary-color);
-            padding: 6px 12px;
-            border-radius: 16px;
+            padding: 8px 16px;
+            border-radius: 20px;
             font-size: 14px;
             cursor: pointer;
             user-select: none;
             border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .filter-chip:hover {
+            transform: translateY(-1px);
         }
 
         .filter-chip.active {
             background: var(--primary-color);
             color: white;
+            border-color: var(--primary-color);
         }
 
         .casino-list {
@@ -134,16 +166,23 @@
         .casino-card {
             background: var(--card-bg);
             border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
             border: 1px solid var(--border-color);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .casino-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
         }
 
         .casino-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            gap: 10px;
         }
 
         .casino-name {
@@ -155,8 +194,8 @@
         .promo-code {
             background: var(--promo-bg);
             color: var(--promo-text);
-            padding: 4px 8px;
-            border-radius: 6px;
+            padding: 6px 12px;
+            border-radius: 8px;
             font-size: 14px;
             font-weight: bold;
             flex-shrink: 0;
@@ -164,19 +203,26 @@
 
         .promo-description {
             color: var(--text-color);
-            opacity: 0.8;
+            opacity: 0.9;
             font-size: 14px;
-            margin-bottom: 12px;
+            margin-bottom: 15px;
+            line-height: 1.4;
         }
 
         .registered-toggle {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 12px;
+            gap: 10px;
+            margin-bottom: 15px;
             font-size: 14px;
             color: var(--text-color);
-            opacity: 0.8;
+            opacity: 0.9;
+        }
+
+        .registered-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary-color);
         }
 
         .action-buttons {
@@ -185,7 +231,7 @@
         }
 
         .btn {
-            padding: 10px 20px;
+            padding: 12px 20px;
             border: none;
             border-radius: 8px;
             font-weight: bold;
@@ -193,11 +239,21 @@
             flex: 1;
             text-align: center;
             text-decoration: none;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
         }
 
         .btn-primary {
             background: var(--primary-color);
             color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2b93d6;
         }
 
         .btn-outline {
@@ -206,11 +262,65 @@
             color: var(--text-color);
         }
 
-        .loader, .no-results {
+        .btn-outline:hover {
+            background: var(--secondary-color);
+        }
+
+        .casino-details {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-color);
+            opacity: 0.8;
+            line-height: 1.5;
+        }
+
+        .loader {
             text-align: center;
             padding: 40px 20px;
             color: var(--text-color);
             opacity: 0.7;
+        }
+
+        .loader::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--primary-color);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 20px;
+            color: var(--error-color);
+            background: rgba(255, 71, 87, 0.1);
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .success-message {
+            text-align: center;
+            padding: 20px;
+            color: var(--success-color);
+            background: rgba(46, 213, 115, 0.1);
+            border-radius: 8px;
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -248,8 +358,8 @@
         const tg = window.Telegram?.WebApp;
         if (tg) {
             tg.expand();
-            tg.disableClosingConfirmation(); // Убираем предупреждение о закрытии
-            tg.enableClosingConfirmation = () => {}; // Отключаем полностью
+            tg.disableClosingConfirmation();
+            tg.enableClosingConfirmation = () => {};
         }
 
         // ===== ПЕРЕМЕННЫЕ =====
@@ -273,53 +383,195 @@
         }
 
         // ===== ЗАГРУЗКА ДАННЫХ =====
-async function loadInitialData() {
-    try {
-        // Пробуем загрузить с сервера бота
-        const [casinosData, streamStatus] = await Promise.allSettled([
-            fetch('https://your-bot-name.onrender.com/casino-data').then(r => r.json()),
-            fetch('https://your-bot-name.onrender.com/status').then(r => r.json())
-        ]);
+        async function loadInitialData() {
+            try {
+                const [casinosData, streamStatus] = await Promise.allSettled([
+                    fetch('data_default.json').then(r => r.json()),
+                    fetch('https://go-5zty.onrender.com/status').then(r => r.json())
+                ]);
 
-        // Если сервер бота доступен
-        if (casinosData.status === 'fulfilled') {
-            allCasinos = casinosData.value.casinos || [];
-            renderFilters(casinosData.value.categories || []);
-            renderCasinos();
-        } 
-        // Если сервер бота недоступен - грузим локально
-        else {
-            const localResponse = await fetch('data_default.json');
-            const localData = await localResponse.json();
-            allCasinos = localData.casinos || [];
-            renderFilters(localData.categories || []);
-            renderCasinos();
+                if (casinosData.status === 'fulfilled') {
+                    allCasinos = casinosData.value.casinos || [];
+                    renderFilters(casinosData.value.categories || []);
+                    renderCasinos();
+                } else {
+                    showError('Не удалось загрузить список казино');
+                }
+
+                if (streamStatus.status === 'fulfilled' && streamStatus.value.isStreamLive) {
+                    showStreamBanner(streamStatus.value);
+                }
+
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                showError('Ошибка при загрузке данных');
+            }
         }
 
-        // Проверяем статус стрима
-        if (streamStatus.status === 'fulfilled' && streamStatus.value.isStreamLive) {
-            showStreamBanner(streamStatus.value);
+        // ===== ПОИСК И ФИЛЬТРАЦИЯ =====
+        function filterCasinos() {
+            if (allCasinos.length === 0) return [];
+
+            return allCasinos.filter(casino => {
+                // Фильтр по поисковому запросу
+                const matchesSearch = currentSearchQuery === '' || 
+                    casino.name.toLowerCase().includes(currentSearchQuery) ||
+                    (casino.hiddenKeywords && casino.hiddenKeywords.some(kw => 
+                        kw.toLowerCase().includes(currentSearchQuery)
+                    ));
+
+                // Фильтр по категориям
+                const matchesCategory = activeFilters.size === 0 || 
+                    (casino.category && activeFilters.has(casino.category));
+
+                // Фильтр по активности
+                const isActive = casino.isActive !== false;
+
+                return matchesSearch && matchesCategory && isActive;
+            });
         }
 
-    } catch (error) {
-        console.error('Ошибка загрузки:', error);
-        // Fallback на локальные данные
-        try {
-            const localResponse = await fetch('data_default.json');
-            const localData = await localResponse.json();
-            allCasinos = localData.casinos || [];
-            renderFilters(localData.categories || []);
-            renderCasinos();
-        } catch (fallbackError) {
-            showError('Ошибка при загрузке данных');
-        }
-    }
-}
+        // ===== РЕНДЕРИНГ ИНТЕРФЕЙСА =====
+        function renderFilters(categories) {
+            const container = document.getElementById('filtersContainer');
+            if (!container || categories.length === 0) return;
 
-        // ===== ОСТАЛЬНОЙ КОД ОСТАЕТСЯ ПРЕЖНИМ =====
-        // [Здесь должен быть ваш существующий JavaScript код]
-        // functions: filterCasinos, renderFilters, renderCasinos, 
-        // showStreamBanner, isRegistered, setRegisteredState, etc.
+            container.innerHTML = categories.map(cat => `
+                <div class="filter-chip" data-category="${cat.id}">
+                    ${cat.name}
+                </div>
+            `).join('');
+
+            container.querySelectorAll('.filter-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const category = chip.getAttribute('data-category');
+                    chip.classList.toggle('active');
+                    
+                    if (chip.classList.contains('active')) {
+                        activeFilters.add(category);
+                    } else {
+                        activeFilters.delete(category);
+                    }
+                    
+                    renderCasinos();
+                });
+            });
+        }
+
+        function renderCasinos() {
+            const container = document.getElementById('casinoList');
+            if (!container) return;
+
+            const filteredCasinos = filterCasinos();
+
+            if (filteredCasinos.length === 0) {
+                container.innerHTML = `
+                    <div class="no-results">
+                        <p>Ничего не найдено</p>
+                        <p>Попробуйте изменить запрос или сбросить фильтры</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredCasinos.map(casino => `
+                <div class="casino-card" data-id="${casino.id}">
+                    <div class="casino-header">
+                        <div class="casino-name">${casino.name}</div>
+                        <div class="promo-code">${casino.promocode}</div>
+                    </div>
+                    
+                    <div class="promo-description">
+                        ${casino.promoDescription}
+                    </div>
+
+                    ${casino.showRegisteredButton ? `
+                    <div class="registered-toggle">
+                        <input type="checkbox" id="registered-${casino.id}" 
+                               ${isRegistered(casino.id) ? 'checked' : ''}>
+                        <label for="registered-${casino.id}">Я уже зарегистрирован(а) здесь</label>
+                    </div>
+                    ` : ''}
+
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="openCasino(${casino.id})">
+                            ПЕРЕЙТИ
+                        </button>
+                        <button class="btn btn-outline" onclick="toggleDetails(${casino.id})">
+                            ℹ️ Подробнее
+                        </button>
+                    </div>
+
+                    <div class="casino-details" id="details-${casino.id}" style="display: none;">
+                        <p>${casino.description || 'Описание отсутствует'}</p>
+                    </div>
+                </div>
+            `).join('');
+
+            container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const casinoId = e.target.id.replace('registered-', '');
+                    setRegisteredState(casinoId, e.target.checked);
+                });
+            });
+        }
+
+        function showStreamBanner(streamData) {
+            const banner = document.getElementById('streamBanner');
+            const link = document.getElementById('streamLink');
+            
+            if (banner && link && streamData.streamUrl) {
+                banner.style.display = 'block';
+                link.href = streamData.streamUrl;
+            }
+        }
+
+        // ===== LOCALSTORAGE =====
+        function isRegistered(casinoId) {
+            const states = JSON.parse(localStorage.getItem('userRegisteredStates') || '{}');
+            return !!states[casinoId];
+        }
+
+        function setRegisteredState(casinoId, isRegistered) {
+            const states = JSON.parse(localStorage.getItem('userRegisteredStates') || '{}');
+            states[casinoId] = isRegistered;
+            localStorage.setItem('userRegisteredStates', JSON.stringify(states));
+        }
+
+        // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
+        function showError(message) {
+            const container = document.getElementById('casinoList');
+            if (container) {
+                container.innerHTML = `
+                    <div class="error-message">
+                        <p>${message}</p>
+                        <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 10px;">
+                            Попробовать снова
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function openCasino(casinoId) {
+            const casino = allCasinos.find(c => c.id === casinoId);
+            if (!casino) return;
+
+            let targetUrl = casino.url;
+            if (isRegistered(casinoId) && casino.registeredUrl) {
+                targetUrl = casino.registeredUrl;
+            }
+
+            window.open(targetUrl, '_blank');
+        }
+
+        function toggleDetails(casinoId) {
+            const detailsElement = document.getElementById(`details-${casinoId}`);
+            if (detailsElement) {
+                detailsElement.style.display = 
+                    detailsElement.style.display === 'none' ? 'block' : 'none';
+            }
+        }
 
         // ===== ИНИЦИАЛИЗАЦИЯ =====
         document.addEventListener('DOMContentLoaded', () => {
@@ -337,22 +589,27 @@ async function loadInitialData() {
                 }, 300);
             });
 
-            // Проверяем статус стрима каждые 30 секунд
+            // Проверка статуса стрима каждые 30 секунд
             setInterval(() => {
                 fetch('https://go-5zty.onrender.com/status')
                     .then(r => r.json())
                     .then(status => {
                         const banner = document.getElementById('streamBanner');
-                        if (status.isStreamLive) {
+                        if (status.isStreamLive && status.streamUrl) {
                             showStreamBanner(status);
-                        } else {
+                        } else if (banner) {
                             banner.style.display = 'none';
                         }
+                    })
+                    .catch(() => {
+                        // Ignore errors
                     });
             }, 30000);
         });
+
+        // Глобальные функции для HTML обработчиков
+        window.openCasino = openCasino;
+        window.toggleDetails = toggleDetails;
     </script>
 </body>
 </html>
-
-
