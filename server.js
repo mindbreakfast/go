@@ -1,6 +1,5 @@
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
-const fs = require('fs').promises;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,26 +18,28 @@ const bot = new TelegramBot(TOKEN, {
     }
 });
 
+// Храним статус в памяти вместо файла
+let streamStatus = {
+    isStreamLive: false,
+    streamUrl: '',
+    lastUpdated: new Date().toISOString()
+};
+
 // Проверка прав
 function isAdmin(userId) {
     return ADMINS.includes(Number(userId));
 }
 
-// Функция обновления статуса стрима
+// Функция обновления статуса стрима (в памяти)
 async function updateStreamStatus(isLive, streamUrl = '') {
     try {
-        const statusData = {
+        streamStatus = {
             isStreamLive: isLive,
             streamUrl: streamUrl,
             lastUpdated: new Date().toISOString()
         };
         
-        await fs.writeFile('status.json', JSON.stringify(statusData, null, 2));
-        
-        // Логируем содержимое файла для debug
-        const fileContent = await fs.readFile('status.json', 'utf8');
-        console.log('📁 Содержимое status.json:', fileContent);
-        
+        console.log('✅ Статус стрима обновлен в памяти:', streamStatus);
         return true;
         
     } catch (error) {
@@ -104,18 +105,14 @@ app.get('/', (req, res) => {
 });
 
 // Endpoint для проверки статуса
-app.get('/status', async (req, res) => {
-    try {
-        const statusData = await fs.readFile('status.json', 'utf8');
-        res.json(JSON.parse(statusData));
-    } catch (error) {
-        res.json({ isStreamLive: false, streamUrl: '' });
-    }
+app.get('/status', (req, res) => {
+    res.json(streamStatus);
 });
 
 // Endpoint для получения данных казино
 app.get('/casino-data', async (req, res) => {
     try {
+        const fs = require('fs').promises;
         const data = await fs.readFile('data_default.json', 'utf8');
         res.json(JSON.parse(data));
     } catch (error) {
@@ -124,23 +121,12 @@ app.get('/casino-data', async (req, res) => {
 });
 
 // Endpoint для debug
-app.get('/debug-status', async (req, res) => {
-    try {
-        const statusData = await fs.readFile('status.json', 'utf8');
-        const fileStats = await fs.stat('status.json');
-        
-        res.json({
-            fileExists: true,
-            fileSize: fileStats.size,
-            content: JSON.parse(statusData),
-            rawContent: statusData
-        });
-    } catch (error) {
-        res.json({
-            fileExists: false,
-            error: error.message
-        });
-    }
+app.get('/debug-status', (req, res) => {
+    res.json({
+        status: streamStatus,
+        memoryUsage: process.memoryUsage(),
+        uptime: process.uptime()
+    });
 });
 
 // Запускаем сервер
@@ -151,5 +137,6 @@ app.listen(PORT, () => {
     console.log('🤖 Токен установлен:', TOKEN ? '✅' : '❌');
     console.log('👑 Админы:', ADMINS.join(', '));
     console.log('🌐 WebApp URL:', WEB_APP_URL);
+    console.log('💾 Статус хранится в памяти');
     console.log('===================================');
 });
