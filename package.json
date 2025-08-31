@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "kill": "pkill -f node"
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.64.0",
