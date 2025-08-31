@@ -313,15 +313,6 @@
             border-radius: 8px;
             margin: 10px 0;
         }
-
-        .success-message {
-            text-align: center;
-            padding: 20px;
-            color: var(--success-color);
-            background: rgba(46, 213, 115, 0.1);
-            border-radius: 8px;
-            margin: 10px 0;
-        }
     </style>
 </head>
 <body>
@@ -382,40 +373,58 @@
             document.getElementById('themeSwitcher').textContent = isDark ? '☀️ Светлая' : '🌙 Тёмная';
         }
 
-        // ===== ЗАГРУЗКА ДАННЫХ =====
-async function loadInitialData() {
-    try {
-        // Сначала пробуем загрузить локальные данные для скорости
-        const localResponse = await fetch('data_default.json');
-        const localData = await localResponse.json();
-        allCasinos = localData.casinos || [];
-        renderFilters(localData.categories || []);
-        renderCasinos();
+        // ===== АВТОМАТИЧЕСКОЕ ОБНОВЛЕНИЕ СТАТУСА =====
+        let lastUpdateTime = 0;
 
-        // Затем пробуем загрузить статус стрима с сервера
-        try {
-            const streamResponse = await fetch('https://your-bot-name.onrender.com/status');
-            const streamStatus = await streamResponse.json();
-            
-            if (streamStatus.isStreamLive) {
-                showStreamBanner(streamStatus);
+        async function checkStreamStatus() {
+            try {
+                // Проверяем не чаще чем раз в 3 секунды
+                const now = Date.now();
+                if (now - lastUpdateTime < 3000) return;
+                
+                lastUpdateTime = now;
+                
+                const response = await fetch('https://go-5zty.onrender.com/status?t=' + now);
+                const status = await response.json();
+                
+                const banner = document.getElementById('streamBanner');
+                const streamLink = document.getElementById('streamLink');
+                
+                if (!banner || !streamLink) return;
+                
+                if (status.isStreamLive && status.streamUrl) {
+                    banner.style.display = 'block';
+                    streamLink.href = status.streamUrl;
+                    console.log('✅ Баннер стрима показан');
+                } else {
+                    banner.style.display = 'none';
+                    console.log('✅ Баннер стрима скрыт');
+                }
+            } catch (error) {
+                console.log('Не удалось проверить статус стрима');
             }
-        } catch (streamError) {
-            console.log('Не удалось загрузить статус стрима:', streamError);
         }
 
-    } catch (error) {
-        console.error('Ошибка загрузки:', error);
-        showError('Ошибка при загрузке данных');
-    }
-}
+        // ===== ЗАГРУЗКА ДАННЫХ =====
+        async function loadInitialData() {
+            try {
+                // Загружаем данные казино локально
+                const response = await fetch('data_default.json');
+                const data = await response.json();
+                
+                allCasinos = data.casinos || [];
+                renderFilters(data.categories || []);
+                renderCasinos();
+                
+                // Проверяем статус стрима
+                await checkStreamStatus();
+                
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                showError('Ошибка при загрузке данных');
+            }
+        }
 
-
-
-
-
-
-        
         // ===== ПОИСК И ФИЛЬТРАЦИЯ =====
         function filterCasinos() {
             if (allCasinos.length === 0) return [];
@@ -524,16 +533,6 @@ async function loadInitialData() {
             });
         }
 
-        function showStreamBanner(streamData) {
-            const banner = document.getElementById('streamBanner');
-            const link = document.getElementById('streamLink');
-            
-            if (banner && link && streamData.streamUrl) {
-                banner.style.display = 'block';
-                link.href = streamData.streamUrl;
-            }
-        }
-
         // ===== LOCALSTORAGE =====
         function isRegistered(casinoId) {
             const states = JSON.parse(localStorage.getItem('userRegisteredStates') || '{}');
@@ -597,27 +596,14 @@ async function loadInitialData() {
                 }, 300);
             });
 
-            // Проверка статуса стрима каждые 30 секунд
-            setInterval(() => {
-                fetch('https://go-5zty.onrender.com/status')
-                    .then(r => r.json())
-                    .then(status => {
-                        const banner = document.getElementById('streamBanner');
-                        if (status.isStreamLive && status.streamUrl) {
-                            showStreamBanner(status);
-                        } else if (banner) {
-                            banner.style.display = 'none';
-                        }
-                    })
-                    .catch(() => {
-                        // Ignore errors
-                    });
-            }, 30000);
+            // Проверка статуса стрима каждые 5 секунд
+            setInterval(checkStreamStatus, 5000);
         });
 
         // Глобальные функции для HTML обработчиков
         window.openCasino = openCasino;
         window.toggleDetails = toggleDetails;
+        window.checkStreamStatus = checkStreamStatus;
     </script>
 </body>
 </html>
