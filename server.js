@@ -3,7 +3,7 @@ const express = require('express');
 const app = express();
 
 // Замените на ваш токен от @BotFather
-const TOKEN = 'YOUR_BOT_TOKEN_HERE';
+const TOKEN = '8368808338:AAGyyuxvjGJ---R0YZVSv9IIwiDQWcQjUi8';
 const bot = new TelegramBot(TOKEN, { polling: true });
 
 // Настройка веб-приложения
@@ -20,13 +20,13 @@ bot.onText(/\/start/, (msg) => {
             inline_keyboard: [[
                 {
                     text: '🎰 ОТКРЫТЬ СПИСОК КАЗИНО',
-                    web_app: { url: 'https://your-glitch-project.glitch.me' }
+                    web_app: { url: 'https://gogo-mru3lm2yp-mindbreakfasts-projects.vercel.app' }
                 }
             ]]
         }
     };
     
-    bot.sendMessage(chatId, 'Добро пожаловать! Нажмите кнопку ниже, чтобы открыть актуальный список казино с промокодами:', keyboard);
+    bot.sendMessage(chatId, 'Нажмите кнопку ниже, чтобы открыть актуальный список казино:', keyboard);
 });
 
 // Команда /live - запуск трансляции
