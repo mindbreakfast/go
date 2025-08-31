@@ -19,7 +19,7 @@ bot.on('message', (msg) => {
         inline_keyboard: [[
           {
             text: '🎰 ОТКРЫТЬ СПИСОК КАЗИНО',
-            web_app: {url: 'https://gogo-mru3lm2yp-mindbreakfasts-projects.vercel.app'}
+            web_app: {url: 'https://gogo-kohl-beta.vercel.app'}
           }
         ]]
       }
@@ -41,3 +41,4 @@ app.listen(PORT, () => {
   console.log('Bot is waiting for messages...');
 
 });
+
