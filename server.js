@@ -1,61 +1,31 @@
+
+https://gogo-kohl-beta.vercel.app
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
-const fs = require('fs').promises;
-const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// ===== КОНФИГУРАЦИЯ =====
 const TOKEN = '8368808338:AAF25l680ekIKpzQyvDj9pKc2zByrJx9dII'; // ЗАМЕНИТЕ НА РЕАЛЬНЫЙ ТОКЕН!
-const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app'; // ЗАМЕНИТЕ НА ВАШ URL
+const WEB_APP_URL = '
+'; // ЗАМЕНИТЕ НА ВАШ URL
 
-// ID администраторов (узнать свой ID через @userinfobot)
-const ADMINS = [1777213824]; // ЗАМЕНИТЕ НА РЕАЛЬНЫЕ ID
+// ID администраторов (узнать через @userinfobot)
+const ADMINS = [1777213824]; // ЗАМЕНИТЕ НА ВАШ ID
 
 const bot = new TelegramBot(TOKEN, { 
-    polling: true,
-    onlyFirstMatch: true,
-    request: { timeout: 60000 }
+    polling: true 
 });
 
-// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
+// ===== ПРОВЕРКА ПРАВ =====
 function isAdmin(userId) {
     return ADMINS.includes(Number(userId));
 }
 
-function logMessage(msg, command = '') {
-    console.log(`[${new Date().toLocaleTimeString()}] ${msg.from.first_name} (${msg.from.id}): ${command || msg.text}`);
-}
+// ===== ОБРАБОТКА КОМАНД =====
 
-async function updateStreamStatus(isLive, streamUrl = '') {
-    try {
-        const statusData = {
-            isStreamLive: isLive,
-            streamUrl: streamUrl,
-            lastUpdated: new Date().toISOString()
-        };
-        
-        await fs.writeFile(
-            path.join(__dirname, 'public', 'stream_status_default.json'),
-            JSON.stringify(statusData, null, 2)
-        );
-        
-        console.log('Статус стрима обновлен:', statusData);
-        return true;
-    } catch (error) {
-        console.error('Ошибка обновления статуса стрима:', error);
-        return false;
-    }
-}
-
-// ===== ОБРАБОТЧИКИ КОМАНД =====
-
-// Команда /start - для всех пользователей
+// Команда /start - ДЛЯ ВСЕХ
 bot.onText(/\/start/, (msg) => {
-    logMessage(msg, '/start');
+    console.log('Получена команда /start от:', msg.from.id);
     
-    const chatId = msg.chat.id;
     const keyboard = {
         reply_markup: {
             inline_keyboard: [[
@@ -67,175 +37,62 @@ bot.onText(/\/start/, (msg) => {
         }
     };
     
-    const welcomeText = `Добро пожаловать! 
-
-🎯 Здесь вы найдете актуальные списки казино с рабочими промокодами.
-
-📋 Чтобы открыть список, нажмите кнопку ниже 👇`;
-
-    bot.sendMessage(chatId, welcomeText, keyboard)
-        .catch(error => console.error('Ошибка отправки сообщения:', error));
+    bot.sendMessage(msg.chat.id, 'Добро пожаловать! Нажмите кнопку ниже:', keyboard);
 });
 
-// Команда /help - для всех пользователей
+// Команда /help - ДЛЯ ВСЕХ
 bot.onText(/\/help/, (msg) => {
-    logMessage(msg, '/help');
-    
-    const helpText = `📖 Доступные команды:
-
-/start - Запустить бота и открыть список
-/help - Получить справку
-
-⚙️ Команды для администратора:
-/live [ссылка] - Начать трансляцию
-/stop - Завершить трансляцию
-/add - Добавить новое казино`;
-
-    bot.sendMessage(msg.chat.id, helpText);
+    console.log('Получена команда /help');
+    bot.sendMessage(msg.chat.id, 'Справка по командам...');
 });
 
-// Команда /live - только для админов
-bot.onText(/\/live (.+)/, async (msg, match) => {
-    logMessage(msg, '/live');
+// Команда /live - ТОЛЬКО ДЛЯ АДМИНОВ
+bot.onText(/\/live (.+)/, (msg, match) => {
+    console.log('Получена команда /live от:', msg.from.id);
     
-    const chatId = msg.chat.id;
-    const userId = msg.from.id;
-    const streamUrl = match[1].trim();
-
-    if (!isAdmin(userId)) {
-        return bot.sendMessage(chatId, '❌ Эта команда доступна только администраторам!');
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
     }
-
-    try {
-        const success = await updateStreamStatus(true, streamUrl);
-        
-        if (success) {
-            const responseText = `✅ Стрим запущен!
-            
-Ссылка: ${streamUrl}
-
-Баннер будет отображаться в приложении до команды /stop`;
-            
-            bot.sendMessage(chatId, responseText);
-        } else {
-            throw new Error('Ошибка записи файла');
-        }
-    } catch (error) {
-        console.error('Ошибка команды /live:', error);
-        bot.sendMessage(chatId, '❌ Не удалось запустить трансляцию. Проверьте логи.');
-    }
+    
+    const streamUrl = match[1];
+    bot.sendMessage(msg.chat.id, `✅ Стрим запущен: ${streamUrl}`);
 });
 
-// Команда /stop - только для админов
-bot.onText(/\/stop/, async (msg) => {
-    logMessage(msg, '/stop');
+// Команда /stop - ТОЛЬКО ДЛЯ АДМИНОВ
+bot.onText(/\/stop/, (msg) => {
+    console.log('Получена команда /stop от:', msg.from.id);
     
-    const chatId = msg.chat.id;
-    const userId = msg.from.id;
-
-    if (!isAdmin(userId)) {
-        return bot.sendMessage(chatId, '❌ Эта команда доступна только администраторам!');
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
     }
-
-    try {
-        const success = await updateStreamStatus(false);
-        
-        if (success) {
-            bot.sendMessage(chatId, '✅ Трансляция завершена. Баннер скрыт.');
-        } else {
-            throw new Error('Ошибка записи файла');
-        }
-    } catch (error) {
-        console.error('Ошибка команды /stop:', error);
-        bot.sendMessage(chatId, '❌ Не удалось завершить трансляцию.');
-    }
+    
+    bot.sendMessage(msg.chat.id, '✅ Стрим остановлен');
 });
 
-// Команда /add - только для админов (упрощенная версия)
+// Команда /add - ТОЛЬКО ДЛЯ АДМИНОВ
 bot.onText(/\/add/, (msg) => {
-    logMessage(msg, '/add');
+    console.log('Получена команда /add от:', msg.from.id);
     
-    const chatId = msg.chat.id;
-    const userId = msg.from.id;
-
-    if (!isAdmin(userId)) {
-        return bot.sendMessage(chatId, '❌ Эта команда доступна только администраторам!');
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
     }
-
-    const instructions = `📝 Чтобы добавить казино:
-
-1. Откройте файл data_default.json
-2. Добавьте новый объект в массив casinos
-3. Сохраните файл
-
-Пример структуры:
-{
-  "id": 3,
-  "name": "Новое казино",
-  "promocode": "PROMO123",
-  "promoDescription": "Описание бонуса",
-  "url": "https://casino.com",
-  "showRegisteredButton": true,
-  "hiddenKeywords": ["ключевые", "слова"],
-  "category": "crypto"
-}
-
-В будущих версиях будет реализовано добавление через бота.`;
-
-    bot.sendMessage(chatId, instructions);
+    
+    bot.sendMessage(msg.chat.id, 'Добавление казино...');
 });
 
-// Обработка обычных сообщений
-bot.on('message', (msg) => {
-    if (msg.text && !msg.text.startsWith('/')) {
-        logMessage(msg);
-        
-        // Простой echo для теста
-        if (msg.text.toLowerCase() === 'привет') {
-            bot.sendMessage(msg.chat.id, 'Привет! Напишите /help для списка команд');
-        }
-    }
-});
-
-// ===== ОБРАБОТКА ОШИБОК =====
-bot.on('error', (error) => {
-    console.error('Ошибка бота:', error);
-});
-
-bot.on('polling_error', (error) => {
-    console.error('Ошибка polling:', error);
-});
-
-// ===== WEB-СЕРVER =====
+// ===== ЗАПУСК СЕРВЕРА =====
 app.use(express.static('public'));
 
-app.get('/', (req, res) => {
-    res.send(`
-        <html>
-            <body>
-                <h1>CasinoHub Bot Server</h1>
-                <p>Бот работает! Используйте Telegram для взаимодействия.</p>
-                <p>Токен: ${TOKEN ? 'установлен' : 'отсутствует'}</p>
-                <p>Админы: ${ADMINS.join(', ')}</p>
-            </body>
-        </html>
-    `);
-});
-
-// Запуск сервера
-app.listen(PORT, () => {
-    console.log(`
-🚀 Сервер запущен на порту ${PORT}
-🤖 Бот инициализирован с токеном: ${TOKEN ? 'YES' : 'NO'}
-👑 Администраторы: ${ADMINS.join(', ')}
-🌐 WebApp URL: ${WEB_APP_URL}
-    `);
+app.listen(3000, () => {
+    console.log('🚀 Сервер запущен на порту 3000');
+    console.log('🤖 Бот инициализирован');
     
+    // Проверка токена
     if (!TOKEN || TOKEN.includes('ВАШ_ТОКЕН')) {
-        console.error('❌ ОШИБКА: Токен бота не установлен!');
+        console.error('❌ ОШИБКА: Токен не настроен!');
+        return;
     }
     
-    if (ADMINS.length === 0 || ADMINS[0] === 123456789) {
-        console.error('❌ ОШИБКА: ID администраторов не настроены!');
-    }
+    console.log('✅ Токен установлен');
+    console.log('✅ Ожидаю сообщения...');
 });
