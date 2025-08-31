@@ -1,36 +1,78 @@
 {
-  "casinos": [
-    {
-      "id": 1,
-      "name": "Cryptoboss",
-      "promocode": "BOSS200",
-      "promoDescription": "200% на первый депозит + 100 фриспинов",
-      "description": "Лучшее крипто-казино с моментальными выплатами и щедрыми бонусами. Поддержка 24/7.",
-      "url": "https://cryptoboss.com/?ref=streamer123",
-      "registeredUrl": "https://cryptoboss.com/games",
-      "showRegisteredButton": true,
-      "hiddenKeywords": ["Cryptoboss", "Крипто босс", "КБ", "crypto"],
-      "category": "crypto",
-      "isActive": true
-    },
-    {
-      "id": 2,
-      "name": "Vulcan Vegas",
-      "promocode": "VULCAN100",
-      "promoDescription": "100% бонус на первый депозит до 1000$",
-      "description": "Проверенное казино с огромной коллекцией слотов и живыми дилерами.",
-      "url": "https://vulcan-vegas.com/?ref=promo",
-      "registeredUrl": "https://vulcan-vegas.com/casino",
-      "showRegisteredButton": true,
-      "hiddenKeywords": ["Vulcan", "Вулкан", "Вегас", "vulcan"],
-      "category": "popular",
-      "isActive": true
-    }
-  ],
-  "categories": [
-    {"id": "crypto", "name": "Крипто"},
-    {"id": "popular", "name": "Популярные"},
-    {"id": "new", "name": "Новые"}
-  ]
+    "casinos": [
+        {
+            "id": 1,
+            "name": "Cryptoboss",
+            "promocode": "BOSS200",
+            "promoDescription": "200% на первый депозит + 100 фриспинов",
+            "description": "Лучшее крипто-казино с моментальными выплатами и щедрыми бонусами. Поддержка 24/7.",
+            "url": "https://cryptoboss.com/?ref=streamer123",
+            "registeredUrl": "https://cryptoboss.com/games",
+            "showRegisteredButton": true,
+            "hiddenKeywords": [
+                "Cryptoboss",
+                "Крипто босс",
+                "КБ",
+                "crypto"
+            ],
+            "category": "cboss",
+            "isActive": true
+        },
+        {
+            "id": 2,
+            "name": "Куш",
+            "promocode": "SASH",
+            "promoDescription": "900 ФС + 225% к депозиту, вводить промо при регистрации",
+            "description": "Проверенное казино с огромной коллекцией слотов и живыми дилерами.",
+            "url": "https://play-kush-one.com/d2aee114a",
+            "registeredUrl": "",
+            "showRegisteredButton": false,
+            "hiddenKeywords": [
+                "Куш",
+                "Kush"
+            ],
+            "category": "popular",
+            "isActive": true
+        },
+        {
+            "id": 3,
+            "name": "Vulcan Vegas",
+            "promocode": "VULCAN100",
+            "promoDescription": "100% бонус на первый депозит до 1000$",
+            "description": "Проверенное казино с огромной коллекцией слотов и живыми дилерами.",
+            "url": "https://vulcan-vegas.com/?ref=promo",
+            "registeredUrl": "https://vulcan-vegas.com/casino",
+            "showRegisteredButton": true,
+            "hiddenKeywords": [
+                "Vulcan",
+                "Вулкан",
+                "Вегас",
+                "vulcan"
+            ],
+            "category": "popular",
+            "isActive": true
+        }
+    ],
+    "categories": [
+        {
+            "id": "cboss",
+            "name": "КБосс"
+        },
+        {
+            "id": "royal",
+            "name": "Роялы"
+        },
+        {
+            "id": "cats",
+            "name": "Коты"
+        },
+        {
+            "id": "popular",
+            "name": "Популярные"
+        },
+        {
+            "id": "new",
+            "name": "Новые"
+        }
+    ]
 }
-
