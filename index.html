@@ -380,35 +380,27 @@ let currentStreamStatus = { isStreamLive: false, streamUrl: '' };
 
 async function checkStreamStatus() {
     try {
-        // Проверяем не чаще чем раз в 2 секунды
-        const now = Date.now();
-        if (now - lastUpdateTime < 2000) return;
-        
-        lastUpdateTime = now;
-        
-        const response = await fetch('https://go-5zty.onrender.com/status?t=' + now);
+        // Используйте HTTPS вместо HTTP!
+        const response = await fetch('https://go-5zty.onrender.com/status?t=' + Date.now());
         const status = await response.json();
         
-        // Обновляем только если статус изменился
-        if (JSON.stringify(status) !== JSON.stringify(currentStreamStatus)) {
-            currentStreamStatus = status;
-            
-            const banner = document.getElementById('streamBanner');
-            const streamLink = document.getElementById('streamLink');
-            
-            if (!banner || !streamLink) return;
-            
-            if (status.isStreamLive && status.streamUrl) {
-                banner.style.display = 'block';
-                streamLink.href = status.streamUrl;
-                console.log('✅ Баннер стрима показан');
-            } else {
-                banner.style.display = 'none';
-                console.log('✅ Баннер стрима скрыт');
-            }
+        console.log('📡 Получен статус:', status); // Добавьте этот лог!
+        
+        const banner = document.getElementById('streamBanner');
+        const streamLink = document.getElementById('streamLink');
+        
+        if (!banner || !streamLink) return;
+        
+        if (status.isStreamLive && status.streamUrl) {
+            banner.style.display = 'block';
+            streamLink.href = status.streamUrl;
+            console.log('✅ Баннер стрима показан');
+        } else {
+            banner.style.display = 'none';
+            console.log('✅ Баннер стрима скрыт');
         }
     } catch (error) {
-        console.log('Не удалось проверить статус стрима');
+        console.log('❌ Не удалось проверить статус стрима:', error);
     }
 }
 
@@ -614,6 +606,7 @@ async function checkStreamStatus() {
     </script>
 </body>
 </html>
+
 
 
 
