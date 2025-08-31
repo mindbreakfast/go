@@ -1,42 +1,71 @@
 const TelegramBot = require('node-telegram-bot-api');
-const axios = require('axios'); // для запросов к API
+const express = require('express');
+const fs = require('fs').promises;
 
-const TOKEN = '8368808338:AAF25l680ekIKpzQyvDj9pKc2zByrJx9dII';
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// ==== НАСТРОЙКИ ====
+const TOKEN = process.env.BOT_TOKEN || '8368808338:AAF25l680ekIKpzQyvDj9pKc2zByrJx9dII';
 const ADMINS = [1777213824];
-const GITHUB_TOKEN = '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'; // если используете GitHub
-const STATUS_FILE_URL = 'https://api.github.com/repos/mindbreakfast/go/contents/status.json';
+// ===================
 
-const bot = new TelegramBot(TOKEN, { polling: true });
+const bot = new TelegramBot(TOKEN, { 
+    polling: true,
+    onlyFirstMatch: true
+});
 
-// Функция обновления статуса
+// Проверка прав
+function isAdmin(userId) {
+    return ADMINS.includes(Number(userId));
+}
+
+// Функция обновления статуса стрима
 async function updateStreamStatus(isLive, streamUrl = '') {
     try {
-        const newData = {
+        const statusData = {
             isStreamLive: isLive,
             streamUrl: streamUrl,
             lastUpdated: new Date().toISOString()
         };
-
-        // Если используете GitHub
-        const response = await axios.put(STATUS_FILE_URL, {
-            message: 'Update stream status',
-            content: Buffer.from(JSON.stringify(newData)).toString('base64'),
-            sha: '8b137891791fe96927ad78e64b0aad7bded08bdc' // нужен текущий sha файла
-        }, {
-            headers: { Authorization: `token ${GITHUB_TOKEN}` }
-        });
-
-        console.log('Статус обновлен!');
+        
+        // Сохраняем в файл (Render позволяет писать файлы во временную файловую систему)
+        await fs.writeFile('status.json', JSON.stringify(statusData, null, 2));
+        console.log('✅ Статус стрима обновлен:', statusData);
         return true;
+        
     } catch (error) {
-        console.error('Ошибка обновления:', error);
+        console.error('❌ Ошибка обновления статуса:', error);
         return false;
     }
 }
 
+// Команда /start
+bot.onText(/\/start/, (msg) => {
+    console.log('Получен /start от:', msg.from.id);
+    
+    const keyboard = {
+        reply_markup: {
+            inline_keyboard: [[
+                {
+                    text: '🎰 ОТКРЫТЬ СПИСОК КАЗИНО',
+                    web_app: { url: 'https://gogo-kohl-beta.vercel.app' }
+                }
+            ]]
+        }
+    };
+    
+    bot.sendMessage(msg.chat.id, 'Добро пожаловать! Нажмите кнопку ниже:', keyboard)
+        .catch(error => console.log('Ошибка отправки:', error));
+});
+
 // Команда /live
 bot.onText(/\/live (.+)/, async (msg, match) => {
-    if (!isAdmin(msg.from.id)) return;
+    console.log('Получен /live от:', msg.from.id);
+    
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
+    }
     
     const streamUrl = match[1];
     const success = await updateStreamStatus(true, streamUrl);
@@ -50,7 +79,11 @@ bot.onText(/\/live (.+)/, async (msg, match) => {
 
 // Команда /stop
 bot.onText(/\/stop/, async (msg) => {
-    if (!isAdmin(msg.from.id)) return;
+    console.log('Получен /stop от:', msg.from.id);
+    
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
+    }
     
     const success = await updateStreamStatus(false);
     
@@ -59,4 +92,30 @@ bot.onText(/\/stop/, async (msg) => {
     } else {
         bot.sendMessage(msg.chat.id, '❌ Ошибка обновления статуса');
     }
+});
+
+// Веб-сервер для проверки работы
+app.get('/', (req, res) => {
+    res.send(`
+        <h1>CasinoHub Bot Server</h1>
+        <p>Бот работает! Токен: ${TOKEN ? 'установлен' : 'отсутствует'}</p>
+        <p>Админы: ${ADMINS.join(', ')}</p>
+        <p><a href="https://t.me/your_bot_username">Написать боту</a></p>
+    `);
+});
+
+// Новый endpoint для проверки статуса стрима
+app.get('/status', async (req, res) => {
+    try {
+        const statusData = await fs.readFile('status.json', 'utf8');
+        res.json(JSON.parse(statusData));
+    } catch (error) {
+        res.json({ isStreamLive: false, streamUrl: '' });
+    }
+});
+
+app.listen(PORT, () => {
+    console.log(`🚀 Server started on port ${PORT}`);
+    console.log(`🤖 Bot token: ${TOKEN ? 'SET' : 'MISSING'}`);
+    console.log(`👑 Admins: ${ADMINS.join(', ')}`);
 });
