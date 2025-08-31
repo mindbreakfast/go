@@ -11,17 +11,8 @@ const ADMINS = [1777213824];
 const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app';
 // ===================
 
-// Создаем бота с уникальными параметрами polling
-const bot = new TelegramBot(TOKEN, {
-    polling: {
-        interval: 1000,
-        timeout: 10,
-        limit: 1,
-        params: {
-            allowed_updates: ['message', 'callback_query']
-        }
-    }
-});
+// Создаем бота БЕЗ автоматического polling
+const bot = new TelegramBot(TOKEN);
 
 // Проверка прав
 function isAdmin(userId) {
@@ -123,23 +114,49 @@ app.get('/casino-data', async (req, res) => {
     }
 });
 
+// Умная функция запуска polling с защитой от 409
+let isPolling = false;
+
+function startSmartPolling() {
+    if (isPolling) return;
+    
+    bot.startPolling({
+        interval: 300,
+        timeout: 10,
+        limit: 1,
+        params: {
+            allowed_updates: ['message']
+        }
+    }).then(() => {
+        isPolling = true;
+        console.log('✅ Polling успешно запущен');
+    }).catch(error => {
+        console.log('❌ Ошибка запуска polling:', error.message);
+        
+        if (error.message.includes('409')) {
+            console.log('🔄 Обнаружена ошибка 409, пробуем снова через 5 секунд...');
+            setTimeout(startSmartPolling, 5000);
+        }
+    });
+}
+
 // Обработка ошибок polling
 bot.on('polling_error', (error) => {
     console.log('Polling error:', error.code);
-    // При ошибке 409 просто перезапускаем polling
+    
     if (error.code === 'ETELEGRAM' && error.message.includes('409')) {
-        console.log('Обнаружена ошибка 409, перезапускаем polling...');
-        setTimeout(() => {
-            bot.stopPolling();
-            bot.startPolling();
-        }, 2000);
+        console.log('🔁 Обнаружена ошибка 409, перезапускаем polling...');
+        isPolling = false;
+        setTimeout(startSmartPolling, 3000);
     }
 });
 
-// Запускаем сервер
+// Запускаем сервер и умный polling
 app.listen(PORT, () => {
     console.log(`🚀 Server started on port ${PORT}`);
     console.log(`🤖 Bot token: ${TOKEN ? 'SET' : 'MISSING'}`);
-    console.log('✅ Бот готов к работе');
+    
+    // Запускаем polling через 3 секунды после старта сервера
+    setTimeout(startSmartPolling, 3000);
 });
 
