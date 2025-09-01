@@ -294,44 +294,78 @@ app.listen(PORT, () => {
 });
 
 
-// Endpoint для теста работы с файлами
-app.get('/test-file-operation', async (req, res) => {
-    const fs = require('fs').promises;
+// Тестовая команда для проверки чтения файла
+bot.onText(/\/test_read/, async (msg) => {
+    if (!isAdmin(msg.from.id)) return;
     
     try {
-        // 1. Попробуем прочитать файл
-        const currentData = await fs.readFile('data_default.json', 'utf8');
-        console.log('✅ Файл прочитан успешно');
+        const fs = require('fs').promises;
+        const data = await fs.readFile('data_default.json', 'utf8');
+        const jsonData = JSON.parse(data);
         
-        // 2. Попробуем записать файл
-        const testData = {
-            test: "success",
-            timestamp: new Date().toISOString()
+        bot.sendMessage(msg.chat.id, 
+            `✅ Файл прочитан успешно!\n` +
+            `Казино в базе: ${jsonData.casinos.length}\n` +
+            `Размер файла: ${data.length} байт`
+        );
+        
+    } catch (error) {
+        bot.sendMessage(msg.chat.id, 
+            `❌ Ошибка чтения файла:\n${error.message}`
+        );
+    }
+});
+
+// Тестовая команда для проверки записи файла
+bot.onText(/\/test_write/, async (msg) => {
+    if (!isAdmin(msg.from.id)) return;
+    
+    try {
+        const fs = require('fs').promises;
+        
+        // Пробуем записать тестовый файл
+        const testData = { 
+            test: "success", 
+            timestamp: new Date().toISOString(),
+            random: Math.random()
         };
         
         await fs.writeFile('test_file.json', JSON.stringify(testData, null, 2));
-        console.log('✅ Файл записан успешно');
         
-        // 3. Проверим, что записалось
+        // Пробуем прочитать обратно
         const writtenData = await fs.readFile('test_file.json', 'utf8');
-        console.log('✅ Данные верифицированы:', writtenData);
+        const parsedData = JSON.parse(writtenData);
         
-        res.json({
-            success: true,
-            message: 'Файловые операции работают!',
-            readData: JSON.parse(currentData),
-            writtenData: JSON.parse(writtenData)
-        });
+        bot.sendMessage(msg.chat.id, 
+            `✅ Файл записан успешно!\n` +
+            `Прочитанные данные: ${JSON.stringify(parsedData)}`
+        );
         
     } catch (error) {
-        console.error('❌ Ошибка файловых операций:', error);
-        res.json({
-            success: false,
-            error: error.message,
-            platform: process.platform,
-            cwd: process.cwd(),
-            files: await fs.readdir('.').catch(e => [])
-        });
+        bot.sendMessage(msg.chat.id, 
+            `❌ Ошибка записи файла:\n${error.message}`
+        );
+    }
+});
+
+// Тестовая команда для проверки списка файлов
+bot.onText(/\/test_files/, async (msg) => {
+    if (!isAdmin(msg.from.id)) return;
+    
+    try {
+        const fs = require('fs').promises;
+        const files = await fs.readdir('.');
+        
+        const textFiles = files.filter(f => f.endsWith('.json') || f.endsWith('.js'));
+        
+        bot.sendMessage(msg.chat.id, 
+            `📁 Файлы в директории:\n${textFiles.join('\n')}`
+        );
+        
+    } catch (error) {
+        bot.sendMessage(msg.chat.id, 
+            `❌ Ошибка чтения директории:\n${error.message}`
+        );
     }
 });
 
