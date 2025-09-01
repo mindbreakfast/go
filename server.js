@@ -25,6 +25,33 @@ const bot = new TelegramBot(TOKEN, {
     }
 });
 
+
+// Добавьте обработчик ошибок polling
+bot.on('polling_error', (error) => {
+    console.log('Polling error:', error.code);
+    
+    if (error.code === 'ETELEGRAM' && error.message.includes('409')) {
+        console.log('Обнаружена ошибка 409, перезапускаем polling через 5 секунд...');
+        setTimeout(() => {
+            bot.stopPolling();
+            bot.startPolling();
+        }, 5000);
+    }
+});
+
+// Принудительно закрываем предыдущие соединения при запуске
+bot.stopPolling().then(() => {
+    console.log('Предыдущие соединения закрыты');
+    setTimeout(() => {
+        bot.startPolling();
+        console.log('Polling перезапущен');
+    }, 3000);
+}).catch(() => {
+    bot.startPolling();
+});
+
+
+
 // Храним статус в памяти вместо файла
 let streamStatus = {
     isStreamLive: false,
@@ -270,3 +297,4 @@ bot.onText(/\/cancel/, (msg) => {
         bot.sendMessage(msg.chat.id, '✅ Текущая операция отменена.');
     }
 });
+
