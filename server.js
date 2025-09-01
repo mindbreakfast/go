@@ -118,22 +118,130 @@ bot.onText(/\/add (.+)/, async (msg, match) => {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
     }
     
-    // Здесь будет логика добавления казино
-    // Пока просто подтверждаем команду
-    bot.sendMessage(msg.chat.id, '📝 Команда добавления казино принята. Реализация в разработке.');
+    try {
+        const params = match[1].split('|').map(param => param.trim());
+        
+        if (params.length < 6) {
+            return bot.sendMessage(msg.chat.id, 
+                '❌ Неправильный формат!\n' +
+                'Используйте: /add name|promocode|promoDescription|url|category|hiddenKeywords\n' +
+                'Пример: /add NewCasino|WELCOME200|200% бонус|https://casino.com|popular|новое,казино'
+            );
+        }
+        
+        const [name, promocode, promoDescription, url, category, hiddenKeywords] = params;
+        
+        // Читаем текущие данные
+        const fs = require('fs').promises;
+        const data = await fs.readFile('data_default.json', 'utf8');
+        const jsonData = JSON.parse(data);
+        
+        // Создаем новое казино
+        const newCasino = {
+            id: Math.max(...jsonData.casinos.map(c => c.id)) + 1,
+            name: name,
+            promocode: promocode,
+            promoDescription: promoDescription,
+            description: "Добавлено через бота",
+            url: url,
+            registeredUrl: url.replace('ref=', ''),
+            showRegisteredButton: true,
+            hiddenKeywords: hiddenKeywords.split(',').map(kw => kw.trim()),
+            category: category,
+            isActive: true
+        };
+        
+        // Добавляем в массив
+        jsonData.casinos.push(newCasino);
+        
+        // Сохраняем обратно
+        await fs.writeFile('data_default.json', JSON.stringify(jsonData, null, 2));
+        
+        bot.sendMessage(msg.chat.id, 
+            `✅ Казино добавлено!\n` +
+            `🎰 Name: ${name}\n` +
+            `🎯 Promo: ${promocode}\n` +
+            `🏷️ Category: ${category}`
+        );
+        
+    } catch (error) {
+        console.error('Ошибка добавления казино:', error);
+        bot.sendMessage(msg.chat.id, '❌ Ошибка при добавлении казино: ' + error.message);
+    }
 });
 
+
 // Команда /remove - удаление казино через бота
-bot.onText(/\/remove (.+)/, async (msg, match) => {
+// Команда /remove - удаление/скрытие казино
+bot.onText(/\/remove (\d+)/, async (msg, match) => {
     console.log('Получен /remove от:', msg.from.id);
     
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
     }
     
-    const casinoId = match[1];
-    bot.sendMessage(msg.chat.id, `🗑️ Команда удаления казино ID: ${casinoId} принята. Реализация в разработке.`);
+    try {
+        const casinoId = parseInt(match[1]);
+        
+        // Читаем текущие данные
+        const fs = require('fs').promises;
+        const data = await fs.readFile('data_default.json', 'utf8');
+        const jsonData = JSON.parse(data);
+        
+        // Находим казино
+        const casinoIndex = jsonData.casinos.findIndex(c => c.id === casinoId);
+        
+        if (casinoIndex === -1) {
+            return bot.sendMessage(msg.chat.id, '❌ Казино с таким ID не найдено');
+        }
+        
+        // Удаляем или деактивируем
+        const casinoName = jsonData.casinos[casinoIndex].name;
+        jsonData.casinos.splice(casinoIndex, 1); // Полное удаление
+        // Или: jsonData.casinos[casinoIndex].isActive = false; // Скрытие
+        
+        // Сохраняем обратно
+        await fs.writeFile('data_default.json', JSON.stringify(jsonData, null, 2));
+        
+        bot.sendMessage(msg.chat.id, 
+            `✅ Казино удалено!\n` +
+            `🎰 Name: ${casinoName}\n` +
+            `🗑️ ID: ${casinoId}`
+        );
+        
+    } catch (error) {
+        console.error('Ошибка удаления казино:', error);
+        bot.sendMessage(msg.chat.id, '❌ Ошибка при удалении казино: ' + error.message);
+    }
 });
+
+// Команда /list - список всех казино
+bot.onText(/\/list/, async (msg) => {
+    console.log('Получен /list от:', msg.from.id);
+    
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
+    }
+    
+    try {
+        const fs = require('fs').promises;
+        const data = await fs.readFile('data_default.json', 'utf8');
+        const jsonData = JSON.parse(data);
+        
+        const casinoList = jsonData.casinos.map(c => 
+            `${c.id}: ${c.name} (${c.promocode}) - ${c.category}`
+        ).join('\n');
+        
+        bot.sendMessage(msg.chat.id, 
+            `📋 Список казино (${jsonData.casinos.length}):\n\n${casinoList}`
+        );
+        
+    } catch (error) {
+        console.error('Ошибка получения списка:', error);
+        bot.sendMessage(msg.chat.id, '❌ Ошибка при получении списка казино');
+    }
+});
+
 
 // Веб-сервер
 app.get('/', (req, res) => {
@@ -184,5 +292,6 @@ app.listen(PORT, () => {
         console.log('❌ Ошибка подключения к Telegram API:', error.message);
     });
 });
+
 
 
