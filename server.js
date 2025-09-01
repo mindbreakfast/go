@@ -294,4 +294,44 @@ app.listen(PORT, () => {
 });
 
 
+// Endpoint для теста работы с файлами
+app.get('/test-file-operation', async (req, res) => {
+    const fs = require('fs').promises;
+    
+    try {
+        // 1. Попробуем прочитать файл
+        const currentData = await fs.readFile('data_default.json', 'utf8');
+        console.log('✅ Файл прочитан успешно');
+        
+        // 2. Попробуем записать файл
+        const testData = {
+            test: "success",
+            timestamp: new Date().toISOString()
+        };
+        
+        await fs.writeFile('test_file.json', JSON.stringify(testData, null, 2));
+        console.log('✅ Файл записан успешно');
+        
+        // 3. Проверим, что записалось
+        const writtenData = await fs.readFile('test_file.json', 'utf8');
+        console.log('✅ Данные верифицированы:', writtenData);
+        
+        res.json({
+            success: true,
+            message: 'Файловые операции работают!',
+            readData: JSON.parse(currentData),
+            writtenData: JSON.parse(writtenData)
+        });
+        
+    } catch (error) {
+        console.error('❌ Ошибка файловых операций:', error);
+        res.json({
+            success: false,
+            error: error.message,
+            platform: process.platform,
+            cwd: process.cwd(),
+            files: await fs.readdir('.').catch(e => [])
+        });
+    }
+});
 
