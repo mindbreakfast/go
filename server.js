@@ -31,7 +31,7 @@ const bot = new TelegramBot(TOKEN, {
 class GitHubAPI {
     constructor() {
         // Используем токен из переменных окружения (безопаснее)
-        this.token = process.env.GITHUB_TOKEN || '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';
+        this.token = process.env.GITHUB_TOKEN || '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';
         this.repo = 'mindbreakfast/go';
         this.filePath = 'data_default.json';
         
@@ -524,4 +524,5 @@ setTimeout(() => {
         bot.startPolling();
     });
 }, 2000);
+
 
