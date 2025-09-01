@@ -11,6 +11,21 @@ const ADMINS = [1777213824];
 const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app';
 // ===================
 
+// Разрешаем CORS запросы
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+});
+
+// Создаем бота ВНАЧАЛЕ
+const bot = new TelegramBot(TOKEN, { 
+    polling: {
+        interval: 300,
+        timeout: 10,
+        limit: 100
+    }
+});
 
 // ==== GITHUB API ====
 class GitHubAPI {
@@ -20,7 +35,6 @@ class GitHubAPI {
         this.filePath = 'data_default.json';
     }
 
-    // Получить текущий SHA файла
     async getFileSHA() {
         return new Promise((resolve, reject) => {
             const options = {
@@ -70,7 +84,6 @@ class GitHubAPI {
         });
     }
 
-    // Обновить файл на GitHub
     async updateFile(content) {
         try {
             console.log('🔄 Попытка обновления файла на GitHub...');
@@ -125,8 +138,6 @@ class GitHubAPI {
 }
 
 const githubAPI = new GitHubAPI();
-
-
 // ===================
 
 
@@ -486,6 +497,9 @@ bot.on('message', async (msg) => {
     }
 });
 
+
+
+
 // ===== WEB-СЕРВЕР =====
 app.get('/', (req, res) => {
     res.send(`
@@ -496,6 +510,22 @@ app.get('/', (req, res) => {
         <p>📊 Статус: <a href="/status">/status</a></p>
     `);
 });
+
+app.listen(PORT, () => {
+    console.log('===================================');
+    console.log('🚀 CasinoHub Bot Server запущен!');
+    console.log('📞 Порт:', PORT);
+    console.log('🤖 Токен установлен');
+    console.log('👑 Админы:', ADMINS.join(', '));
+    console.log('🔗 GitHub API: настроен');
+    console.log('===================================');
+});
+
+// ===================
+
+
+
+
 
 app.get('/status', (req, res) => {
     res.json(streamStatus);
@@ -533,4 +563,7 @@ setTimeout(() => {
         bot.startPolling();
     });
 }, 2000);
+
+
+
 
