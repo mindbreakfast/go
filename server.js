@@ -1,5 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
+const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,6 +11,102 @@ const ADMINS = [1777213824];
 const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app';
 // ===================
 
+// ==== GITHUB API ====
+class GitHubAPI {
+    constructor() {
+        this.token = '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';
+        this.repo = 'mindbreakfast/go';
+        this.filePath = 'data_default.json';
+    }
+
+    // Получить текущий SHA файла
+    async getFileSHA() {
+        return new Promise((resolve, reject) => {
+            const options = {
+                hostname: 'api.github.com',
+                path: `/repos/${this.repo}/contents/${this.filePath}`,
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.token}`,
+                    'User-Agent': 'Node.js',
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            };
+
+            const req = https.request(options, (res) => {
+                let data = '';
+                res.on('data', (chunk) => data += chunk);
+                res.on('end', () => {
+                    try {
+                        const response = JSON.parse(data);
+                        if (response.sha) {
+                            resolve(response.sha);
+                        } else {
+                            reject(new Error('SHA не найден в ответе'));
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            });
+
+            req.on('error', reject);
+            req.end();
+        });
+    }
+
+    // Обновить файл на GitHub
+    async updateFile(content) {
+        try {
+            const sha = await this.getFileSHA();
+            
+            return new Promise((resolve, reject) => {
+                const postData = JSON.stringify({
+                    message: '🤖 Update casino list via bot',
+                    content: Buffer.from(content).toString('base64'),
+                    sha: sha
+                });
+
+                const options = {
+                    hostname: 'api.github.com',
+                    path: `/repos/${this.repo}/contents/${this.filePath}`,
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${this.token}`,
+                        'User-Agent': 'Node.js',
+                        'Content-Type': 'application/json',
+                        'Content-Length': postData.length,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                };
+
+                const req = https.request(options, (res) => {
+                    let data = '';
+                    res.on('data', (chunk) => data += chunk);
+                    res.on('end', () => {
+                        try {
+                            resolve(JSON.parse(data));
+                        } catch (e) {
+                            resolve(data);
+                        }
+                    });
+                });
+
+                req.on('error', reject);
+                req.write(postData);
+                req.end();
+            });
+
+        } catch (error) {
+            console.error('❌ Ошибка получения SHA:', error);
+            throw error;
+        }
+    }
+}
+
+const githubAPI = new GitHubAPI();
+// ===================
+
 // Разрешаем CORS запросы
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -17,7 +114,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// Создаем бота с новым токеном
+// Создаем бота
 const bot = new TelegramBot(TOKEN, { 
     polling: {
         interval: 300,
@@ -26,7 +123,7 @@ const bot = new TelegramBot(TOKEN, {
     }
 });
 
-// Храним статус в памяти вместо файла
+// Храним статус в памяти
 let streamStatus = {
     isStreamLive: false,
     streamUrl: '',
@@ -167,6 +264,18 @@ bot.onText(/\/cancel/, (msg) => {
     }
 });
 
+// Команда для теста GitHub API
+bot.onText(/\/test_github/, async (msg) => {
+    if (!isAdmin(msg.from.id)) return;
+    
+    try {
+        const sha = await githubAPI.getFileSHA();
+        bot.sendMessage(msg.chat.id, `✅ GitHub API работает! SHA: ${sha}`);
+    } catch (error) {
+        bot.sendMessage(msg.chat.id, `❌ GitHub API ошибка: ${error.message}`);
+    }
+});
+
 // ===== ОБРАБОТЧИК ТЕКСТОВЫХ СООБЩЕНИЙ =====
 bot.on('message', async (msg) => {
     if (!msg.text || msg.text.startsWith('/')) return;
@@ -237,77 +346,62 @@ bot.on('message', async (msg) => {
                 );
                 break;
 
-            
-case ADD_CASINO_STEPS.CONFIRM:
-    if (msg.text.toLowerCase() === 'да') {
-        try {
-            const fs = require('fs').promises;
-            
-            // Диагностика: проверяем доступ к файлам
-            try {
-                const files = await fs.readdir('.');
-                console.log('📁 Файлы в директории:', files);
-            } catch (dirError) {
-                console.log('❌ Ошибка чтения директории:', dirError.message);
-            }
-            
-            // Пробуем прочитать файл
-            const data = await fs.readFile('data_default.json', 'utf8');
-            const jsonData = JSON.parse(data);
-            console.log('✅ Файл прочитан, казино в базе:', jsonData.casinos.length);
-            
-            // Создаем новое казино
-            const newCasino = {
-                id: Math.max(0, ...jsonData.casinos.map(c => c.id)) + 1,
-                name: userState.newCasino.name,
-                promocode: userState.newCasino.promocode,
-                promoDescription: userState.newCasino.promoDescription,
-                description: "Добавлено через бота",
-                url: userState.newCasino.url,
-                registeredUrl: userState.newCasino.registeredUrl,
-                showRegisteredButton: true,
-                hiddenKeywords: userState.newCasino.hiddenKeywords,
-                category: userState.newCasino.category,
-                isActive: true
-            };
-            
-            // Добавляем в массив
-            jsonData.casinos.push(newCasino);
-            console.log('🆕 Новое казино подготовлено:', newCasino.name);
-            
-            // Пробуем записать файл
-            await fs.writeFile('data_default.json', JSON.stringify(jsonData, null, 2));
-            console.log('💾 Файл успешно записан');
-            
-            // Пробуем прочитать обратно для проверки
-            const verifyData = await fs.readFile('data_default.json', 'utf8');
-            const verifyJson = JSON.parse(verifyData);
-            console.log('✅ Проверка: казино после записи:', verifyJson.casinos.length);
-            
-            bot.sendMessage(msg.chat.id,
-                `✅ Казино успешно добавлено!\n` +
-                `ID: ${newCasino.id}\n` +
-                `Название: ${newCasino.name}\n` +
-                `Изменения появятся при следующей загрузке приложения.`
-            );
-            
-        } catch (fileError) {
-            console.error('❌ Ошибка работы с файлом:', fileError);
-            bot.sendMessage(msg.chat.id,
-                `❌ Ошибка при сохранении: ${fileError.message}\n` +
-                `Данные остались без изменений.`
-            );
-        }
-        
-    } else {
-        bot.sendMessage(msg.chat.id, '❌ Добавление отменено.');
-    }
-    
-    userStates.delete(userId);
-    break;
-
-
+            case ADD_CASINO_STEPS.CONFIRM:
+                if (msg.text.toLowerCase() === 'да') {
+                    try {
+                        const fs = require('fs').promises;
+                        const data = await fs.readFile('data_default.json', 'utf8');
+                        const jsonData = JSON.parse(data);
+                        
+                        const newCasino = {
+                            id: Math.max(0, ...jsonData.casinos.map(c => c.id)) + 1,
+                            name: userState.newCasino.name,
+                            promocode: userState.newCasino.promocode,
+                            promoDescription: userState.newCasino.promoDescription,
+                            description: "Добавлено через бота",
+                            url: userState.newCasino.url,
+                            registeredUrl: userState.newCasino.registeredUrl,
+                            showRegisteredButton: true,
+                            hiddenKeywords: userState.newCasino.hiddenKeywords,
+                            category: userState.newCasino.category,
+                            isActive: true
+                        };
+                        
+                        jsonData.casinos.push(newCasino);
+                        const newContent = JSON.stringify(jsonData, null, 2);
+                        
+                        // Сохраняем локально
+                        await fs.writeFile('data_default.json', newContent);
+                        
+                        // Обновляем на GitHub
+                        try {
+                            await githubAPI.updateFile(newContent);
+                            bot.sendMessage(msg.chat.id,
+                                `✅ Казино успешно добавлено!\n` +
+                                `ID: ${newCasino.id}\n` +
+                                `Название: ${newCasino.name}\n` +
+                                `Изменения сохранены на GitHub!`
+                            );
+                        } catch (githubError) {
+                            console.error('GitHub error:', githubError);
+                            bot.sendMessage(msg.chat.id,
+                                `✅ Казино добавлено локально!\n` +
+                                `❌ Ошибка GitHub: ${githubError.message}\n` +
+                                `Нужно обновить файл вручную.`
+                            );
+                        }
+                        
+                    } catch (error) {
+                        console.error('❌ Ошибка:', error);
+                        bot.sendMessage(msg.chat.id, '❌ Ошибка при добавлении казино.');
+                    }
+                    
+                } else {
+                    bot.sendMessage(msg.chat.id, '❌ Добавление отменено.');
+                }
                 
+                userStates.delete(userId);
+                break;
         }
         
     } catch (error) {
@@ -317,44 +411,7 @@ case ADD_CASINO_STEPS.CONFIRM:
     }
 });
 
-// Команда для диагностики файловой системы
-bot.onText(/\/debug_fs/, async (msg) => {
-    if (!isAdmin(msg.from.id)) return;
-    
-    try {
-        const fs = require('fs').promises;
-        
-        const files = await fs.readdir('.');
-        const jsonFiles = files.filter(f => f.endsWith('.json'));
-        
-        let fileInfo = [];
-        for (const file of jsonFiles) {
-            try {
-                const stats = await fs.stat(file);
-                const content = await fs.readFile(file, 'utf8');
-                fileInfo.push({
-                    name: file,
-                    size: stats.size,
-                    lines: content.split('\n').length
-                });
-            } catch (e) {
-                fileInfo.push({ name: file, error: e.message });
-            }
-        }
-        
-        bot.sendMessage(msg.chat.id,
-            `📁 Файловая система:\n` +
-            `Файлы: ${files.join(', ')}\n` +
-            `JSON файлы: ${JSON.stringify(fileInfo, null, 2)}`
-        );
-        
-    } catch (error) {
-        bot.sendMessage(msg.chat.id, `❌ Ошибка диагностики: ${error.message}`);
-    }
-});
-
-
-// ===== WEB-СЕРВЕР ДЛЯ RENDER =====
+// ===== WEB-СЕРВЕР =====
 app.get('/', (req, res) => {
     res.send(`
         <h1>CasinoHub Bot Server</h1>
@@ -379,9 +436,6 @@ app.get('/casino-data', async (req, res) => {
     }
 });
 
-
-
-
 // ===== ЗАПУСК СЕРВЕРА =====
 app.listen(PORT, () => {
     console.log('===================================');
@@ -389,6 +443,7 @@ app.listen(PORT, () => {
     console.log('📞 Порт:', PORT);
     console.log('🤖 Токен установлен');
     console.log('👑 Админы:', ADMINS.join(', '));
+    console.log('🔗 GitHub API: настроен');
     console.log('===================================');
 });
 
@@ -403,5 +458,3 @@ setTimeout(() => {
         bot.startPolling();
     });
 }, 2000);
-
-
