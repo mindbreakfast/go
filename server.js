@@ -2,12 +2,6 @@ const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 
 const app = express();
-// Добавьте в начало server.js после express()
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    next();
-});
 const PORT = process.env.PORT || 3000;
 
 // ==== НАСТРОЙКИ ====
@@ -15,6 +9,13 @@ const TOKEN = process.env.BOT_TOKEN || '8368808338:AAECcdNDbVJkwlgTlXV_aVnhxrG3w
 const ADMINS = [1777213824];
 const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app';
 // ===================
+
+// Разрешаем CORS запросы
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+});
 
 const bot = new TelegramBot(TOKEN, { 
     polling: {
@@ -28,6 +29,7 @@ const bot = new TelegramBot(TOKEN, {
 let streamStatus = {
     isStreamLive: false,
     streamUrl: '',
+    eventDescription: '',
     lastUpdated: new Date().toISOString()
 };
 
@@ -37,15 +39,16 @@ function isAdmin(userId) {
 }
 
 // Функция обновления статуса стрима (в памяти)
-async function updateStreamStatus(isLive, streamUrl = '') {
+async function updateStreamStatus(isLive, streamUrl = '', eventDescription = '') {
     try {
         streamStatus = {
             isStreamLive: isLive,
             streamUrl: streamUrl,
+            eventDescription: eventDescription,
             lastUpdated: new Date().toISOString()
         };
         
-        console.log('✅ Статус стрима обновлен в памяти:', streamStatus);
+        console.log('✅ Статус стрима обновлен:', streamStatus);
         return true;
         
     } catch (error) {
@@ -73,19 +76,21 @@ bot.onText(/\/start/, (msg) => {
         .catch(error => console.log('Ошибка отправки:', error));
 });
 
-// Команда /live
-bot.onText(/\/live (.+)/, async (msg, match) => {
+// Команда /live - теперь с описанием
+bot.onText(/\/live (.+) (.+)/, async (msg, match) => {
     console.log('Получен /live от:', msg.from.id);
     
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
     }
     
-    const streamUrl = match[1];
-    const success = await updateStreamStatus(true, streamUrl);
+    const streamUrl = match[1]; // Первый параметр - ссылка
+    const eventDescription = match[2]; // Второй параметр - описание
+    
+    const success = await updateStreamStatus(true, streamUrl, eventDescription);
     
     bot.sendMessage(msg.chat.id, success ? 
-        `✅ Стрим запущен: ${streamUrl}` : 
+        `✅ Стрим запущен!\nСсылка: ${streamUrl}\nОписание: ${eventDescription}` : 
         '❌ Ошибка обновления статуса'
     );
 });
@@ -98,11 +103,36 @@ bot.onText(/\/stop/, async (msg) => {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
     }
     
-    const success = await updateStreamStatus(false);
+    const success = await updateStreamStatus(false, '', '');
     bot.sendMessage(msg.chat.id, success ? 
         '✅ Стрим остановлен' : 
         '❌ Ошибка обновления статуса'
     );
+});
+
+// Команда /add - добавление казино через бота
+bot.onText(/\/add (.+)/, async (msg, match) => {
+    console.log('Получен /add от:', msg.from.id);
+    
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
+    }
+    
+    // Здесь будет логика добавления казино
+    // Пока просто подтверждаем команду
+    bot.sendMessage(msg.chat.id, '📝 Команда добавления казино принята. Реализация в разработке.');
+});
+
+// Команда /remove - удаление казино через бота
+bot.onText(/\/remove (.+)/, async (msg, match) => {
+    console.log('Получен /remove от:', msg.from.id);
+    
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
+    }
+    
+    const casinoId = match[1];
+    bot.sendMessage(msg.chat.id, `🗑️ Команда удаления казино ID: ${casinoId} принята. Реализация в разработке.`);
 });
 
 // Веб-сервер
@@ -145,5 +175,14 @@ app.listen(PORT, () => {
     console.log('🌐 WebApp URL:', WEB_APP_URL);
     console.log('💾 Статус хранится в памяти');
     console.log('===================================');
+    
+    // Проверяем подключение к Telegram API
+    bot.getMe().then(botInfo => {
+        console.log('✅ Бот успешно подключен к Telegram API');
+        console.log('🤖 Username бота:', botInfo.username);
+    }).catch(error => {
+        console.log('❌ Ошибка подключения к Telegram API:', error.message);
+    });
 });
+
 
