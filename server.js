@@ -11,6 +11,7 @@ const ADMINS = [1777213824];
 const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app';
 // ===================
 
+
 // ==== GITHUB API ====
 class GitHubAPI {
     constructor() {
@@ -33,24 +34,38 @@ class GitHubAPI {
                 }
             };
 
+            console.log('🔍 Запрос SHA по пути:', options.path);
+
             const req = https.request(options, (res) => {
                 let data = '';
+                console.log('📡 Статус ответа GitHub:', res.statusCode);
+                
                 res.on('data', (chunk) => data += chunk);
                 res.on('end', () => {
+                    console.log('📋 Ответ GitHub:', data);
+                    
                     try {
                         const response = JSON.parse(data);
+                        
                         if (response.sha) {
+                            console.log('✅ SHA найден:', response.sha);
                             resolve(response.sha);
+                        } else if (response.message === 'Not Found') {
+                            reject(new Error('Файл не найден на GitHub. Проверьте путь.'));
                         } else {
-                            reject(new Error('SHA не найден в ответе'));
+                            reject(new Error('SHA не найден в ответе: ' + JSON.stringify(response)));
                         }
                     } catch (error) {
-                        reject(error);
+                        reject(new Error('Ошибка парсинга ответа: ' + data));
                     }
                 });
             });
 
-            req.on('error', reject);
+            req.on('error', (error) => {
+                console.error('❌ Ошибка запроса:', error);
+                reject(error);
+            });
+            
             req.end();
         });
     }
@@ -58,7 +73,9 @@ class GitHubAPI {
     // Обновить файл на GitHub
     async updateFile(content) {
         try {
+            console.log('🔄 Попытка обновления файла на GitHub...');
             const sha = await this.getFileSHA();
+            console.log('🔑 Получен SHA:', sha);
             
             return new Promise((resolve, reject) => {
                 const postData = JSON.stringify({
@@ -82,8 +99,11 @@ class GitHubAPI {
 
                 const req = https.request(options, (res) => {
                     let data = '';
+                    console.log('📡 Статус ответа (PUT):', res.statusCode);
+                    
                     res.on('data', (chunk) => data += chunk);
                     res.on('end', () => {
+                        console.log('📋 Ответ (PUT):', data);
                         try {
                             resolve(JSON.parse(data));
                         } catch (e) {
@@ -98,14 +118,69 @@ class GitHubAPI {
             });
 
         } catch (error) {
-            console.error('❌ Ошибка получения SHA:', error);
+            console.error('❌ Ошибка получения SHA:', error.message);
             throw error;
         }
     }
 }
 
 const githubAPI = new GitHubAPI();
+
+
 // ===================
+
+
+
+
+// Команда для диагностики GitHub
+bot.onText(/\/debug_github/, async (msg) => {
+    if (!isAdmin(msg.from.id)) return;
+    
+    try {
+        bot.sendMessage(msg.chat.id, '🔍 Проверяю доступ к GitHub...');
+        
+        const options = {
+            hostname: 'api.github.com',
+            path: '/user',
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${githubAPI.token}`,
+                'User-Agent': 'Node.js',
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => data += chunk);
+            res.on('end', () => {
+                try {
+                    const userInfo = JSON.parse(data);
+                    bot.sendMessage(msg.chat.id,
+                        `✅ GitHub API доступен!\n` +
+                        `👤 User: ${userInfo.login || 'unknown'}\n` +
+                        `📧 Email: ${userInfo.email || 'hidden'}\n` +
+                        `🏢 Company: ${userInfo.company || 'none'}`
+                    );
+                } catch (error) {
+                    bot.sendMessage(msg.chat.id, `❌ Ошибка: ${data}`);
+                }
+            });
+        });
+
+        req.on('error', (error) => {
+            bot.sendMessage(msg.chat.id, `❌ Ошибка подключения: ${error.message}`);
+        });
+
+        req.end();
+
+    } catch (error) {
+        bot.sendMessage(msg.chat.id, `❌ Ошибка: ${error.message}`);
+    }
+});
+
+
+
 
 // Разрешаем CORS запросы
 app.use((req, res, next) => {
@@ -458,3 +533,4 @@ setTimeout(() => {
         bot.startPolling();
     });
 }, 2000);
+
