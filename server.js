@@ -17,6 +17,7 @@ app.use((req, res, next) => {
     next();
 });
 
+// Создаем бота с новым токеном
 const bot = new TelegramBot(TOKEN, { 
     polling: {
         interval: 300,
@@ -24,33 +25,6 @@ const bot = new TelegramBot(TOKEN, {
         limit: 100
     }
 });
-
-
-// Добавьте обработчик ошибок polling
-bot.on('polling_error', (error) => {
-    console.log('Polling error:', error.code);
-    
-    if (error.code === 'ETELEGRAM' && error.message.includes('409')) {
-        console.log('Обнаружена ошибка 409, перезапускаем polling через 5 секунд...');
-        setTimeout(() => {
-            bot.stopPolling();
-            bot.startPolling();
-        }, 5000);
-    }
-});
-
-// Принудительно закрываем предыдущие соединения при запуске
-bot.stopPolling().then(() => {
-    console.log('Предыдущие соединения закрыты');
-    setTimeout(() => {
-        bot.startPolling();
-        console.log('Polling перезапущен');
-    }, 3000);
-}).catch(() => {
-    bot.startPolling();
-});
-
-
 
 // Храним статус в памяти вместо файла
 let streamStatus = {
@@ -60,12 +34,41 @@ let streamStatus = {
     lastUpdated: new Date().toISOString()
 };
 
-// Проверка прав
+// ===== СИСТЕМА МНОГОШАГОВОГО ДОБАВЛЕНИЯ КАЗИНО =====
+const userStates = new Map();
+const ADD_CASINO_STEPS = {
+    START: 'start',
+    NAME: 'name',
+    PROMOCODE: 'promocode', 
+    DESCRIPTION: 'description',
+    URL: 'url',
+    CATEGORY: 'category',
+    KEYWORDS: 'keywords',
+    CONFIRM: 'confirm'
+};
+
+// ===== ОБРАБОТКА ОШИБОК POLLING =====
+bot.on('polling_error', (error) => {
+    console.log('Polling error:', error.code);
+    
+    if (error.code === 'ETELEGRAM' && error.message.includes('409')) {
+        console.log('Обнаружена ошибка 409, перезапускаем polling через 5 секунд...');
+        setTimeout(() => {
+            bot.stopPolling().then(() => {
+                console.log('Старый polling остановлен');
+                bot.startPolling();
+                console.log('Новый polling запущен');
+            });
+        }, 5000);
+    }
+});
+
+// ===== ПРОВЕРКА ПРАВ =====
 function isAdmin(userId) {
     return ADMINS.includes(Number(userId));
 }
 
-// Функция обновления статуса стрима (в памяти)
+// ===== ФУНКЦИЯ ОБНОВЛЕНИЯ СТАТУСА СТРИМА =====
 async function updateStreamStatus(isLive, streamUrl = '', eventDescription = '') {
     try {
         streamStatus = {
@@ -83,6 +86,8 @@ async function updateStreamStatus(isLive, streamUrl = '', eventDescription = '')
         return false;
     }
 }
+
+// ===== КОМАНДЫ БОТА =====
 
 // Команда /start
 bot.onText(/\/start/, (msg) => {
@@ -103,7 +108,7 @@ bot.onText(/\/start/, (msg) => {
         .catch(error => console.log('Ошибка отправки:', error));
 });
 
-// Команда /live - теперь с описанием
+// Команда /live - с описанием
 bot.onText(/\/live (.+) (.+)/, async (msg, match) => {
     console.log('Получен /live от:', msg.from.id);
     
@@ -111,8 +116,8 @@ bot.onText(/\/live (.+) (.+)/, async (msg, match) => {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
     }
     
-    const streamUrl = match[1]; // Первый параметр - ссылка
-    const eventDescription = match[2]; // Второй параметр - описание
+    const streamUrl = match[1];
+    const eventDescription = match[2];
     
     const success = await updateStreamStatus(true, streamUrl, eventDescription);
     
@@ -137,28 +142,12 @@ bot.onText(/\/stop/, async (msg) => {
     );
 });
 
-// ===== СИСТЕМА МНОГОШАГОВОГО ДОБАВЛЕНИЯ КАЗИНО =====
-const userStates = new Map();
-
-// Шаги добавления казино
-const ADD_CASINO_STEPS = {
-    START: 'start',
-    NAME: 'name',
-    PROMOCODE: 'promocode', 
-    DESCRIPTION: 'description',
-    URL: 'url',
-    CATEGORY: 'category',
-    KEYWORDS: 'keywords',
-    CONFIRM: 'confirm'
-};
-
 // Команда /add - начало диалога
 bot.onText(/\/add/, (msg) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
     }
 
-    // Начинаем новый процесс добавления
     userStates.set(msg.from.id, {
         step: ADD_CASINO_STEPS.NAME,
         newCasino: {}
@@ -170,7 +159,15 @@ bot.onText(/\/add/, (msg) => {
     );
 });
 
-// Обработчик текстовых сообщений (для многошагового диалога)
+// Команда /cancel для отмены процесса
+bot.onText(/\/cancel/, (msg) => {
+    if (userStates.has(msg.from.id)) {
+        userStates.delete(msg.from.id);
+        bot.sendMessage(msg.chat.id, '✅ Текущая операция отменена.');
+    }
+});
+
+// ===== ОБРАБОТЧИК ТЕКСТОВЫХ СООБЩЕНИЙ =====
 bot.on('message', async (msg) => {
     if (!msg.text || msg.text.startsWith('/')) return;
     
@@ -204,7 +201,6 @@ bot.on('message', async (msg) => {
                 userState.newCasino.registeredUrl = msg.text.replace('ref=', '');
                 userState.step = ADD_CASINO_STEPS.CATEGORY;
                 
-                // Получаем список категорий для подсказки
                 const fs = require('fs').promises;
                 const data = await fs.readFile('data_default.json', 'utf8');
                 const jsonData = JSON.parse(data);
@@ -228,7 +224,6 @@ bot.on('message', async (msg) => {
                 userState.newCasino.hiddenKeywords = msg.text.split(',').map(kw => kw.trim());
                 userState.step = ADD_CASINO_STEPS.CONFIRM;
                 
-                // Показываем summary для подтверждения
                 const casino = userState.newCasino;
                 bot.sendMessage(msg.chat.id,
                     `✅ Проверьте данные:\n\n` +
@@ -244,12 +239,10 @@ bot.on('message', async (msg) => {
 
             case ADD_CASINO_STEPS.CONFIRM:
                 if (msg.text.toLowerCase() === 'да') {
-                    // Сохраняем казино в файл
                     const fs = require('fs').promises;
                     const data = await fs.readFile('data_default.json', 'utf8');
                     const jsonData = JSON.parse(data);
                     
-                    // Создаем полный объект казино
                     const newCasino = {
                         id: Math.max(0, ...jsonData.casinos.map(c => c.id)) + 1,
                         name: userState.newCasino.name,
@@ -264,7 +257,6 @@ bot.on('message', async (msg) => {
                         isActive: true
                     };
                     
-                    // Добавляем и сохраняем
                     jsonData.casinos.push(newCasino);
                     await fs.writeFile('data_default.json', JSON.stringify(jsonData, null, 2));
                     
@@ -278,7 +270,6 @@ bot.on('message', async (msg) => {
                     bot.sendMessage(msg.chat.id, '❌ Добавление отменено.');
                 }
                 
-                // Очищаем состояние
                 userStates.delete(userId);
                 break;
         }
@@ -290,11 +281,50 @@ bot.on('message', async (msg) => {
     }
 });
 
-// Команда /cancel для отмены процесса
-bot.onText(/\/cancel/, (msg) => {
-    if (userStates.has(msg.from.id)) {
-        userStates.delete(msg.from.id);
-        bot.sendMessage(msg.chat.id, '✅ Текущая операция отменена.');
+// ===== WEB-СЕРВЕР ДЛЯ RENDER =====
+app.get('/', (req, res) => {
+    res.send(`
+        <h1>CasinoHub Bot Server</h1>
+        <p>🤖 Бот работает! Токен: ${TOKEN ? 'установлен' : 'отсутствует'}</p>
+        <p>👑 Админы: ${ADMINS.join(', ')}</p>
+        <p>🌐 WebApp: <a href="${WEB_APP_URL}">${WEB_APP_URL}</a></p>
+        <p>📊 Статус: <a href="/status">/status</a></p>
+    `);
+});
+
+app.get('/status', (req, res) => {
+    res.json(streamStatus);
+});
+
+app.get('/casino-data', async (req, res) => {
+    try {
+        const fs = require('fs').promises;
+        const data = await fs.readFile('data_default.json', 'utf8');
+        res.json(JSON.parse(data));
+    } catch (error) {
+        res.json({ casinos: [], categories: [] });
     }
 });
+
+// ===== ЗАПУСК СЕРВЕРА =====
+app.listen(PORT, () => {
+    console.log('===================================');
+    console.log('🚀 CasinoHub Bot Server запущен!');
+    console.log('📞 Порт:', PORT);
+    console.log('🤖 Токен установлен');
+    console.log('👑 Админы:', ADMINS.join(', '));
+    console.log('===================================');
+});
+
+// Принудительный перезапуск polling при старте
+setTimeout(() => {
+    bot.stopPolling().then(() => {
+        console.log('🔄 Перезапускаем polling...');
+        bot.startPolling();
+        console.log('✅ Polling запущен');
+    }).catch(error => {
+        console.log('❌ Ошибка перезапуска polling:', error);
+        bot.startPolling();
+    });
+}, 2000);
 
