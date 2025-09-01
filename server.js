@@ -18,7 +18,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// Создаем бота ВНАЧАЛЕ
+// Создаем бота
 const bot = new TelegramBot(TOKEN, { 
     polling: {
         interval: 300,
@@ -138,78 +138,8 @@ class GitHubAPI {
 }
 
 const githubAPI = new GitHubAPI();
-// ===================
 
-
-
-
-// Команда для диагностики GitHub
-bot.onText(/\/debug_github/, async (msg) => {
-    if (!isAdmin(msg.from.id)) return;
-    
-    try {
-        bot.sendMessage(msg.chat.id, '🔍 Проверяю доступ к GitHub...');
-        
-        const options = {
-            hostname: 'api.github.com',
-            path: '/user',
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${githubAPI.token}`,
-                'User-Agent': 'Node.js',
-                'Accept': 'application/vnd.github.v3+json'
-            }
-        };
-
-        const req = https.request(options, (res) => {
-            let data = '';
-            res.on('data', (chunk) => data += chunk);
-            res.on('end', () => {
-                try {
-                    const userInfo = JSON.parse(data);
-                    bot.sendMessage(msg.chat.id,
-                        `✅ GitHub API доступен!\n` +
-                        `👤 User: ${userInfo.login || 'unknown'}\n` +
-                        `📧 Email: ${userInfo.email || 'hidden'}\n` +
-                        `🏢 Company: ${userInfo.company || 'none'}`
-                    );
-                } catch (error) {
-                    bot.sendMessage(msg.chat.id, `❌ Ошибка: ${data}`);
-                }
-            });
-        });
-
-        req.on('error', (error) => {
-            bot.sendMessage(msg.chat.id, `❌ Ошибка подключения: ${error.message}`);
-        });
-
-        req.end();
-
-    } catch (error) {
-        bot.sendMessage(msg.chat.id, `❌ Ошибка: ${error.message}`);
-    }
-});
-
-
-
-
-// Разрешаем CORS запросы
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    next();
-});
-
-// Создаем бота
-const bot = new TelegramBot(TOKEN, { 
-    polling: {
-        interval: 300,
-        timeout: 10,
-        limit: 100
-    }
-});
-
-// Храним статус в памяти
+// Храним статус в памяти вместо файла
 let streamStatus = {
     isStreamLive: false,
     streamUrl: '',
@@ -362,6 +292,53 @@ bot.onText(/\/test_github/, async (msg) => {
     }
 });
 
+// Команда для диагностики GitHub
+bot.onText(/\/debug_github/, async (msg) => {
+    if (!isAdmin(msg.from.id)) return;
+    
+    try {
+        bot.sendMessage(msg.chat.id, '🔍 Проверяю доступ к GitHub...');
+        
+        const options = {
+            hostname: 'api.github.com',
+            path: '/user',
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${githubAPI.token}`,
+                'User-Agent': 'Node.js',
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => data += chunk);
+            res.on('end', () => {
+                try {
+                    const userInfo = JSON.parse(data);
+                    bot.sendMessage(msg.chat.id,
+                        `✅ GitHub API доступен!\n` +
+                        `👤 User: ${userInfo.login || 'unknown'}\n` +
+                        `📧 Email: ${userInfo.email || 'hidden'}\n` +
+                        `🏢 Company: ${userInfo.company || 'none'}`
+                    );
+                } catch (error) {
+                    bot.sendMessage(msg.chat.id, `❌ Ошибка: ${data}`);
+                }
+            });
+        });
+
+        req.on('error', (error) => {
+            bot.sendMessage(msg.chat.id, `❌ Ошибка подключения: ${error.message}`);
+        });
+
+        req.end();
+
+    } catch (error) {
+        bot.sendMessage(msg.chat.id, `❌ Ошибка: ${error.message}`);
+    }
+});
+
 // ===== ОБРАБОТЧИК ТЕКСТОВЫХ СООБЩЕНИЙ =====
 bot.on('message', async (msg) => {
     if (!msg.text || msg.text.startsWith('/')) return;
@@ -497,9 +474,6 @@ bot.on('message', async (msg) => {
     }
 });
 
-
-
-
 // ===== WEB-СЕРВЕР =====
 app.get('/', (req, res) => {
     res.send(`
@@ -510,22 +484,6 @@ app.get('/', (req, res) => {
         <p>📊 Статус: <a href="/status">/status</a></p>
     `);
 });
-
-app.listen(PORT, () => {
-    console.log('===================================');
-    console.log('🚀 CasinoHub Bot Server запущен!');
-    console.log('📞 Порт:', PORT);
-    console.log('🤖 Токен установлен');
-    console.log('👑 Админы:', ADMINS.join(', '));
-    console.log('🔗 GitHub API: настроен');
-    console.log('===================================');
-});
-
-// ===================
-
-
-
-
 
 app.get('/status', (req, res) => {
     res.json(streamStatus);
@@ -563,7 +521,3 @@ setTimeout(() => {
         bot.startPolling();
     });
 }, 2000);
-
-
-
-
