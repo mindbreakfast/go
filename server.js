@@ -237,41 +237,77 @@ bot.on('message', async (msg) => {
                 );
                 break;
 
-            case ADD_CASINO_STEPS.CONFIRM:
-                if (msg.text.toLowerCase() === 'да') {
-                    const fs = require('fs').promises;
-                    const data = await fs.readFile('data_default.json', 'utf8');
-                    const jsonData = JSON.parse(data);
-                    
-                    const newCasino = {
-                        id: Math.max(0, ...jsonData.casinos.map(c => c.id)) + 1,
-                        name: userState.newCasino.name,
-                        promocode: userState.newCasino.promocode,
-                        promoDescription: userState.newCasino.promoDescription,
-                        description: "Добавлено через бота",
-                        url: userState.newCasino.url,
-                        registeredUrl: userState.newCasino.registeredUrl,
-                        showRegisteredButton: true,
-                        hiddenKeywords: userState.newCasino.hiddenKeywords,
-                        category: userState.newCasino.category,
-                        isActive: true
-                    };
-                    
-                    jsonData.casinos.push(newCasino);
-                    await fs.writeFile('data_default.json', JSON.stringify(jsonData, null, 2));
-                    
-                    bot.sendMessage(msg.chat.id,
-                        `✅ Казино успешно добавлено!\n` +
-                        `ID: ${newCasino.id}\n` +
-                        `Изменения появятся при следующей загрузке приложения.`
-                    );
-                    
-                } else {
-                    bot.sendMessage(msg.chat.id, '❌ Добавление отменено.');
-                }
+            
+case ADD_CASINO_STEPS.CONFIRM:
+    if (msg.text.toLowerCase() === 'да') {
+        try {
+            const fs = require('fs').promises;
+            
+            // Диагностика: проверяем доступ к файлам
+            try {
+                const files = await fs.readdir('.');
+                console.log('📁 Файлы в директории:', files);
+            } catch (dirError) {
+                console.log('❌ Ошибка чтения директории:', dirError.message);
+            }
+            
+            // Пробуем прочитать файл
+            const data = await fs.readFile('data_default.json', 'utf8');
+            const jsonData = JSON.parse(data);
+            console.log('✅ Файл прочитан, казино в базе:', jsonData.casinos.length);
+            
+            // Создаем новое казино
+            const newCasino = {
+                id: Math.max(0, ...jsonData.casinos.map(c => c.id)) + 1,
+                name: userState.newCasino.name,
+                promocode: userState.newCasino.promocode,
+                promoDescription: userState.newCasino.promoDescription,
+                description: "Добавлено через бота",
+                url: userState.newCasino.url,
+                registeredUrl: userState.newCasino.registeredUrl,
+                showRegisteredButton: true,
+                hiddenKeywords: userState.newCasino.hiddenKeywords,
+                category: userState.newCasino.category,
+                isActive: true
+            };
+            
+            // Добавляем в массив
+            jsonData.casinos.push(newCasino);
+            console.log('🆕 Новое казино подготовлено:', newCasino.name);
+            
+            // Пробуем записать файл
+            await fs.writeFile('data_default.json', JSON.stringify(jsonData, null, 2));
+            console.log('💾 Файл успешно записан');
+            
+            // Пробуем прочитать обратно для проверки
+            const verifyData = await fs.readFile('data_default.json', 'utf8');
+            const verifyJson = JSON.parse(verifyData);
+            console.log('✅ Проверка: казино после записи:', verifyJson.casinos.length);
+            
+            bot.sendMessage(msg.chat.id,
+                `✅ Казино успешно добавлено!\n` +
+                `ID: ${newCasino.id}\n` +
+                `Название: ${newCasino.name}\n` +
+                `Изменения появятся при следующей загрузке приложения.`
+            );
+            
+        } catch (fileError) {
+            console.error('❌ Ошибка работы с файлом:', fileError);
+            bot.sendMessage(msg.chat.id,
+                `❌ Ошибка при сохранении: ${fileError.message}\n` +
+                `Данные остались без изменений.`
+            );
+        }
+        
+    } else {
+        bot.sendMessage(msg.chat.id, '❌ Добавление отменено.');
+    }
+    
+    userStates.delete(userId);
+    break;
+
+
                 
-                userStates.delete(userId);
-                break;
         }
         
     } catch (error) {
@@ -280,6 +316,43 @@ bot.on('message', async (msg) => {
         userStates.delete(userId);
     }
 });
+
+// Команда для диагностики файловой системы
+bot.onText(/\/debug_fs/, async (msg) => {
+    if (!isAdmin(msg.from.id)) return;
+    
+    try {
+        const fs = require('fs').promises;
+        
+        const files = await fs.readdir('.');
+        const jsonFiles = files.filter(f => f.endsWith('.json'));
+        
+        let fileInfo = [];
+        for (const file of jsonFiles) {
+            try {
+                const stats = await fs.stat(file);
+                const content = await fs.readFile(file, 'utf8');
+                fileInfo.push({
+                    name: file,
+                    size: stats.size,
+                    lines: content.split('\n').length
+                });
+            } catch (e) {
+                fileInfo.push({ name: file, error: e.message });
+            }
+        }
+        
+        bot.sendMessage(msg.chat.id,
+            `📁 Файловая система:\n` +
+            `Файлы: ${files.join(', ')}\n` +
+            `JSON файлы: ${JSON.stringify(fileInfo, null, 2)}`
+        );
+        
+    } catch (error) {
+        bot.sendMessage(msg.chat.id, `❌ Ошибка диагностики: ${error.message}`);
+    }
+});
+
 
 // ===== WEB-СЕРВЕР ДЛЯ RENDER =====
 app.get('/', (req, res) => {
@@ -306,6 +379,9 @@ app.get('/casino-data', async (req, res) => {
     }
 });
 
+
+
+
 // ===== ЗАПУСК СЕРВЕРА =====
 app.listen(PORT, () => {
     console.log('===================================');
@@ -327,4 +403,5 @@ setTimeout(() => {
         bot.startPolling();
     });
 }, 2000);
+
 
