@@ -30,9 +30,12 @@ const bot = new TelegramBot(TOKEN, {
 // ==== GITHUB API ====
 class GitHubAPI {
     constructor() {
-        this.token = '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';
+        // Используем токен из переменных окружения (безопаснее)
+        this.token = process.env.GITHUB_TOKEN || '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';
         this.repo = 'mindbreakfast/go';
         this.filePath = 'data_default.json';
+        
+        console.log('🔑 GitHub Token:', this.token ? 'установлен' : 'отсутствует');
     }
 
     async getFileSHA() {
@@ -521,3 +524,4 @@ setTimeout(() => {
         bot.startPolling();
     });
 }, 2000);
+
