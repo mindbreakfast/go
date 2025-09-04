@@ -1,78 +1,141 @@
 {
-    "casinos": [
-        {
-            "id": 1,
-            "name": "Cryptoboss",
-            "promocode": "BOSS200",
-            "promoDescription": "200% на первый депозит + 100 фриспинов",
-            "description": "Лучшее крипто-казино с моментальными выплатами и щедрыми бонусами. Поддержка 24/7.",
-            "url": "https://cryptoboss.com/?ref=streamer123",
-            "registeredUrl": "https://cryptoboss.com/games",
-            "showRegisteredButton": true,
-            "hiddenKeywords": [
-                "Cryptoboss",
-                "Крипто босс",
-                "КБ",
-                "crypto"
-            ],
-            "category": "cboss",
-            "isActive": true
-        },
-        {
-            "id": 2,
-            "name": "Куш",
-            "promocode": "SASH",
-            "promoDescription": "900 ФС + 225% к депозиту, вводить промо при регистрации",
-            "description": "Проверенное казино с огромной коллекцией слотов и живыми дилерами.",
-            "url": "https://play-kush-one.com/d2aee114a",
-            "registeredUrl": "",
-            "showRegisteredButton": false,
-            "hiddenKeywords": [
-                "Куш",
-                "Kush"
-            ],
-            "category": "popular",
-            "isActive": true
-        },
-        {
-            "id": 3,
-            "name": "Vulcan Vegas",
-            "promocode": "VULCAN100",
-            "promoDescription": "100% бонус на первый депозит до 1000$",
-            "description": "Проверенное казино с огромной коллекцией слотов и живыми дилерами.",
-            "url": "https://vulcan-vegas.com/?ref=promo",
-            "registeredUrl": "https://vulcan-vegas.com/casino",
-            "showRegisteredButton": true,
-            "hiddenKeywords": [
-                "Vulcan",
-                "Вулкан",
-                "Вегас",
-                "vulcan"
-            ],
-            "category": "popular",
-            "isActive": true
-        }
-    ],
-    "categories": [
-        {
-            "id": "cboss",
-            "name": "КБосс"
-        },
-        {
-            "id": "royal",
-            "name": "Роялы"
-        },
-        {
-            "id": "cats",
-            "name": "Коты"
-        },
-        {
-            "id": "popular",
-            "name": "Популярные"
-        },
-        {
-            "id": "new",
-            "name": "Новые"
-        }
-    ]
+  "casinos": [
+    {
+      "id": 1,
+      "name": "PINCO",
+      "promocode": "SASH",
+      "shortDescription": "Вводи SASH при регистрации, до 180% на деп",
+      "fullDescription": "Максимально возможный процент 180%\nМаксимальная сумма бонуса: 500 000 RUB\nОтыгрыш бонуса (вейджер): х50\nПериод на отыгрыш: 3 дня (72 часа)\nМакс. сумма бонуса: 500 000 RUB\nМаксимальный кешаут х10",
+      "url": "https://partnerprofitboost.com/L5ztWmif",
+      "hiddenKeywords": ["PINCO", "Пинко", "gbyrj", "зштсщ", "pinko", "зштлщ"],
+      "category": "Другие",
+      "isActive": true,
+      "isPinned": false,
+      "clickCount": 0
+    },
+    {
+      "id": 2,
+      "name": "MARTIN",
+      "promocode": "SASH",
+      "shortDescription": "Вводи промокод SASH при регистрации и забирай сразу 50 FS и +150% за первый депозит",
+      "fullDescription": "до 600 FS за второе пополнение.\n+75% за третий депозит.",
+      "url": "https://martin-way-six.com/cc258fb5a",
+      "hiddenKeywords": ["Мартин", "Martin", "Vfhnby", "Ьфкешт"],
+      "category": "Роялы",
+      "isActive": true,
+      "isPinned": false,
+      "clickCount": 0
+    },
+    {
+      "id": 3,
+      "name": "КУШ",
+      "promocode": "SASH",
+      "shortDescription": "Вводи промо SASH при регистрации и лови колёса от стримера! А также +100% на первый деп до 30.000р +300 фриспинов",
+      "fullDescription": "",
+      "url": "https://play-kush-one.com/d2aee114a",
+      "hiddenKeywords": ["Rei", "Куш", "Kush", "Лгыр"],
+      "category": "Бандиты",
+      "isActive": true,
+      "isPinned": false,
+      "clickCount": 0
+    },
+    {
+      "id": 4,
+      "name": "VODKA",
+      "promocode": "SASH",
+      "shortDescription": "SASH при регистрации даёт +1% к кешбеку навечно!",
+      "fullDescription": "",
+      "url": "https://uwu.vodka?id=13559",
+      "hiddenKeywords": ["vodka", "водка", "djlrf", "мщвлф"],
+      "category": "Другие",
+      "isActive": true,
+      "isPinned": false,
+      "clickCount": 0
+    },
+    {
+      "id": 5,
+      "name": "VAVADA",
+      "promocode": "SASH",
+      "shortDescription": "SASH при регистрации +100% на первый депозит и 100 фриспинов",
+      "fullDescription": "",
+      "url": "https://infowawada.com/?promo=574843cf-b356-4da2-838d-36a4f94d8744&target=register",
+      "hiddenKeywords": ["vavada", "вавада", "dfdflf", "мфмфвф"],
+      "category": "Другие",
+      "isActive": true,
+      "isPinned": true,
+      "clickCount": 0
+    },
+    {
+      "id": 6,
+      "name": "STAKE",
+      "promocode": "SASH",
+      "shortDescription": "Промокод SASH даст вам пожизненный рейкбек в размере 5% мгновенно после регистрации",
+      "fullDescription": "",
+      "url": "https://stake1039.com/?c=LUDOGOLIK666&offer=sash",
+      "hiddenKeywords": ["Стейк", "stake", "ыефлу", "Cntqr"],
+      "category": "Другие",
+      "isActive": true,
+      "isPinned": false,
+      "clickCount": 0
+    },
+    {
+      "id": 7,
+      "name": "HONEYMONEY",
+      "promocode": "SASH",
+      "shortDescription": "+175% +200FS",
+      "fullDescription": "",
+      "url": "https://hm228.com/d3eaf620f",
+      "hiddenKeywords": ["Honeymoney", "Рщтуньщтун", "Хонеймоней", "Хонимони", "Ханимани"],
+      "category": "КБ",
+      "isActive": true,
+      "isPinned": false,
+      "clickCount": 0
+    },
+    {
+      "id": 8,
+      "name": "Flagman",
+      "promocode": "SASH",
+      "shortDescription": "Промо SASH при регистрации, даст 50 FS",
+      "fullDescription": "",
+      "url": "https://flagman-route-four.com/cf3e1caac",
+      "hiddenKeywords": ["Flagman", "Флагман", "Адфпьфт", "Akfuvfy"],
+      "category": "Роялы",
+      "isActive": true,
+      "isPinned": false,
+      "clickCount": 0
+    },
+    {
+      "id": 9,
+      "name": "Комета",
+      "promocode": "SASH",
+      "shortDescription": "Промокод SASH при регистрации",
+      "fullDescription": "",
+      "url": "https://tropical-path.com/s6b6371e9",
+      "hiddenKeywords": ["Комета", "Rjvtnf", "Kometa", "Лщьуеф", "Камета", "Rfmeta"],
+      "category": "Коты",
+      "isActive": true,
+      "isPinned": false,
+      "clickCount": 0
+    },
+    {
+      "id": 10,
+      "name": "Play Fortuna",
+      "promocode": "SASH",
+      "shortDescription": "Промокод SASH при регистрации",
+      "fullDescription": "",
+      "url": "https://fortuna-promo1.net/alt/playfortuna/registration?bac4be0fbf512e61f3e654559e7295e2",
+      "hiddenKeywords": ["Плей Фортуна", "Gktq Ajhneyf", "Play fortuna", "Здфн ащкегтф"],
+      "category": "Другие",
+      "isActive": true,
+      "isPinned": false,
+      "clickCount": 0
+    }
+  ],
+  "categories": [
+    {"id": "kb", "name": "КБ"},
+    {"id": "royals", "name": "Роялы"},
+    {"id": "cats", "name": "Коты"},
+    {"id": "bandits", "name": "Бандиты"},
+    {"id": "other", "name": "Другие"}
+  ]
 }
