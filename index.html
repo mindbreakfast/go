@@ -47,12 +47,12 @@
         }
 
         body {
-    background: var(--bg-color);
-    color: var(--text-color);
-    padding: 10px;
-    padding-bottom: 80px; /* Место для фиксированного футера */
-    min-height: 100vh;
-    padding-right: 17px;
+            background: var(--bg-color);
+            color: var(--text-color);
+            padding: 10px;
+            padding-bottom: 100px;
+            min-height: 100vh;
+            padding-right: 17px; /* Место для скроллбара */
         }
 
         .header {
@@ -233,16 +233,15 @@
             color: var(--text-color);
         }
 
-.casino-details {
-    margin-top: 8px; /* Было 15px */
-    padding-top: 10px; /* Было 15px */
-    border-top: 1px solid var(--border-color);
-    color: var(--text-color);
-    opacity: 0.8;
-    line-height: 1.4;
-    font-size: 13px; /* Уменьшаем шрифт на ~20% */
-    animation: fadeIn 0.3s ease;
-}
+        .casino-details {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-color);
+            opacity: 0.8;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
 
         @keyframes fadeIn {
             from { opacity: 0; max-height: 0; }
@@ -272,66 +271,25 @@
             margin: 10px 0;
         }
 
-.footer {
-    margin-top: 30px;
-    padding: 15px;
-    text-align: center;
-    border-top: 1px solid var(--border-color);
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--bg-color);
-    z-index: 1000;
-}
+        .footer {
+            margin-top: 30px;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+        }
 
-.footer-content {
-    max-width: 400px;
-    margin: 0 auto;
-}
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
 
-.footer-links {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    margin-bottom: 10px;
-}
-
-.footer-link {
-    color: var(--primary-color);
-    text-decoration: none;
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.footer-bottom {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-}
-
-.developer-text {
-    color: var(--text-color);
-    opacity: 0.7;
-}
-
-.developer-link {
-    color: var(--primary-color);
-    text-decoration: none;
-    font-size: 12px;
-}
-
-.theme-switcher {
-    background: var(--secondary-color);
-    border: 1px solid var(--border-color);
-    border-radius: 15px;
-    padding: 4px 8px;
-    cursor: pointer;
-    font-size: 11px;
-    color: var(--text-color);
-}
+        .footer-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: bold;
+        }
 
         .theme-switcher {
             background: var(--secondary-color);
@@ -377,19 +335,15 @@
         <div class="loader">Загрузка данных...</div>
     </div>
 
-<div class="footer">
-    <div class="footer-content">
+    <div class="footer">
         <div class="footer-links">
-            <a href="https://t.me/Ludogolik" class="footer-link" target="_blank" onclick="event.stopPropagation()">📢 Канал</a>
-            <a href="https://t.me/Ludogolik666" class="footer-link" target="_blank" onclick="event.stopPropagation()">💬 Чат</a>
+            <a href="https://t.me/Ludogolik" class="footer-link" target="_blank">📢 Канал</a>
+            <a href="https://t.me/Ludogolik666" class="footer-link" target="_blank">💬 Чат</a>
         </div>
-        <div class="footer-bottom">
-            <span class="developer-text">Разработчик </span>
-            <a href="https://t.me/NSDcode" class="developer-link" target="_blank" onclick="event.stopPropagation()">NSDcode</a>
-            <button class="theme-switcher" onclick="toggleTheme()">🌙 Тема</button>
-        </div>
+        <div>Разработчик <a href="https://t.me/NSDcode" class="footer-link" target="_blank">NSDcode</a></div>
+        <button class="theme-switcher" id="themeSwitcher">🌙 Тёмная тема</button>
     </div>
-</div>
+
     <script>
         // ===== ИНИЦИАЛИЗАЦИЯ ТЕЛЕГРАМ =====
         const tg = window.Telegram?.WebApp;
@@ -665,24 +619,6 @@
             }
         }
 
-
-
-
-function handleFooterClick(event) {
-    event.stopPropagation();
-    event.preventDefault();
-    return false;
-}
-
-// Вешаем обработчики на ссылки
-document.querySelectorAll('.footer-link, .developer-link').forEach(link => {
-    link.addEventListener('click', handleFooterClick);
-    link.addEventListener('touchstart', handleFooterClick);
-});
-        
-
-
-        
         // Глобальные функции
         window.openCasino = openCasino;
         window.toggleDetails = toggleDetails;
@@ -690,4 +626,3 @@ document.querySelectorAll('.footer-link, .developer-link').forEach(link => {
     </script>
 </body>
 </html>
-
