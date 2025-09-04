@@ -4,11 +4,18 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ==== НАСТРОЙКИ ====
-const TOKEN = process.env.BOT_TOKEN || '8368808338:AAECcdNDbVJkwlgTlXV_aVnhxrG3wdKRW2A';
-const ADMINS = [1777213824, 594143385, 1097210873];
-const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app';
+// ==== НАСТРОЙКИ ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ ====
+const TOKEN = process.env.BOT_TOKEN;
+const ADMIN_IDS = process.env.ADMIN_IDS || '1777213824,594143385,1097210873';
+const ADMINS = ADMIN_IDS.split(',').map(id => Number(id.trim()));
+const WEB_APP_URL = process.env.WEB_APP_URL || 'https://gogo-kohl-beta.vercel.app';
 // ===================
+
+// Проверка, что токен есть
+if (!TOKEN) {
+  console.error('❌ FATAL ERROR: Переменная окружения BOT_TOKEN не найдена!');
+  process.exit(1);
+}
 
 // Разрешаем CORS запросы
 app.use((req, res, next) => {
@@ -35,19 +42,7 @@ let streamStatus = {
 };
 
 let announcements = [];
-let userChats = new Set(); // Для рассылки сообщений
-
-// ===== СИСТЕМА МНОГОШАГОВОГО ДОБАВЛЕНИЯ КАЗИНО =====
-const userStates = new Map();
-const ADD_CASINO_STEPS = {
-    NAME: 'name',
-    PROMOCODE: 'promocode', 
-    DESCRIPTION: 'description',
-    URL: 'url',
-    CATEGORY: 'category',
-    KEYWORDS: 'keywords',
-    CONFIRM: 'confirm'
-};
+let userChats = new Set();
 
 // ===== ОБРАБОТКА ОШИБОК POLLING =====
 bot.on('polling_error', (error) => {
@@ -215,7 +210,6 @@ bot.onText(/\/broadcast (.+)/, async (msg, match) => {
         try {
             await bot.sendMessage(chatId, `📢 ОБЪЯВЛЕНИЕ:\n\n${message}`);
             successCount++;
-            // Задержка чтобы не превысить лимиты Telegram
             await new Promise(resolve => setTimeout(resolve, 100));
         } catch (error) {
             console.error(`Ошибка отправки для ${chatId}:`, error);
@@ -267,17 +261,6 @@ app.get('/announcements', (req, res) => {
     res.json(announcements);
 });
 
-// API для данных казино
-app.get('/casino-data', async (req, res) => {
-    try {
-        const fs = require('fs').promises;
-        const data = await fs.readFile('data_default.json', 'utf8');
-        res.json(JSON.parse(data));
-    } catch (error) {
-        res.json({ casinos: [], categories: [] });
-    }
-});
-
 // ===== ЗАПУСК СЕРВЕРА =====
 app.listen(PORT, () => {
     console.log('===================================');
@@ -286,6 +269,7 @@ app.listen(PORT, () => {
     console.log('🤖 Токен установлен');
     console.log('👑 Админы:', ADMINS.join(', '));
     console.log('👥 Пользователей:', userChats.size);
+    console.log('🌐 WebApp URL:', WEB_APP_URL);
     console.log('===================================');
 });
 
@@ -300,4 +284,5 @@ setTimeout(() => {
         bot.startPolling();
     });
 }, 2000);
+
 
