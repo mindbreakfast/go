@@ -4,33 +4,28 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ==== НАСТРОЙКИ ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ ====
-const TOKEN = process.env.BOT_TOKEN;
-const ADMIN_IDS = process.env.ADMIN_IDS || '1777213824,594143385,1097210873';
-const ADMINS = ADMIN_IDS.split(',').map(id => Number(id.trim()));
-const WEB_APP_URL = process.env.WEB_APP_URL || 'https://gogo-kohl-beta.vercel.app';
+// ==== НАСТРОЙКИ ====
+const TOKEN = process.env.BOT_TOKEN || 'ВАШ_НОВЫЙ_ТОКЕН';
+const ADMINS = [1777213824, 594143385, 1097210873];
+const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app';
 // ===================
 
-// Проверка, что токен есть
-if (!TOKEN) {
-  console.error('❌ FATAL ERROR: Переменная окружения BOT_TOKEN не найдена!');
-  process.exit(1);
-}
-
-// Разрешаем CORS запросы
+// Важно: разрешаем CORS для всех запросов
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
     next();
+});
+
+// Обрабатываем preflight запросы
+app.options('*', (req, res) => {
+    res.sendStatus(200);
 });
 
 // Создаем бота
 const bot = new TelegramBot(TOKEN, { 
-    polling: {
-        interval: 300,
-        timeout: 10,
-        limit: 100
-    }
+    polling: true
 });
 
 // ===== ХРАНЕНИЕ ДАННЫХ В ПАМЯТИ =====
@@ -43,22 +38,6 @@ let streamStatus = {
 
 let announcements = [];
 let userChats = new Set();
-
-// ===== ОБРАБОТКА ОШИБОК POLLING =====
-bot.on('polling_error', (error) => {
-    console.log('Polling error:', error.code);
-    
-    if (error.code === 'ETELEGRAM' && error.message.includes('409')) {
-        console.log('Обнаружена ошибка 409, перезапускаем polling через 5 секунд...');
-        setTimeout(() => {
-            bot.stopPolling().then(() => {
-                console.log('Старый polling остановлен');
-                bot.startPolling();
-                console.log('Новый polling запущен');
-            });
-        }, 5000);
-    }
-});
 
 // ===== ПРОВЕРКА ПРАВ =====
 function isAdmin(userId) {
@@ -106,7 +85,7 @@ function clearAnnouncements() {
 
 // ===== КОМАНДЫ БОТА =====
 
-// Команда /start - сохраняем пользователя и показываем кнопку
+// Команда /start
 bot.onText(/\/start/, (msg) => {
     console.log('Получен /start от:', msg.from.id);
     userChats.add(msg.chat.id);
@@ -126,7 +105,7 @@ bot.onText(/\/start/, (msg) => {
         .catch(error => console.log('Ошибка отправки:', error));
 });
 
-// Команда /live - запуск стрима
+// Команда /live
 bot.onText(/\/live (.+) (.+)/, async (msg, match) => {
     console.log('Получен /live от:', msg.from.id);
     
@@ -139,13 +118,25 @@ bot.onText(/\/live (.+) (.+)/, async (msg, match) => {
     
     const success = await updateStreamStatus(true, streamUrl, eventDescription);
     
+    if (success) {
+        // Рассылаем уведомление о начале стрима
+        for (const chatId of userChats) {
+            try {
+                await bot.sendMessage(chatId, `🔴 НАЧАЛСЯ СТРИМ!\n${eventDescription}\n${streamUrl}`);
+                await new Promise(resolve => setTimeout(resolve, 100));
+            } catch (error) {
+                console.error('Ошибка рассылки:', error);
+            }
+        }
+    }
+    
     bot.sendMessage(msg.chat.id, success ? 
         `✅ Стрим запущен!\nСсылка: ${streamUrl}\nОписание: ${eventDescription}` : 
         '❌ Ошибка обновления статуса'
     );
 });
 
-// Команда /stop - остановка стрима
+// Команда /stop
 bot.onText(/\/stop/, async (msg) => {
     console.log('Получен /stop от:', msg.from.id);
     
@@ -160,7 +151,7 @@ bot.onText(/\/stop/, async (msg) => {
     );
 });
 
-// Команда /announce - добавление анонса
+// Команда /announce
 bot.onText(/\/announce (.+)/, (msg, match) => {
     console.log('Получен /announce от:', msg.from.id);
     
@@ -171,13 +162,24 @@ bot.onText(/\/announce (.+)/, (msg, match) => {
     const text = match[1];
     const success = addAnnouncement(text);
     
+    if (success) {
+        // Рассылаем анонс всем пользователям
+        for (const chatId of userChats) {
+            try {
+                bot.sendMessage(chatId, `📢 АНОНС:\n${text}`);
+            } catch (error) {
+                console.error('Ошибка рассылки:', error);
+            }
+        }
+    }
+    
     bot.sendMessage(msg.chat.id, success ? 
-        `✅ Анонс добавлен:\n${text}` : 
+        `✅ Анонс добавлен и разослан:\n${text}` : 
         '❌ Ошибка добавления анонса'
     );
 });
 
-// Команда /clear_announce - очистка анонсов
+// Команда /clear_announce
 bot.onText(/\/clear_announce/, (msg) => {
     console.log('Получен /clear_announce от:', msg.from.id);
     
@@ -192,39 +194,7 @@ bot.onText(/\/clear_announce/, (msg) => {
     );
 });
 
-// Команда /broadcast - рассылка всем пользователям
-bot.onText(/\/broadcast (.+)/, async (msg, match) => {
-    console.log('Получен /broadcast от:', msg.from.id);
-    
-    if (!isAdmin(msg.from.id)) {
-        return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
-    }
-    
-    const message = match[1];
-    let successCount = 0;
-    let errorCount = 0;
-    
-    bot.sendMessage(msg.chat.id, `📤 Начинаю рассылку для ${userChats.size} пользователей...`);
-    
-    for (const chatId of userChats) {
-        try {
-            await bot.sendMessage(chatId, `📢 ОБЪЯВЛЕНИЕ:\n\n${message}`);
-            successCount++;
-            await new Promise(resolve => setTimeout(resolve, 100));
-        } catch (error) {
-            console.error(`Ошибка отправки для ${chatId}:`, error);
-            errorCount++;
-        }
-    }
-    
-    bot.sendMessage(msg.from.id,
-        `✅ Рассылка завершена!\n` +
-        `✓ Доставлено: ${successCount}\n` +
-        `✗ Ошибок: ${errorCount}`
-    );
-});
-
-// Команда /stats - статистика
+// Команда /stats
 bot.onText(/\/stats/, (msg) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
@@ -233,22 +203,20 @@ bot.onText(/\/stats/, (msg) => {
     bot.sendMessage(msg.chat.id,
         `📊 Статистика бота:\n` +
         `👥 Пользователей: ${userChats.size}\n` +
-        `🎬 Стрим: ${streamStatus.isStreamLive ? 'в эфире' : 'не активен'}\n` +
+        `🎬 Стрим: ${streamStatus.isStreamLive ? 'В ЭФИРЕ' : 'не активен'}\n` +
         `📝 Анонсов: ${announcements.length}\n` +
-        `🕐 Последнее обновление: ${new Date().toLocaleTimeString()}`
+        `🕐 Обновлено: ${new Date().toLocaleTimeString('ru-RU')}`
     );
 });
 
 // ===== WEB-СЕРВЕР И API =====
 app.get('/', (req, res) => {
-    res.send(`
-        <h1>CasinoHub Bot Server</h1>
-        <p>🤖 Бот работает! Пользователей: ${userChats.size}</p>
-        <p>👑 Админы: ${ADMINS.join(', ')}</p>
-        <p>🌐 WebApp: <a href="${WEB_APP_URL}">${WEB_APP_URL}</a></p>
-        <p>📊 <a href="/status">Статус стрима</a></p>
-        <p>📝 <a href="/announcements">Анонсы</a></p>
-    `);
+    res.json({ 
+        status: 'OK', 
+        message: 'Ludogolik Bot Server работает',
+        users: userChats.size,
+        stream_live: streamStatus.isStreamLive
+    });
 });
 
 // API для статуса стрима
@@ -269,20 +237,8 @@ app.listen(PORT, () => {
     console.log('🤖 Токен установлен');
     console.log('👑 Админы:', ADMINS.join(', '));
     console.log('👥 Пользователей:', userChats.size);
-    console.log('🌐 WebApp URL:', WEB_APP_URL);
     console.log('===================================');
 });
 
-// Принудительный перезапуск polling при старте
-setTimeout(() => {
-    bot.stopPolling().then(() => {
-        console.log('🔄 Перезапускаем polling...');
-        bot.startPolling();
-        console.log('✅ Polling запущен');
-    }).catch(error => {
-        console.log('❌ Ошибка перезапуска polling:', error);
-        bot.startPolling();
-    });
-}, 2000);
 
 
