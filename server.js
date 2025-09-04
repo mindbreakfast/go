@@ -8,13 +8,18 @@ const PORT = process.env.PORT || 3000;
 const TOKEN = process.env.BOT_TOKEN || 'ВАШ_НОВЫЙ_ТОКЕН';
 const ADMINS = [1777213824, 594143385, 1097210873];
 const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app';
+const RENDER_URL = process.env.RENDER_EXTERNAL_URL || `https://your-app-name.onrender.com`;
 // ===================
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Разрешаем CORS
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     next();
 });
 
@@ -22,18 +27,9 @@ app.options('*', (req, res) => {
     res.sendStatus(200);
 });
 
-// Создаем бота с правильными настройками polling
-const bot = new TelegramBot(TOKEN, {
-    polling: {
-        interval: 300,
-        timeout: 10,
-        limit: 100,
-        params: {
-            timeout: 10,
-            allowed_updates: ['message', 'callback_query']
-        }
-    }
-});
+// Создаем бота в режиме webhook
+const bot = new TelegramBot(TOKEN);
+bot.setWebHook(`${RENDER_URL}/bot${TOKEN}`);
 
 // ===== ХРАНЕНИЕ ДАННЫХ =====
 let streamStatus = {
@@ -45,43 +41,6 @@ let streamStatus = {
 
 let announcements = [];
 let userChats = new Set();
-
-// ===== ОБРАБОТКА ОШИБОК POLLING =====
-let pollingRestartAttempts = 0;
-const MAX_POLLING_RESTARTS = 5;
-
-bot.on('polling_error', (error) => {
-    console.log('❌ Polling error:', error.code, error.message);
-    
-    if (error.code === 'ETELEGRAM' && error.message.includes('409')) {
-        console.log('🔄 Обнаружена ошибка 409 - перезапускаем polling...');
-        
-        if (pollingRestartAttempts < MAX_POLLING_RESTARTS) {
-            pollingRestartAttempts++;
-            
-            setTimeout(() => {
-                bot.stopPolling().then(() => {
-                    console.log('✅ Старый polling остановлен');
-                    setTimeout(() => {
-                        bot.startPolling().then(() => {
-                            console.log('✅ Новый polling запущен');
-                        }).catch(pollError => {
-                            console.log('❌ Ошибка запуска polling:', pollError);
-                        });
-                    }, 2000);
-                }).catch(stopError => {
-                    console.log('❌ Ошибка остановки polling:', stopError);
-                });
-            }, 3000);
-        } else {
-            console.log('❌ Достигнут лимит перезапусков polling');
-        }
-    }
-});
-
-bot.on('webhook_error', (error) => {
-    console.log('❌ Webhook error:', error);
-});
 
 // ===== ПРОВЕРКА ПРАВ =====
 function isAdmin(userId) {
@@ -127,29 +86,47 @@ function clearAnnouncements() {
     return true;
 }
 
-// ===== КОМАНДЫ БОТА =====
+// ===== ОБРАБОТКА КОМАНД БОТА =====
 
-// Команда /start
-bot.onText(/\/start/, (msg) => {
-    console.log('✅ Получен /start от:', msg.from.id);
+// Обработчик всех сообщений
+bot.on('message', (msg) => {
+    console.log('📨 Получено сообщение:', msg.text, 'от:', msg.from.id);
     userChats.add(msg.chat.id);
     
-    const keyboard = {
-        reply_markup: {
-            inline_keyboard: [[
-                {
-                    text: '🎰 ОТКРЫТЬ СПИСОК КАЗИНО',
-                    web_app: { url: WEB_APP_URL }
-                }
-            ]]
-        }
-    };
+    // Обработка команды /start
+    if (msg.text === '/start') {
+        const keyboard = {
+            reply_markup: {
+                inline_keyboard: [[
+                    {
+                        text: '🎰 ОТКРЫТЬ СПИСОК КАЗИНО',
+                        web_app: { url: WEB_APP_URL }
+                    }
+                ]]
+            }
+        };
+        
+        bot.sendMessage(msg.chat.id, 'Добро пожаловать! Нажмите кнопку ниже:', keyboard)
+            .catch(error => console.log('❌ Ошибка отправки:', error));
+    }
     
-    bot.sendMessage(msg.chat.id, 'Добро пожаловать! Нажмите кнопку ниже:', keyboard)
-        .catch(error => console.log('❌ Ошибка отправки:', error));
+    // Обработка команды /stats
+    else if (msg.text === '/stats') {
+        if (!isAdmin(msg.from.id)) {
+            return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
+        }
+        
+        bot.sendMessage(msg.chat.id,
+            `📊 Статистика бота:\n` +
+            `👥 Пользователей: ${userChats.size}\n` +
+            `🎬 Стрим: ${streamStatus.isStreamLive ? 'В ЭФИРЕ' : 'не активен'}\n` +
+            `📝 Анонсов: ${announcements.length}\n` +
+            `🕐 Обновлено: ${new Date().toLocaleTimeString('ru-RU')}`
+        );
+    }
 });
 
-// Команда /live
+// Обработка команды /live
 bot.onText(/\/live (.+) (.+)/, async (msg, match) => {
     console.log('✅ Получен /live от:', msg.from.id);
     
@@ -179,7 +156,7 @@ bot.onText(/\/live (.+) (.+)/, async (msg, match) => {
     );
 });
 
-// Команда /stop
+// Обработка команды /stop
 bot.onText(/\/stop/, async (msg) => {
     console.log('✅ Получен /stop от:', msg.from.id);
     
@@ -194,7 +171,7 @@ bot.onText(/\/stop/, async (msg) => {
     );
 });
 
-// Команда /announce
+// Обработка команды /announce
 bot.onText(/\/announce (.+)/, (msg, match) => {
     console.log('✅ Получен /announce от:', msg.from.id);
     
@@ -221,7 +198,7 @@ bot.onText(/\/announce (.+)/, (msg, match) => {
     );
 });
 
-// Команда /clear_announce
+// Обработка команды /clear_announce
 bot.onText(/\/clear_announce/, (msg) => {
     console.log('✅ Получен /clear_announce от:', msg.from.id);
     
@@ -236,30 +213,22 @@ bot.onText(/\/clear_announce/, (msg) => {
     );
 });
 
-// Команда /stats
-bot.onText(/\/stats/, (msg) => {
-    if (!isAdmin(msg.from.id)) {
-        return bot.sendMessage(msg.chat.id, '❌ Нет прав!');
-    }
-    
-    bot.sendMessage(msg.chat.id,
-        `📊 Статистика бота:\n` +
-        `👥 Пользователей: ${userChats.size}\n` +
-        `🎬 Стрим: ${streamStatus.isStreamLive ? 'В ЭФИРЕ' : 'не активен'}\n` +
-        `📝 Анонсов: ${announcements.length}\n` +
-        `🔄 Перезапусков: ${pollingRestartAttempts}\n` +
-        `🕐 Обновлено: ${new Date().toLocaleTimeString('ru-RU')}`
-    );
+// ===== WEB-СЕРВЕР И API =====
+
+// Webhook endpoint для Telegram
+app.post(`/bot${TOKEN}`, (req, res) => {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
 });
 
-// ===== WEB-СЕРВЕР И API =====
+// Основной endpoint
 app.get('/', (req, res) => {
     res.json({ 
         status: 'OK', 
-        message: 'Ludogolik Bot Server работает',
+        message: 'Ludogolik Bot Server работает (Webhook mode)',
         users: userChats.size,
         stream_live: streamStatus.isStreamLive,
-        polling_restarts: pollingRestartAttempts
+        webhook_url: `${RENDER_URL}/bot${TOKEN}`
     });
 });
 
@@ -273,49 +242,42 @@ app.get('/announcements', (req, res) => {
     res.json(announcements);
 });
 
+// Проверка здоровья
+app.get('/health', (req, res) => {
+    res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
 // ===== ЗАПУСК СЕРВЕРА =====
 app.listen(PORT, () => {
     console.log('===================================');
     console.log('🚀 Ludogolik Bot Server запущен!');
     console.log('📞 Порт:', PORT);
+    console.log('🌐 URL:', RENDER_URL);
     console.log('🤖 Токен установлен');
     console.log('👑 Админы:', ADMINS.join(', '));
     console.log('👥 Пользователей:', userChats.size);
+    console.log('🔗 Webhook URL:', `${RENDER_URL}/bot${TOKEN}`);
     console.log('===================================');
     
-    // Принудительный перезапуск polling через 3 секунды после старта
-    setTimeout(() => {
-        console.log('🔄 Принудительный перезапуск polling...');
-        bot.stopPolling().then(() => {
-            console.log('✅ Старый polling остановлен');
-            setTimeout(() => {
-                bot.startPolling().then(() => {
-                    console.log('✅ Новый polling запущен');
-                    pollingRestartAttempts = 0;
-                }).catch(error => {
-                    console.log('❌ Ошибка запуска polling:', error);
-                });
-            }, 2000);
-        }).catch(error => {
-            console.log('❌ Ошибка остановки polling:', error);
-        });
-    }, 3000);
+    // Проверяем webhook
+    bot.getWebHookInfo().then(info => {
+        console.log('📋 Webhook info:', info);
+    }).catch(error => {
+        console.log('❌ Ошибка получения webhook info:', error);
+    });
 });
 
-// Обработка graceful shutdown
+// Graceful shutdown
 process.on('SIGINT', () => {
     console.log('🛑 Останавливаем бота...');
-    bot.stopPolling();
+    bot.deleteWebHook();
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
     console.log('🛑 Останавливаем бота...');
-    bot.stopPolling();
+    bot.deleteWebHook();
     process.exit(0);
 });
-
-
-
 
 
