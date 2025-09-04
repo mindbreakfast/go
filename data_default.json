@@ -8,10 +8,9 @@
       "fullDescription": "Максимально возможный процент 180%\nМаксимальная сумма бонуса: 500 000 RUB\nОтыгрыш бонуса (вейджер): х50\nПериод на отыгрыш: 3 дня (72 часа)\nМакс. сумма бонуса: 500 000 RUB\nМаксимальный кешаут х10",
       "url": "https://partnerprofitboost.com/L5ztWmif",
       "hiddenKeywords": ["PINCO", "Пинко", "gbyrj", "зштсщ", "pinko", "зштлщ"],
-      "category": "Другие",
+      "category": "other",
       "isActive": true,
-      "isPinned": false,
-      "clickCount": 0
+      "isPinned": false
     },
     {
       "id": 2,
@@ -21,10 +20,9 @@
       "fullDescription": "до 600 FS за второе пополнение.\n+75% за третий депозит.",
       "url": "https://martin-way-six.com/cc258fb5a",
       "hiddenKeywords": ["Мартин", "Martin", "Vfhnby", "Ьфкешт"],
-      "category": "Роялы",
+      "category": "royals",
       "isActive": true,
-      "isPinned": false,
-      "clickCount": 0
+      "isPinned": false
     },
     {
       "id": 3,
@@ -34,10 +32,9 @@
       "fullDescription": "",
       "url": "https://play-kush-one.com/d2aee114a",
       "hiddenKeywords": ["Rei", "Куш", "Kush", "Лгыр"],
-      "category": "Бандиты",
+      "category": "bandits",
       "isActive": true,
-      "isPinned": false,
-      "clickCount": 0
+      "isPinned": false
     },
     {
       "id": 4,
@@ -47,10 +44,9 @@
       "fullDescription": "",
       "url": "https://uwu.vodka?id=13559",
       "hiddenKeywords": ["vodka", "водка", "djlrf", "мщвлф"],
-      "category": "Другие",
+      "category": "other",
       "isActive": true,
-      "isPinned": false,
-      "clickCount": 0
+      "isPinned": false
     },
     {
       "id": 5,
@@ -60,10 +56,9 @@
       "fullDescription": "",
       "url": "https://infowawada.com/?promo=574843cf-b356-4da2-838d-36a4f94d8744&target=register",
       "hiddenKeywords": ["vavada", "вавада", "dfdflf", "мфмфвф"],
-      "category": "Другие",
+      "category": "other",
       "isActive": true,
-      "isPinned": true,
-      "clickCount": 0
+      "isPinned": true
     },
     {
       "id": 6,
@@ -73,10 +68,9 @@
       "fullDescription": "",
       "url": "https://stake1039.com/?c=LUDOGOLIK666&offer=sash",
       "hiddenKeywords": ["Стейк", "stake", "ыефлу", "Cntqr"],
-      "category": "Другие",
+      "category": "other",
       "isActive": true,
-      "isPinned": false,
-      "clickCount": 0
+      "isPinned": false
     },
     {
       "id": 7,
@@ -86,10 +80,9 @@
       "fullDescription": "",
       "url": "https://hm228.com/d3eaf620f",
       "hiddenKeywords": ["Honeymoney", "Рщтуньщтун", "Хонеймоней", "Хонимони", "Ханимани"],
-      "category": "КБ",
+      "category": "kb",
       "isActive": true,
-      "isPinned": false,
-      "clickCount": 0
+      "isPinned": false
     },
     {
       "id": 8,
@@ -99,10 +92,9 @@
       "fullDescription": "",
       "url": "https://flagman-route-four.com/cf3e1caac",
       "hiddenKeywords": ["Flagman", "Флагман", "Адфпьфт", "Akfuvfy"],
-      "category": "Роялы",
+      "category": "royals",
       "isActive": true,
-      "isPinned": false,
-      "clickCount": 0
+      "isPinned": false
     },
     {
       "id": 9,
@@ -112,10 +104,9 @@
       "fullDescription": "",
       "url": "https://tropical-path.com/s6b6371e9",
       "hiddenKeywords": ["Комета", "Rjvtnf", "Kometa", "Лщьуеф", "Камета", "Rfmeta"],
-      "category": "Коты",
+      "category": "cats",
       "isActive": true,
-      "isPinned": false,
-      "clickCount": 0
+      "isPinned": false
     },
     {
       "id": 10,
@@ -125,10 +116,9 @@
       "fullDescription": "",
       "url": "https://fortuna-promo1.net/alt/playfortuna/registration?bac4be0fbf512e61f3e654559e7295e2",
       "hiddenKeywords": ["Плей Фортуна", "Gktq Ajhneyf", "Play fortuna", "Здфн ащкегтф"],
-      "category": "Другие",
+      "category": "other",
       "isActive": true,
-      "isPinned": false,
-      "clickCount": 0
+      "isPinned": false
     }
   ],
   "categories": [
@@ -139,3 +129,4 @@
     {"id": "other", "name": "Другие"}
   ]
 }
+
