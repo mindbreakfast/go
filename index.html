@@ -108,31 +108,47 @@
             saveUserStats();
         }
 
-        // ===== ЗАГРУЗКА ДАННЫХ =====
-        async function loadInitialData() {
-            try {
-                // Параллельно грузим все данные
-                const [casinosData, dynamicData] = await Promise.all([
-                    fetch('./data_default.json').then(r => r.json()),
-                    fetch('https://go-5zty.onrender.com/api/all-data').then(r => r.json())
-                ]);
+// ===== ЗАГРУЗКА ДАННЫХ =====
+async function loadInitialData() {
+    try {
+        // Параллельно грузим все данные
+        const [casinosData, dynamicData] = await Promise.all([
+            fetch('./data_default.json').then(r => {
+                if (!r.ok) throw new Error('Ошибка загрузки данных казино');
+                return r.json();
+            }),
+            fetch('https://go-5zty.onrender.com/api/all-data').then(r => {
+                if (!r.ok) throw new Error('Ошибка загрузки динамических данных');
+                return r.json();
+            }).catch(error => {
+                console.log('Динамические данные не загружены, используем заглушки');
+                return {
+                    streamStatus: { isStreamLive: false },
+                    announcements: []
+                };
+            })
+        ]);
 
-                // Обрабатываем казино
-                allCasinos = casinosData.casinos || [];
-                renderFilters(casinosData.categories || []);
-                renderCasinos();
+        console.log('Данные загружены:', casinosData, dynamicData);
 
-                // Показываем стрим и анонсы
-                if (dynamicData.streamStatus.isStreamLive) {
-                    showStreamBanner(dynamicData.streamStatus);
-                }
-                showAnnouncements(dynamicData.announcements);
+        // Обрабатываем казино
+        allCasinos = casinosData.casinos || [];
+        renderFilters(casinosData.categories || []);
+        renderCasinos();
 
-            } catch (error) {
-                console.error('Ошибка загрузки:', error);
-                showError('Ошибка при загрузке данных');
-            }
+        // Показываем стрим и анонсы
+        if (dynamicData.streamStatus && dynamicData.streamStatus.isStreamLive) {
+            showStreamBanner(dynamicData.streamStatus);
         }
+        if (dynamicData.announcements) {
+            showAnnouncements(dynamicData.announcements);
+        }
+
+    } catch (error) {
+        console.error('Ошибка загрузки:', error);
+        showError('Ошибка при загрузке данных. Попробуйте обновить страницу.');
+    }
+}
 
         // ===== ОТОБРАЖЕНИЕ АНОНСОВ =====
         function showAnnouncements(announcements) {
@@ -359,4 +375,5 @@
     </script>
 </body>
 </html>
+
 
