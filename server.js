@@ -108,6 +108,7 @@ function removeAnnouncement(id) {
 
 // ===== КОМАНДЫ БОТА =====
 
+// Команда /start
 bot.onText(/\/start/, (msg) => {
     userChats.add(msg.chat.id);
     
@@ -125,6 +126,7 @@ bot.onText(/\/start/, (msg) => {
     bot.sendMessage(msg.chat.id, 'Добро пожаловать! Нажмите кнопку ниже чтобы открыть список казино:', keyboard);
 });
 
+// Команда /help
 bot.onText(/\/help/, (msg) => {
     const helpText = `
 🤖 *Доступные команды:*
@@ -141,11 +143,18 @@ bot.onText(/\/help/, (msg) => {
 /list_text - Показать все анонсы
 /remove_text [ID] - Удалить конкретный анонс
 /broadcast [сообщение] - Сделать рассылку
+
+💡 *Примеры:*
+/live https://twitch.tv Мой крутой стрим
+/text цвет:green 🎉 Бонус 200%!
+/remove_text 123456789
+/text Просто анонс без цвета
     `;
     
     bot.sendMessage(msg.chat.id, helpText, { parse_mode: 'Markdown' });
 });
 
+// Команда /stats
 bot.onText(/\/stats/, (msg) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
@@ -161,18 +170,23 @@ bot.onText(/\/stats/, (msg) => {
     );
 });
 
-bot.onText(/\/live (.+) (.+)/, async (msg, match) => {
+// Команда /live - правильный парсинг
+bot.onText(/\/live (.+?) (.+)/, async (msg, match) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
     
-    const success = await updateStreamStatus(true, match[1], match[2]);
+    const streamUrl = match[1];
+    const eventDescription = match[2];
+    
+    const success = await updateStreamStatus(true, streamUrl, eventDescription);
     bot.sendMessage(msg.chat.id, success ? 
-        `✅ Стрим запущен!\nСсылка: ${match[1]}\nОписание: ${match[2]}` : 
+        `✅ Стрим запущен!\nСсылка: ${streamUrl}\nОписание: ${eventDescription}` : 
         '❌ Ошибка обновления статуса стрима'
     );
 });
 
+// Команда /stop
 bot.onText(/\/stop/, async (msg) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
@@ -185,17 +199,29 @@ bot.onText(/\/stop/, async (msg) => {
     );
 });
 
+// Команда /text - с поддержкой цветов
 bot.onText(/\/text (.+)/, (msg, match) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
     
-    const announcementId = addAnnouncement(match[1]);
+    let text = match[1];
+    let color = 'blue';
+    
+    // Проверяем наличие указания цвета
+    const colorMatch = text.match(/цвет:(\w+)\s+/i);
+    if (colorMatch) {
+        color = colorMatch[1];
+        text = text.replace(colorMatch[0], '');
+    }
+    
+    const announcementId = addAnnouncement(text, color);
     bot.sendMessage(msg.chat.id, 
-        `✅ Анонс добавлен!\nID: ${announcementId}\nТекст: ${match[1]}`
+        `✅ Анонс добавлен!\nID: ${announcementId}\nЦвет: ${color}\nТекст: ${text}`
     );
 });
 
+// Команда /clear_text
 bot.onText(/\/clear_text/, (msg) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
@@ -207,6 +233,7 @@ bot.onText(/\/clear_text/, (msg) => {
     );
 });
 
+// Команда /list_text
 bot.onText(/\/list_text/, (msg) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
@@ -217,7 +244,7 @@ bot.onText(/\/list_text/, (msg) => {
     }
     
     const announcementList = announcements.map(a => 
-        `ID: ${a.id}\nТекст: ${a.text}\n──────────────`
+        `🆔 ID: ${a.id}\n🎨 Цвет: ${a.color}\n📝 Текст: ${a.text}\n⏰ Дата: ${new Date(a.createdAt).toLocaleString('ru-RU')}\n──────────────────`
     ).join('\n');
     
     bot.sendMessage(msg.chat.id, 
@@ -226,6 +253,7 @@ bot.onText(/\/list_text/, (msg) => {
     );
 });
 
+// Команда /remove_text
 bot.onText(/\/remove_text (\d+)/, (msg, match) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
@@ -245,6 +273,7 @@ bot.onText(/\/remove_text (\d+)/, (msg, match) => {
     }
 });
 
+// Команда /broadcast
 bot.onText(/\/broadcast (.+)/, async (msg, match) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
@@ -273,36 +302,6 @@ bot.onText(/\/broadcast (.+)/, async (msg, match) => {
     );
 });
 
-
-// Команда /help - должна работать всегда
-bot.onText(/\/help/, (msg) => {
-    const helpText = `
-🤖 *Доступные команды:*
-
-/start - Запустить бота и открыть список казино
-/help - Показать это сообщение
-/stats - Статистика бота (только для админов)
-
-👑 *Команды для админов:*
-/live [ссылка] [описание] - Начать стрим
-/stop - Остановить стрим
-/text [сообщение] - Добавить анонс
-/clear_text - Очистить все анонсы
-/list_text - Показать все анонсы
-/remove_text [ID] - Удалить конкретный анонс
-/broadcast [сообщение] - Сделать рассылку
-
-💡 *Примеры:*
-/live https://twitch.tv мой стрим
-/text цвет:blue 🎉 Новое казино!
-/remove_text 123456789
-    `;
-    
-    bot.sendMessage(msg.chat.id, helpText, { parse_mode: 'Markdown' });
-});
-
-
-
 // ===== API ENDPOINTS =====
 
 app.post('/webhook', (req, res) => {
@@ -319,26 +318,55 @@ app.get('/announcements', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok' });
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 app.get('/setup-webhook', async (req, res) => {
     const success = await setupWebhook();
-    res.json({ success });
+    res.json({ success, message: success ? 'Webhook настроен' : 'Ошибка настройки' });
+});
+
+app.get('/info', (req, res) => {
+    res.json({
+        status: 'online',
+        users: userChats.size,
+        stream_live: streamStatus.isStreamLive,
+        announcements_count: announcements.length,
+        server_time: new Date().toISOString()
+    });
 });
 
 // ===== ЗАПУСК СЕРВЕРА =====
 app.listen(PORT, async () => {
     console.log('===================================');
-    console.log('🚀 Сервер запущен на порту:', PORT);
+    console.log('🚀 Ludogolik Bot Server запущен!');
+    console.log('📞 Порт:', PORT);
     console.log('🌐 URL:', RENDER_URL);
+    console.log('🤖 Токен:', TOKEN ? 'Установлен' : 'Отсутствует');
+    console.log('👑 Админы:', ADMINS.join(', '));
     console.log('===================================');
     
     setTimeout(async () => {
-        await setupWebhook();
+        const success = await setupWebhook();
+        if (success) {
+            console.log('✅ Webhook успешно настроен');
+        } else {
+            console.log('❌ Ошибка настройки webhook');
+        }
     }, 3000);
 });
 
+// Graceful shutdown
+process.on('SIGINT', () => {
+    console.log('🛑 Останавливаем бота...');
+    bot.deleteWebHook();
+    process.exit(0);
+});
 
+process.on('SIGTERM', () => {
+    console.log('🛑 Останавливаем бота...');
+    bot.deleteWebHook();
+    process.exit(0);
+});
 
 
