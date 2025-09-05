@@ -1,5 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
+const axios = require('axios');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,7 +33,7 @@ app.options('*', (req, res) => {
 
 const bot = new TelegramBot(TOKEN);
 
-// ===== ХРАНЕНИЕ ДАННЫХ =====
+// ===== ХРАНЕНИЕ ДАННЫХ В ПАМЯТИ =====
 let streamStatus = {
     isStreamLive: false,
     streamUrl: '',
@@ -42,10 +43,38 @@ let streamStatus = {
 
 let announcements = [];
 let userChats = new Set();
-
-// ===== КЭШИРОВАНИЕ ДАННЫХ =====
 let cachedData = null;
 let cacheTimestamp = 0;
+
+// ===== РЕГУЛЯРНОЕ СОХРАНЕНИЕ =====
+function backupToEnv() {
+    try {
+        console.log('💾 Backup stats:', {
+            announcements: announcements.length,
+            users: userChats.size,
+            time: new Date().toLocaleTimeString('ru-RU')
+        });
+    } catch (error) {
+        console.error('❌ Backup error:', error);
+    }
+}
+
+// ===== ПРОГРЕВ СЕРВЕРА =====
+async function keepAlive() {
+    try {
+        setInterval(async () => {
+            try {
+                await axios.get(`${RENDER_URL}/health`);
+                backupToEnv();
+                console.log('✅ Сервер прогрет:', new Date().toLocaleTimeString('ru-RU'));
+            } catch (error) {
+                console.log('❌ Ошибка прогрева:', error.message);
+            }
+        }, 4 * 60 * 1000);
+    } catch (error) {
+        console.log('Ошибка инициализации keepAlive:', error);
+    }
+}
 
 // ===== ФУНКЦИЯ УСТАНОВКИ WEBHOOK =====
 async function setupWebhook() {
@@ -78,7 +107,6 @@ async function updateStreamStatus(isLive, streamUrl = '', eventDescription = '')
             eventDescription: eventDescription,
             lastUpdated: new Date().toISOString()
         };
-        // Сбрасываем кэш при изменении статуса
         cachedData = null;
         return true;
     } catch (error) {
@@ -95,7 +123,6 @@ function addAnnouncement(text, color = 'blue') {
         createdAt: new Date().toISOString()
     };
     announcements.push(newAnnouncement);
-    // Сбрасываем кэш при добавлении анонса
     cachedData = null;
     return newAnnouncement.id;
 }
@@ -103,7 +130,6 @@ function addAnnouncement(text, color = 'blue') {
 function clearAnnouncements() {
     const count = announcements.length;
     announcements = [];
-    // Сбрасываем кэш при очистке
     cachedData = null;
     return count;
 }
@@ -112,7 +138,6 @@ function removeAnnouncement(id) {
     const index = announcements.findIndex(a => a.id === id);
     if (index !== -1) {
         const removed = announcements.splice(index, 1)[0];
-        // Сбрасываем кэш при удалении
         cachedData = null;
         return removed;
     }
@@ -221,7 +246,6 @@ bot.onText(/\/text (.+)/, (msg, match) => {
     let text = match[1];
     let color = 'blue';
     
-    // Проверяем наличие указания цвета
     const colorMatch = text.match(/цвет:(\w+)\s+/i);
     if (colorMatch) {
         color = colorMatch[1];
@@ -324,12 +348,10 @@ app.post('/webhook', (req, res) => {
 
 // Объединенный endpoint для всех данных
 app.get('/api/all-data', (req, res) => {
-    // Отдаем кэшированные данные если они свежие (5 минут)
-    if (cachedData && Date.now() - cacheTimestamp < 5 * 60 * 1000) {
+    if (cachedData && Date.now() - cacheTimestamp < 2 * 60 * 1000) {
         return res.json(cachedData);
     }
     
-    // Обновляем кэш
     cachedData = {
         streamStatus: streamStatus,
         announcements: announcements
@@ -352,7 +374,8 @@ app.get('/health', (req, res) => {
         status: 'ok', 
         timestamp: new Date().toISOString(),
         users: userChats.size,
-        memory: process.memoryUsage()
+        announcements: announcements.length,
+        memory: process.memoryUsage().rss / 1024 / 1024 + ' MB'
     });
 });
 
@@ -381,6 +404,12 @@ app.listen(PORT, async () => {
     console.log('👑 Админы:', ADMINS.join(', '));
     console.log('===================================');
     
+    // Запускаем прогрев сервера
+    keepAlive();
+    
+    // Бэкап каждые 5 минут
+    setInterval(backupToEnv, 5 * 60 * 1000);
+    
     setTimeout(async () => {
         const success = await setupWebhook();
         if (success) {
@@ -394,14 +423,15 @@ app.listen(PORT, async () => {
 // Graceful shutdown
 process.on('SIGINT', () => {
     console.log('🛑 Останавливаем бота...');
+    backupToEnv();
     bot.deleteWebHook();
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
     console.log('🛑 Останавливаем бота...');
+    backupToEnv();
     bot.deleteWebHook();
     process.exit(0);
 });
-
 
