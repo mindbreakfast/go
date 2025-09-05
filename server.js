@@ -53,10 +53,7 @@ async function setupWebhook() {
         const result = await bot.setWebHook(webhookUrl);
         
         const webhookInfo = await bot.getWebHookInfo();
-        console.log('📋 Webhook info:', {
-            url: webhookInfo.url,
-            pending_updates: webhookInfo.pending_update_count
-        });
+        console.log('📋 Webhook info:', webhookInfo.url);
         
         return true;
     } catch (error) {
@@ -96,8 +93,9 @@ function addAnnouncement(text, color = 'blue') {
 }
 
 function clearAnnouncements() {
+    const count = announcements.length;
     announcements = [];
-    return true;
+    return count;
 }
 
 function removeAnnouncement(id) {
@@ -110,7 +108,6 @@ function removeAnnouncement(id) {
 
 // ===== КОМАНДЫ БОТА =====
 
-// Команда /start
 bot.onText(/\/start/, (msg) => {
     userChats.add(msg.chat.id);
     
@@ -128,7 +125,6 @@ bot.onText(/\/start/, (msg) => {
     bot.sendMessage(msg.chat.id, 'Добро пожаловать! Нажмите кнопку ниже чтобы открыть список казино:', keyboard);
 });
 
-// Команда /help
 bot.onText(/\/help/, (msg) => {
     const helpText = `
 🤖 *Доступные команды:*
@@ -145,17 +141,11 @@ bot.onText(/\/help/, (msg) => {
 /list_text - Показать все анонсы
 /remove_text [ID] - Удалить конкретный анонс
 /broadcast [сообщение] - Сделать рассылку
-
-💡 *Примеры:*
-/live https://twitch.tv мой стрим
-/text 🎉 Новое казино добавлено!
-/remove_text 123456789
     `;
     
     bot.sendMessage(msg.chat.id, helpText, { parse_mode: 'Markdown' });
 });
 
-// Команда /stats
 bot.onText(/\/stats/, (msg) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
@@ -171,7 +161,6 @@ bot.onText(/\/stats/, (msg) => {
     );
 });
 
-// Команда /live
 bot.onText(/\/live (.+) (.+)/, async (msg, match) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
@@ -184,7 +173,6 @@ bot.onText(/\/live (.+) (.+)/, async (msg, match) => {
     );
 });
 
-// Команда /stop
 bot.onText(/\/stop/, async (msg) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
@@ -197,7 +185,6 @@ bot.onText(/\/stop/, async (msg) => {
     );
 });
 
-// Команда /text
 bot.onText(/\/text (.+)/, (msg, match) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
@@ -209,20 +196,17 @@ bot.onText(/\/text (.+)/, (msg, match) => {
     );
 });
 
-// Команда /clear_text
 bot.onText(/\/clear_text/, (msg) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
     
-    const count = announcements.length;
-    clearAnnouncements();
+    const count = clearAnnouncements();
     bot.sendMessage(msg.chat.id, 
         `✅ Все анонсы очищены!\nУдалено: ${count} анонсов`
     );
 });
 
-// Команда /list_text
 bot.onText(/\/list_text/, (msg) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
@@ -233,7 +217,7 @@ bot.onText(/\/list_text/, (msg) => {
     }
     
     const announcementList = announcements.map(a => 
-        `ID: ${a.id}\nТекст: ${a.text}\nЦвет: ${a.color}\nДата: ${new Date(a.createdAt).toLocaleString('ru-RU')}\n──────────────`
+        `ID: ${a.id}\nТекст: ${a.text}\n──────────────`
     ).join('\n');
     
     bot.sendMessage(msg.chat.id, 
@@ -242,7 +226,6 @@ bot.onText(/\/list_text/, (msg) => {
     );
 });
 
-// Команда /remove_text
 bot.onText(/\/remove_text (\d+)/, (msg, match) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
@@ -262,7 +245,6 @@ bot.onText(/\/remove_text (\d+)/, (msg, match) => {
     }
 });
 
-// Команда /broadcast
 bot.onText(/\/broadcast (.+)/, async (msg, match) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
@@ -280,7 +262,6 @@ bot.onText(/\/broadcast (.+)/, async (msg, match) => {
             successCount++;
             await new Promise(resolve => setTimeout(resolve, 100));
         } catch (error) {
-            console.error(`Ошибка отправки для ${chatId}:`, error);
             errorCount++;
         }
     }
@@ -295,13 +276,8 @@ bot.onText(/\/broadcast (.+)/, async (msg, match) => {
 // ===== API ENDPOINTS =====
 
 app.post('/webhook', (req, res) => {
-    try {
-        bot.processUpdate(req.body);
-        res.sendStatus(200);
-    } catch (error) {
-        console.error('Webhook error:', error);
-        res.sendStatus(200);
-    }
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
 });
 
 app.get('/status', (req, res) => {
@@ -312,53 +288,25 @@ app.get('/announcements', (req, res) => {
     res.json(announcements);
 });
 
-app.get('/info', (req, res) => {
-    res.json({
-        status: 'online',
-        users: userChats.size,
-        stream: streamStatus,
-        announcements_count: announcements.length,
-        webhook_url: `${RENDER_URL}/webhook`
-    });
-});
-
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', time: new Date().toISOString() });
+    res.json({ status: 'ok' });
 });
 
 app.get('/setup-webhook', async (req, res) => {
-    try {
-        const success = await setupWebhook();
-        res.json({ success, message: success ? 'Webhook setup completed' : 'Webhook setup failed' });
-    } catch (error) {
-        res.json({ success: false, error: error.message });
-    }
+    const success = await setupWebhook();
+    res.json({ success });
 });
 
 // ===== ЗАПУСК СЕРВЕРА =====
 app.listen(PORT, async () => {
     console.log('===================================');
     console.log('🚀 Сервер запущен на порту:', PORT);
-    console.log('🤖 Токен бота:', TOKEN ? 'УСТАНОВЛЕН' : 'ОТСУТСТВУЕТ');
-    console.log('🌐 Внешний URL:', RENDER_URL);
+    console.log('🌐 URL:', RENDER_URL);
     console.log('===================================');
     
     setTimeout(async () => {
-        const success = await setupWebhook();
-        console.log(success ? '✅ Webhook настроен успешно' : '❌ Ошибка настройки webhook');
+        await setupWebhook();
     }, 3000);
-});
-
-process.on('SIGINT', () => {
-    console.log('🛑 Останавливаем бота...');
-    bot.deleteWebHook();
-    process.exit(0);
-});
-
-process.on('SIGTERM', () => {
-    console.log('🛑 Останавливаем бота...');
-    bot.deleteWebHook();
-    process.exit(0);
 });
 
 
