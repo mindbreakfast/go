@@ -119,7 +119,163 @@
       "category": "other",
       "isActive": true,
       "isPinned": false
-    }
+    },
+    {
+  "id": 11,
+  "name": "SYKAAA",
+  "promocode": "SASH",
+  "shortDescription": "30 ФС без депозита за бонусные",
+  "fullDescription": "",
+  "url": "https://s-way-x.com/?source=1304&pid=144446&promo=SASH",
+  "hiddenKeywords": ["SYKAAA", "сука", "cerf", "ЫУЛЛФ"],
+  "category": "other",
+  "isActive": true,
+  "isPinned": false
+},
+{
+  "id": 12,
+  "name": "Riobet",
+  "promocode": "SASH",
+  "shortDescription": "70FS + 225% при регистрации",
+  "fullDescription": "",
+  "url": "https://tracker.rreflink.com/link?btag=43413718_434070",
+  "hiddenKeywords": ["Риобет", "riobet", "кшщиуе", "Hbj"],
+  "category": "other",
+  "isActive": true,
+  "isPinned": false
+},
+{
+  "id": 13,
+  "name": "Cryptoboss",
+  "promocode": "SASH",
+  "shortDescription": "100% +180 фриспинов на первый депозит",
+  "fullDescription": "",
+  "url": "https://cryptobossc.online/dea4098d7",
+  "hiddenKeywords": ["Криптобосс", "Rhbgnj", "КБ", "Cryptoboss"],
+  "category": "kb",
+  "isActive": true,
+  "isPinned": false
+},
+{
+  "id": 14,
+  "name": "АУФ",
+  "promocode": "SASH",
+  "shortDescription": "100% +100 фриспинов по промокоду SASH",
+  "fullDescription": "",
+  "url": "https://aufas.com/d37a56aed",
+  "hiddenKeywords": ["Ауф", "auf", "фга", "fea"],
+  "category": "kb",
+  "isActive": true,
+  "isPinned": false
+},
+{
+  "id": 15,
+  "name": "Unlim",
+  "promocode": "SASH",
+  "shortDescription": "Бонус от 50% до 100% и куча фриспинов",
+  "fullDescription": "",
+  "url": "https://unlimc.net/d552a4c31",
+  "hiddenKeywords": ["Анлим", "Унлим", "Unlim", "Гтдшь", "Fykbv"],
+  "category": "kb",
+  "isActive": true,
+  "isPinned": false
+},
+{
+  "id": 16,
+  "name": "Hype",
+  "promocode": "SASH",
+  "shortDescription": "Не забывай промо SASH",
+  "fullDescription": "",
+  "url": "https://hhypec.com/d8a2e6114",
+  "hiddenKeywords": ["Хайп", "Hype", "fqg", "Рнзу"],
+  "category": "kb",
+  "isActive": true,
+  "isPinned": false
+},
+{
+  "id": 17,
+  "name": "Winity",
+  "promocode": "SASH",
+  "shortDescription": "Новое казино от Плей Фортуна!",
+  "fullDescription": "",
+  "url": "https://winity.one/alt/winity/sign-up/?ba4ac2be99e4f15e1b56871e9f8817f2&promocode=SASH",
+  "hiddenKeywords": ["Winity", "Цштшен", "Винити", "Dbybnb"],
+  "category": "other",
+  "isActive": true,
+  "isPinned": false
+},
+{
+  "id": 18,
+  "name": "Booi",
+  "promocode": "SASH",
+  "shortDescription": "От создателей Плей Фортуна",
+  "fullDescription": "",
+  "url": "https://booipromo1.com/alt/booi_bookofdead_regform_ru/?127aae8cf4ba85e33269cdbb2619d1e0",
+  "hiddenKeywords": ["Буй", "booi", "eq", "ищщш"],
+  "category": "other",
+  "isActive": true,
+  "isPinned": false
+},
+{
+  "id": 19,
+  "name": "Irwin",
+  "promocode": "SASH",
+  "shortDescription": "50FS бонусом при регистрации",
+  "fullDescription": "",
+  "url": "https://rwn-blrs01.com/c223ead39",
+  "hiddenKeywords": ["Ирвин", "irwin", "шкцшт", "bhdby"],
+  "category": "royals",
+  "isActive": true,
+  "isPinned": false
+},
+{
+  "id": 20,
+  "name": "UP-X",
+  "promocode": "SASH",
+  "shortDescription": "100FS +30% к первому депозиту",
+  "fullDescription": "",
+  "url": "https://upx-l.tech/t8728c329",
+  "hiddenKeywords": ["апикс", "упикс", "upx", "apix", "гзч", "fgbrc"],
+  "category": "other",
+  "isActive": true,
+  "isPinned": false
+},
+{
+  "id": 21,
+  "name": "Покердом",
+  "promocode": "SASH",
+  "shortDescription": "Шанс на богатую жизнь с промокодом",
+  "fullDescription": "",
+  "url": "https://4pd-stat.com/click/6679483a6bcc6379d57edb1d/125/14335",
+  "hiddenKeywords": ["покердом", "pokerdom", "зщлуквщь", "gjrthljv"],
+  "category": "other",
+  "isActive": true,
+  "isPinned": false
+},
+{
+  "id": 22,
+  "name": "Jozz",
+  "promocode": "SASH",
+  "shortDescription": "Регистрация с промокодом SASH",
+  "fullDescription": "",
+  "url": "https://jozz-promo1.com/alt/jozz/registration?4aea48d2d537b97e97c038878f257511",
+  "hiddenKeywords": ["jozz", "джозз", "ощяя"],
+  "category": "other",
+  "isActive": true,
+  "isPinned": false
+},
+{
+  "id": 23,
+  "name": "Gizbo",
+  "promocode": "SASH",
+  "shortDescription": "50FS по промокоду SASH",
+  "fullDescription": "",
+  "url": "https://gzb-blrs10.com/c7ea990ea",
+  "hiddenKeywords": ["Гизбо", "gizbo", "ubp", "пшяищ"],
+  "category": "royals",
+  "isActive": true,
+  "isPinned": false
+}
   ],
   "categories": [
     {"id": "kb", "name": "КБ"},
@@ -129,4 +285,5 @@
     {"id": "other", "name": "Другие"}
   ]
 }
+
 
