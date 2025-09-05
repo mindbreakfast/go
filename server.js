@@ -138,9 +138,7 @@ async function saveData() {
         console.log('💾 Данные сохранены в data.json');
         
         // Пытаемся сохранить в GitHub
-        if (GITHUB_TOKEN) {
-            await saveToGitHub();
-        }
+        await saveToGitHub();
         
         return true;
     } catch (error) {
@@ -150,6 +148,11 @@ async function saveData() {
 }
 
 async function saveToGitHub() {
+    if (!GITHUB_TOKEN) {
+        console.log('⚠️ GITHUB_TOKEN не установлен, пропускаем синхронизацию');
+        return false;
+    }
+
     try {
         const git = simpleGit();
         await git.addConfig('user.name', 'mindbreakfast');
@@ -162,7 +165,7 @@ async function saveToGitHub() {
         console.log('✅ Данные отправлены в GitHub');
         return true;
     } catch (error) {
-        console.error('❌ Ошибка сохранения в GitHub:', error);
+        console.error('❌ Ошибка сохранения в GitHub:', error.message);
         return false;
     }
 }
@@ -644,7 +647,7 @@ bot.onText(/\/broadcast (.+)/, async (msg, match) => {
 // Команда /add_casino
 bot.onText(/\/add_casino/, (msg) => {
     if (!isAdmin(msg.from.id)) {
-        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команда!');
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
     
     const response = startCasinoCreation(msg.from.id);
@@ -718,57 +721,65 @@ bot.on('callback_query', async (query) => {
     const chatId = query.message.chat.id;
     const data = query.data;
     
-    if (data.startsWith('edit_')) {
-        const [action, id] = data.split('_').slice(1);
-        const casinoId = parseInt(id);
-        
-        casinoEditingState.set(chatId, {
-            editingCasinoId: casinoId,
-            editingField: action
-        });
-        
-        const fieldNames = {
-            name: 'название',
-            promo: 'промокод', 
-            desc: 'краткое описание',
-            url: 'URL ссылку',
-            category: 'категорию'
-        };
-        
-        bot.sendMessage(chatId, `Введите новое значение для ${fieldNames[action]}:`);
-    }
-    else if (data.startsWith('delete_')) {
-        const casinoId = parseInt(data.split('_')[1]);
-        const deleted = deleteCasino(casinoId);
-        
-        if (deleted) {
-            bot.sendMessage(chatId, `✅ Казино "${deleted.name}" удалено!`);
-        } else {
-            bot.sendMessage(chatId, '❌ Казино не найдено');
+    try {
+        if (data.startsWith('edit_')) {
+            const [action, id] = data.split('_').slice(1);
+            const casinoId = parseInt(id);
+            
+            casinoEditingState.set(chatId, {
+                editingCasinoId: casinoId,
+                editingField: action
+            });
+            
+            const fieldNames = {
+                name: 'название',
+                promo: 'промокод', 
+                desc: 'краткое описание',
+                url: 'URL ссылку',
+                category: 'категорию'
+            };
+            
+            await bot.sendMessage(chatId, `Введите новое значение для ${fieldNames[action]}:`);
         }
+        else if (data.startsWith('delete_')) {
+            const casinoId = parseInt(data.split('_')[1]);
+            const deleted = await deleteCasino(casinoId);
+            
+            if (deleted) {
+                await bot.sendMessage(chatId, `✅ Казино "${deleted.name}" удалено!`);
+            } else {
+                await bot.sendMessage(chatId, '❌ Казино не найдено');
+            }
+        }
+        else if (data.startsWith('pin_')) {
+            const casinoId = parseInt(data.split('_')[1]);
+            const casino = getCasino(casinoId);
+            const updated = await updateCasino(casinoId, { isPinned: !casino.isPinned });
+            await bot.sendMessage(chatId, updated ? 
+                `✅ Казино "${updated.name}" ${updated.isPinned ? 'закреплено' : 'откреплено'}!` : 
+                '❌ Ошибка'
+            );
+        }
+        else if (data.startsWith('hide_')) {
+            const casinoId = parseInt(data.split('_')[1]);
+            const updated = await updateCasino(casinoId, { isActive: false });
+            await bot.sendMessage(chatId, updated ? `✅ Казино "${updated.name}" скрыто!` : '❌ Ошибка');
+        }
+        else if (data.startsWith('show_')) {
+            const casinoId = parseInt(data.split('_')[1]);
+            const updated = await updateCasino(casinoId, { isActive: true });
+            await bot.sendMessage(chatId, updated ? `✅ Казино "${updated.name}" показано!` : '❌ Ошибка');
+        }
+        
+        await bot.answerCallbackQuery(query.id);
+    } catch (error) {
+        console.error('❌ Ошибка в callback:', error);
+        await bot.answerCallbackQuery(query.id, { text: '❌ Произошла ошибка' });
     }
-
-    else if (data.startsWith('pin_')) {
-    const casinoId = parseInt(data.split('_')[1]);
-    const updated = await updateCasino(casinoId, { isPinned: true });
-    bot.sendMessage(chatId, updated ? `✅ Казино "${updated.name}" закреплено!` : '❌ Ошибка');
-}
-else if (data.startsWith('hide_')) {
-    const casinoId = parseInt(data.split('_')[1]);
-    const updated = await updateCasino(casinoId, { isActive: false });
-    bot.sendMessage(chatId, updated ? `✅ Казино "${updated.name}" скрыто!` : '❌ Ошибка');
-}
-else if (data.startsWith('show_')) {
-    const casinoId = parseInt(data.split('_')[1]);
-    const updated = await updateCasino(casinoId, { isActive: true });
-    bot.sendMessage(chatId, updated ? `✅ Казино "${updated.name}" показано!` : '❌ Ошибка');
-}
-    
-    bot.answerCallbackQuery(query.id);
 });
 
 // Обработка сообщений для редактирования
-bot.on('message', (msg) => {
+bot.on('message', async (msg) => {
     if (!isAdmin(msg.from.id) || !casinoEditingState.has(msg.from.id)) return;
     
     const state = casinoEditingState.get(msg.from.id);
@@ -789,7 +800,7 @@ bot.on('message', (msg) => {
         case 'category': updates.category = msg.text; break;
     }
     
-    updateCasino(state.editingCasinoId, updates);
+    await updateCasino(state.editingCasinoId, updates);
     casinoEditingState.delete(msg.from.id);
     
     bot.sendMessage(msg.from.id, `✅ Поле успешно обновлено!`);
@@ -1027,5 +1038,3 @@ process.on('SIGTERM', () => {
     bot.deleteWebHook();
     process.exit(0);
 });
-
-
