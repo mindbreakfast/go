@@ -72,6 +72,75 @@ const CATEGORIES = [
     {"id": "other", "name": "Другие"}
 ];
 
+// ===== ЗАГРУЗКА КАЗИНО ИЗ ФАЙЛА =====
+async function loadCasinosFromFile() {
+    try {
+        console.log('🔄 Загружаю казино из файла...');
+        
+        // Пробуем загрузить из разных источников
+        const sources = [
+            'https://gogo-kohl-beta.vercel.app/data_default.json',
+            'https://gogo-kohl-beta.vercel.app/data_default.json', // Дублируем для надежности
+            'https://raw.githubusercontent.com/mindbreakfast/go/main/data_default.json'
+        ];
+        
+        for (const source of sources) {
+            try {
+                console.log(`📦 Пробую загрузить из: ${source}`);
+                const response = await axios.get(source, { timeout: 10000 });
+                
+                if (response.data && response.data.casinos) {
+                    casinos = response.data.casinos;
+                    console.log(`✅ Успешно загружено ${casinos.length} казино из: ${source}`);
+                    
+                    // Сохраняем в бэкап
+                    await saveDataToFile();
+                    return true;
+                }
+            } catch (error) {
+                console.log(`❌ Не удалось загрузить из ${source}:`, error.message);
+            }
+        }
+        
+        // Если файлы не найдены, создаем тестовые данные из вашего примера
+        if (casinos.length === 0) {
+            console.log('📝 Создаю тестовые казино...');
+            casinos = [
+                {
+                    id: 1,
+                    name: "PINCO",
+                    promocode: "SASH",
+                    shortDescription: "Вводи SASH при регистрации, до 180% на деп",
+                    fullDescription: "Максимально возможный процент 180%\nМаксимальная сумма бонуса: 500 000 RUB\nОтыгрыш бонуса (вейджер): х50\nПериод на отыгрыш: 3 дня (72 часа)\nМакс. сумма бонуса: 500 000 RUB\nМаксимальный кешаут х10",
+                    url: "https://partnerprofitboost.com/L5ztWmif",
+                    hiddenKeywords: ["PINCO", "Пинко", "gbyrj", "зштсщ", "pinko", "зштлщ"],
+                    category: "other",
+                    isActive: true,
+                    isPinned: false
+                },
+                {
+                    id: 2,
+                    name: "MARTIN",
+                    promocode: "SASH",
+                    shortDescription: "Вводи промокод SASH при регистрации и забирай сразу 50 FS и +150% за первый депозит",
+                    fullDescription: "до 600 FS за второе пополнение.\n+75% за третий депозит.",
+                    url: "https://martin-way-six.com/cc258fb5a",
+                    hiddenKeywords: ["Мартин", "Martin", "Vfhnby", "Ьфкешт"],
+                    category: "royals",
+                    isActive: true,
+                    isPinned: false
+                }
+            ];
+            console.log(`✅ Создано ${casinos.length} тестовых казино`);
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Критическая ошибка загрузки казино:', error);
+        return false;
+    }
+}
+
 // ===== ФУНКЦИИ СОХРАНЕНИЯ ДАННЫХ =====
 async function saveDataToFile() {
     try {
@@ -122,13 +191,12 @@ async function loadDataFromBackup() {
         const data = await fs.readFile('data_backup.json', 'utf8');
         const parsedData = JSON.parse(data);
         
-        casinos = parsedData.casinos || [];
+        // Восстанавливаем только announcements и userChats, казино грузим из основного файла
         announcements = parsedData.announcements || [];
         userChats = new Map(Object.entries(parsedData.userChats || {}));
         streamStatus = parsedData.streamStatus || streamStatus;
         
         console.log('💾 Данные восстановлены из бэкапа:', {
-            casinos: casinos.length,
             users: userChats.size,
             announcements: announcements.length
         });
@@ -871,98 +939,4 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
         users: userChats.size,
         announcements: announcements.length,
-        memory: process.memoryUsage().rss / 1024 / 1024 + ' MB'
-    });
-});
-
-app.get('/setup-webhook', async (req, res) => {
-    const success = await setupWebhook();
-    res.json({ success, message: success ? 'Webhook настроен' : 'Ошибка настройки' });
-});
-
-app.get('/info', (req, res) => {
-    res.json({
-        status: 'online',
-        users: userChats.size,
-        stream_live: streamStatus.isStreamLive,
-        announcements_count: announcements.length,
-        server_time: new Date().toISOString()
-    });
-});
-
-// Трекинг кликов
-app.post('/track-click', async (req, res) => {
-    try {
-        const { userId, userInfo, casinoId, action } = req.body;
-        
-        if (userId && userInfo) {
-            trackUserAction(userId, userInfo, action, casinoId);
-        }
-        
-        res.json({ status: 'ok' });
-    } catch (error) {
-        res.status(500).json({ error: 'Tracking error' });
-    }
-});
-
-// Трекинг визитов
-app.post('/track-visit', async (req, res) => {
-    try {
-        const { userId, userInfo, action } = req.body;
-        
-        if (userId && userInfo) {
-            trackUserAction(userId, userInfo, action);
-        }
-        
-        res.json({ status: 'ok' });
-    } catch (error) {
-        res.status(500).json({ error: 'Tracking error' });
-    }
-});
-
-// ===== ЗАПУСК СЕРВЕРА =====
-app.listen(PORT, async () => {
-    console.log('===================================');
-    console.log('🚀 Ludogolik Bot Server запущен!');
-    console.log('📞 Порт:', PORT);
-    console.log('🌐 URL:', RENDER_URL);
-    console.log('🤖 Токен:', TOKEN ? 'Установлен' : 'Отсутствует');
-    console.log('👑 Админы:', ADMINS.join(', '));
-    console.log('===================================');
-    
-    // Загружаем данные из бэкапа
-    await loadDataFromBackup();
-    
-    // Запускаем прогрев
-    keepAlive();
-    
-    // Бэкап в GitHub каждые 30 минут
-    setInterval(backupToGitHub, 30 * 60 * 1000);
-    
-    // Сохранение в файл каждые 5 минут
-    setInterval(saveDataToFile, 5 * 60 * 1000);
-    
-    setTimeout(async () => {
-        const success = await setupWebhook();
-        if (success) {
-            console.log('✅ Webhook успешно настроен');
-        } else {
-            console.log('❌ Ошибка настройки webhook');
-        }
-    }, 3000);
-});
-
-// Graceful shutdown
-process.on('SIGINT', () => {
-    console.log('🛑 Останавливаем бота...');
-    saveDataToFile();
-    bot.deleteWebHook();
-    process.exit(0);
-});
-
-process.on('SIGTERM', () => {
-    console.log('🛑 Останавливаем бота...');
-    saveDataToFile();
-    bot.deleteWebHook();
-    process.exit(0);
-});
+        casinos: casinos.length
