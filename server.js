@@ -939,4 +939,98 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
         users: userChats.size,
         announcements: announcements.length,
-        casinos: casinos.length
+        memory: process.memoryUsage().rss / 1024 / 1024 + ' MB'
+    });
+});
+
+app.get('/setup-webhook', async (req, res) => {
+    const success = await setupWebhook();
+    res.json({ success, message: success ? 'Webhook настроен' : 'Ошибка настройки' });
+});
+
+app.get('/info', (req, res) => {
+    res.json({
+        status: 'online',
+        users: userChats.size,
+        stream_live: streamStatus.isStreamLive,
+        announcements_count: announcements.length,
+        server_time: new Date().toISOString()
+    });
+});
+
+// Трекинг кликов
+app.post('/track-click', async (req, res) => {
+    try {
+        const { userId, userInfo, casinoId, action } = req.body;
+        
+        if (userId && userInfo) {
+            trackUserAction(userId, userInfo, action, casinoId);
+        }
+        
+        res.json({ status: 'ok' });
+    } catch (error) {
+        res.status(500).json({ error: 'Tracking error' });
+    }
+});
+
+// Трекинг визитов
+app.post('/track-visit', async (req, res) => {
+    try {
+        const { userId, userInfo, action } = req.body;
+        
+        if (userId && userInfo) {
+            trackUserAction(userId, userInfo, action);
+        }
+        
+        res.json({ status: 'ok' });
+    } catch (error) {
+        res.status(500).json({ error: 'Tracking error' });
+    }
+});
+
+// ===== ЗАПУСК СЕРВЕРА =====
+app.listen(PORT, async () => {
+    console.log('===================================');
+    console.log('🚀 Ludogolik Bot Server запущен!');
+    console.log('📞 Порт:', PORT);
+    console.log('🌐 URL:', RENDER_URL);
+    console.log('🤖 Токен:', TOKEN ? 'Установлен' : 'Отсутствует');
+    console.log('👑 Админы:', ADMINS.join(', '));
+    console.log('===================================');
+    
+    // Загружаем данные из бэкапа
+    await loadDataFromBackup();
+    
+    // Запускаем прогрев
+    keepAlive();
+    
+    // Бэкап в GitHub каждые 30 минут
+    setInterval(backupToGitHub, 30 * 60 * 1000);
+    
+    // Сохранение в файл каждые 5 минут
+    setInterval(saveDataToFile, 5 * 60 * 1000);
+    
+    setTimeout(async () => {
+        const success = await setupWebhook();
+        if (success) {
+            console.log('✅ Webhook успешно настроен');
+        } else {
+            console.log('❌ Ошибка настройки webhook');
+        }
+    }, 3000);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+    console.log('🛑 Останавливаем бота...');
+    saveDataToFile();
+    bot.deleteWebHook();
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    console.log('🛑 Останавливаем бота...');
+    saveDataToFile();
+    bot.deleteWebHook();
+    process.exit(0);
+});
