@@ -9,8 +9,8 @@ async function backupToGitHub() {
         const status = await git.status();
         
         if (status.modified.length > 0 || status.not_added.length > 0) {
-            await git.addConfig('user.name', 'CasinoBot');
-            await git.addConfig('user.email', 'bot@casinohub.com');
+            await git.addConfig('user.name', 'mindbreakfast');
+            await git.addConfig('user.email', 'homegamego@gmail.com');
             
             await git.add('.');
             await git.commit('Auto-backup: ' + new Date().toISOString());
