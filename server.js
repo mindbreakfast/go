@@ -437,6 +437,39 @@ app.get('/api/all-data', (req, res) => {
     res.json(cachedData);
 });
 
+// ===== API ENDPOINTS =====
+
+// Главная страница
+app.get('/', (req, res) => {
+    res.json({
+        status: 'online',
+        message: 'Ludogolik Bot Server is running!',
+        stats: {
+            users: userChats.size,
+            casinos: casinos.length,
+            announcements: announcements.length,
+            stream_live: streamStatus.isStreamLive
+        },
+        endpoints: {
+            webhook: '/webhook',
+            api_data: '/api/all-data',
+            status: '/status',
+            health: '/health',
+            info: '/info'
+        }
+    });
+});
+
+app.post('/webhook', (req, res) => {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+});
+
+// ... остальные endpoints
+
+
+
+
 // ===== ЗАПУСК СЕРВЕРА =====
 app.listen(PORT, async () => {
     console.log('===================================');
@@ -459,5 +492,6 @@ app.listen(PORT, async () => {
         await setupWebhook();
     }, 3000);
 });
+
 
 
