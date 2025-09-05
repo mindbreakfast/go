@@ -282,7 +282,7 @@ function startCasinoCreation(userId) {
     return 'Введите название казино:';
 }
 
-function processCasinoStep(userId, message) {
+async function processCasinoStep(userId, message) {
     const state = casinoEditingState.get(userId);
     if (!state) return null;
 
@@ -796,12 +796,12 @@ bot.on('message', (msg) => {
 });
 
 // Обработка шагов добавления казино
-bot.on('message', (msg) => {
+bot.on('message', async (msg) => {
     if (!isAdmin(msg.from.id) || !casinoEditingState.has(msg.from.id)) return;
     
     const state = casinoEditingState.get(msg.from.id);
     if (state && state.step) {
-        const response = processCasinoStep(msg.from.id, msg.text);
+        const response = await processCasinoStep(msg.from.id, msg.text);
         if (response) {
             bot.sendMessage(msg.chat.id, response);
         }
@@ -1027,4 +1027,5 @@ process.on('SIGTERM', () => {
     bot.deleteWebHook();
     process.exit(0);
 });
+
 
