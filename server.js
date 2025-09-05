@@ -43,6 +43,10 @@ let streamStatus = {
 let announcements = [];
 let userChats = new Set();
 
+// ===== КЭШИРОВАНИЕ ДАННЫХ =====
+let cachedData = null;
+let cacheTimestamp = 0;
+
 // ===== ФУНКЦИЯ УСТАНОВКИ WEBHOOK =====
 async function setupWebhook() {
     try {
@@ -74,6 +78,8 @@ async function updateStreamStatus(isLive, streamUrl = '', eventDescription = '')
             eventDescription: eventDescription,
             lastUpdated: new Date().toISOString()
         };
+        // Сбрасываем кэш при изменении статуса
+        cachedData = null;
         return true;
     } catch (error) {
         console.error('❌ Ошибка обновления статуса:', error);
@@ -89,19 +95,26 @@ function addAnnouncement(text, color = 'blue') {
         createdAt: new Date().toISOString()
     };
     announcements.push(newAnnouncement);
+    // Сбрасываем кэш при добавлении анонса
+    cachedData = null;
     return newAnnouncement.id;
 }
 
 function clearAnnouncements() {
     const count = announcements.length;
     announcements = [];
+    // Сбрасываем кэш при очистке
+    cachedData = null;
     return count;
 }
 
 function removeAnnouncement(id) {
     const index = announcements.findIndex(a => a.id === id);
     if (index !== -1) {
-        return announcements.splice(index, 1)[0];
+        const removed = announcements.splice(index, 1)[0];
+        // Сбрасываем кэш при удалении
+        cachedData = null;
+        return removed;
     }
     return null;
 }
@@ -309,6 +322,23 @@ app.post('/webhook', (req, res) => {
     res.sendStatus(200);
 });
 
+// Объединенный endpoint для всех данных
+app.get('/api/all-data', (req, res) => {
+    // Отдаем кэшированные данные если они свежие (5 минут)
+    if (cachedData && Date.now() - cacheTimestamp < 5 * 60 * 1000) {
+        return res.json(cachedData);
+    }
+    
+    // Обновляем кэш
+    cachedData = {
+        streamStatus: streamStatus,
+        announcements: announcements
+    };
+    cacheTimestamp = Date.now();
+    
+    res.json(cachedData);
+});
+
 app.get('/status', (req, res) => {
     res.json(streamStatus);
 });
@@ -318,7 +348,12 @@ app.get('/announcements', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        users: userChats.size,
+        memory: process.memoryUsage()
+    });
 });
 
 app.get('/setup-webhook', async (req, res) => {
