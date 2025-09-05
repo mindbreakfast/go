@@ -14,7 +14,7 @@ const ADMINS = [1777213824, 594143385, 1097210873];
 const WEB_APP_URL = 'https://gogo-kohl-beta.vercel.app';
 const RENDER_URL = 'https://go-5zty.onrender.com';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_REPO = process.env.GITHUB_REPO || 'your-username/your-repo';
+const GITHUB_REPO = process.env.GITHUB_REPO || 'mindbreakfast/go';
 // ===================
 
 if (!TOKEN) {
@@ -459,4 +459,5 @@ app.listen(PORT, async () => {
         await setupWebhook();
     }, 3000);
 });
+
 
