@@ -342,7 +342,7 @@ function processCasinoStep(userId, message) {
             
         case ADD_CASINO_STEPS.CONFIRM:
             if (message.toLowerCase() === 'да') {
-                const newCasino = addCasino(state.data);
+                const newCasino = await addCasino(state.data);
                 casinoEditingState.delete(userId);
                 return `✅ Казино добавлено! ID: ${newCasino.id}`;
             } else {
@@ -697,6 +697,10 @@ bot.onText(/\/edit_casino (\d+)/, (msg, match) => {
                 ],
                 [
                     { text: '🏷️ Категория', callback_data: `edit_category_${id}` },
+                    { text: '📌 Закрепить', callback_data: `pin_${id}` },
+                    { text: '👻 Скрыть', callback_data: `hide_${id}` }
+                ],
+                [
                     { text: '🚫 Удалить', callback_data: `delete_${id}` }
                 ]
             ]
@@ -704,13 +708,13 @@ bot.onText(/\/edit_casino (\d+)/, (msg, match) => {
     };
     
     bot.sendMessage(msg.chat.id, 
-        `🎰 *Редактирование казино:*\n\nID: ${casino.id}\nНазвание: ${casino.name}\nПромокод: ${casino.promocode}\nКатегория: ${casino.category}\n\nВыберите что редактировать:`,
+        `🎰 *Редактирование казино:*\n\nID: ${casino.id}\nНазвание: ${casino.name}\nПромокод: ${casino.promocode}\nКатегория: ${casino.category}\nСтатус: ${casino.isActive ? '✅ Активно' : '❌ Скрыто'}\nЗакреплено: ${casino.isPinned ? '✅ Да' : '❌ Нет'}\n\nВыберите что редактировать:`,
         { parse_mode: 'Markdown', reply_markup: keyboard }
     );
 });
 
 // Обработка callback кнопок
-bot.on('callback_query', (query) => {
+bot.on('callback_query', async (query) => {
     const chatId = query.message.chat.id;
     const data = query.data;
     
@@ -743,6 +747,22 @@ bot.on('callback_query', (query) => {
             bot.sendMessage(chatId, '❌ Казино не найдено');
         }
     }
+
+    else if (data.startsWith('pin_')) {
+    const casinoId = parseInt(data.split('_')[1]);
+    const updated = await updateCasino(casinoId, { isPinned: true });
+    bot.sendMessage(chatId, updated ? `✅ Казино "${updated.name}" закреплено!` : '❌ Ошибка');
+}
+else if (data.startsWith('hide_')) {
+    const casinoId = parseInt(data.split('_')[1]);
+    const updated = await updateCasino(casinoId, { isActive: false });
+    bot.sendMessage(chatId, updated ? `✅ Казино "${updated.name}" скрыто!` : '❌ Ошибка');
+}
+else if (data.startsWith('show_')) {
+    const casinoId = parseInt(data.split('_')[1]);
+    const updated = await updateCasino(casinoId, { isActive: true });
+    bot.sendMessage(chatId, updated ? `✅ Казино "${updated.name}" показано!` : '❌ Ошибка');
+}
     
     bot.answerCallbackQuery(query.id);
 });
@@ -1007,3 +1027,4 @@ process.on('SIGTERM', () => {
     bot.deleteWebHook();
     process.exit(0);
 });
+
