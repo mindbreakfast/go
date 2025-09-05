@@ -1,10 +1,12 @@
 {
   "name": "casinohub-bot",
   "version": "1.0.0",
+  "description": "Telegram bot for casino links with admin management",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "backup": "node backup.js"
+    "backup": "node backup.js",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.64.0",
@@ -12,7 +14,23 @@
     "axios": "^1.6.0",
     "simple-git": "^3.19.0"
   },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
   "engines": {
     "node": "18.x"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "casino",
+    "gambling",
+    "webapp"
+  ],
+  "author": "mindbreakfast",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mindbreakfast/go.git"
   }
 }
