@@ -72,6 +72,7 @@ const ADD_CASINO_STEPS = {
 // ===== ФУНКЦИИ РАБОТЫ С ДАННЫМИ =====
 async function loadData() {
     try {
+          console.log('🔍 Загрузка данных... Токен GitHub:', GITHUB_TOKEN ? 'есть' : 'нет');
         console.log('🔄 Загружаю данные...');
         
         // Пробуем загрузить из локального файла
@@ -659,6 +660,18 @@ bot.onText(/\/add_casino/, (msg) => {
 });
 
 // Команда /list_casinos
+
+bot.onText(/\/list_casinos/, (msg) => {
+    console.log('🔍 Команда /list_casinos получена от:', msg.from?.username, 'ID:', msg.from?.id);
+    
+    if (!isAdmin(msg.from.id)) {
+        console.log('❌ Пользователь не админ');
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+    }
+    
+    console.log('✅ Пользователь админ, продолжаем...');
+    // ... остальной код
+    
 bot.onText(/\/list_casinos/, (msg) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
@@ -679,6 +692,16 @@ bot.onText(/\/list_casinos/, (msg) => {
 });
 
 // Команда /edit_casino
+    bot.onText(/\/edit_casino (\d+)/, (msg, match) => {
+    console.log('🔍 Команда /edit_casino получена от:', msg.from?.username, 'ID:', msg.from?.id);
+    
+    if (!isAdmin(msg.from.id)) {
+        console.log('❌ Пользователь не админ');
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+    }
+    
+    console.log('✅ Пользователь админ, продолжаем...');
+    // ... остальной код
 bot.onText(/\/edit_casino (\d+)/, (msg, match) => {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
@@ -1042,6 +1065,7 @@ process.on('SIGTERM', () => {
     bot.deleteWebHook();
     process.exit(0);
 });
+
 
 
 
