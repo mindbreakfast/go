@@ -17,12 +17,8 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPO = process.env.GITHUB_REPO || 'mindbreakfast/go';
 // ===================
 
-
-
-
-
 if (!TOKEN) {
-    console.error('❌ FATAL: BOT_TOKEN not found in environment variables');
+    console.error('FATAL: BOT_TOKEN not found');
     process.exit(1);
 }
 
@@ -72,10 +68,8 @@ const ADD_CASINO_STEPS = {
 // ===== ФУНКЦИИ РАБОТЫ С ДАННЫМИ =====
 async function loadData() {
     try {
-          console.log('🔍 Загрузка данных... Токен GitHub:', GITHUB_TOKEN ? 'есть' : 'нет');
-        console.log('🔄 Загружаю данные...');
+        console.log('Loading data...');
         
-        // Пробуем загрузить из локального файла
         try {
             const data = await fs.readFile('data.json', 'utf8');
             const parsedData = JSON.parse(data);
@@ -85,13 +79,12 @@ async function loadData() {
             userChats = new Map(Object.entries(parsedData.userChats || {}));
             streamStatus = parsedData.streamStatus || streamStatus;
             
-            console.log(`✅ Данные загружены из data.json: ${casinos.length} казино`);
+            console.log('Data loaded:', casinos.length, 'casinos');
             return true;
         } catch (error) {
-            console.log('📁 Локальный файл не найден, создаю новый...');
+            console.log('Local file not found, creating new...');
         }
         
-        // Если файла нет, создаем базовую структуру
         const dataToSave = {
             casinos: [],
             announcements: [],
@@ -113,11 +106,11 @@ async function loadData() {
         };
         
         await fs.writeFile('data.json', JSON.stringify(dataToSave, null, 2));
-        console.log('✅ Создан новый файл data.json');
+        console.log('New data.json created');
         
         return true;
     } catch (error) {
-        console.error('❌ Критическая ошибка загрузки данных:', error);
+        console.error('Error loading data:', error);
         return false;
     }
 }
@@ -140,21 +133,20 @@ async function saveData() {
         };
         
         await fs.writeFile('data.json', JSON.stringify(dataToSave, null, 2));
-        console.log('💾 Данные сохранены в data.json');
+        console.log('Data saved locally');
         
-        // Пытаемся сохранить в GitHub
         await saveToGitHub();
         
         return true;
     } catch (error) {
-        console.error('❌ Ошибка сохранения данных:', error);
+        console.error('Error saving data:', error);
         return false;
     }
 }
 
 async function saveToGitHub() {
     if (!GITHUB_TOKEN) {
-        console.log('⚠️ GITHUB_TOKEN не установлен, пропускаем синхронизацию');
+        console.log('GITHUB_TOKEN not set, skipping');
         return false;
     }
 
@@ -167,10 +159,10 @@ async function saveToGitHub() {
         await git.commit('Auto-update: ' + new Date().toISOString());
         await git.push('origin', 'main');
         
-        console.log('✅ Данные отправлены в GitHub');
+        console.log('Data sent to GitHub');
         return true;
     } catch (error) {
-        console.error('❌ Ошибка сохранения в GitHub:', error.message);
+        console.error('GitHub error:', error.message);
         return false;
     }
 }
@@ -368,13 +360,13 @@ async function keepAlive() {
         setInterval(async () => {
             try {
                 await axios.get(`${RENDER_URL}/health`);
-                console.log('✅ Сервер прогрет:', new Date().toLocaleTimeString('ru-RU'));
+                console.log('Server warmed:', new Date().toLocaleTimeString('ru-RU'));
             } catch (error) {
-                console.log('❌ Ошибка прогрева:', error.message);
+                console.log('Warm error:', error.message);
             }
         }, 4 * 60 * 1000);
     } catch (error) {
-        console.log('Ошибка инициализации keepAlive:', error);
+        console.log('KeepAlive error:', error);
     }
 }
 
@@ -382,17 +374,17 @@ async function keepAlive() {
 async function setupWebhook() {
     try {
         const webhookUrl = `${RENDER_URL}/webhook`;
-        console.log('🔄 Настраиваю webhook:', webhookUrl);
+        console.log('Setting webhook:', webhookUrl);
         
         await bot.deleteWebHook();
         const result = await bot.setWebHook(webhookUrl);
         
         const webhookInfo = await bot.getWebHookInfo();
-        console.log('📋 Webhook info:', webhookInfo.url);
+        console.log('Webhook info:', webhookInfo.url);
         
         return true;
     } catch (error) {
-        console.error('❌ Ошибка webhook:', error);
+        console.error('Webhook error:', error);
         return false;
     }
 }
@@ -413,7 +405,7 @@ async function updateStreamStatus(isLive, streamUrl = '', eventDescription = '')
         await saveData();
         return true;
     } catch (error) {
-        console.error('❌ Ошибка обновления статуса:', error);
+        console.error('Stream status error:', error);
         return false;
     }
 }
@@ -660,22 +652,15 @@ bot.onText(/\/add_casino/, (msg) => {
 });
 
 // Команда /list_casinos
-
 bot.onText(/\/list_casinos/, (msg) => {
-    console.log('🔍 Команда /list_casinos получена от:', msg.from?.username, 'ID:', msg.from?.id);
+    console.log('LIST CASINOS COMMAND RECEIVED');
     
     if (!isAdmin(msg.from.id)) {
-        console.log('❌ Пользователь не админ');
+        console.log('NOT ADMIN');
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
     
-    console.log('✅ Пользователь админ, продолжаем...');
-    // ... остальной код
-    
-bot.onText(/\/list_casinos/, (msg) => {
-    if (!isAdmin(msg.from.id)) {
-        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
-    }
+    console.log('IS ADMIN, casinos count:', casinos.length);
     
     if (casinos.length === 0) {
         return bot.sendMessage(msg.chat.id, '📝 Список казино пуст');
@@ -692,18 +677,11 @@ bot.onText(/\/list_casinos/, (msg) => {
 });
 
 // Команда /edit_casino
-    bot.onText(/\/edit_casino (\d+)/, (msg, match) => {
-    console.log('🔍 Команда /edit_casino получена от:', msg.from?.username, 'ID:', msg.from?.id);
-    
-    if (!isAdmin(msg.from.id)) {
-        console.log('❌ Пользователь не админ');
-        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
-    }
-    
-    console.log('✅ Пользователь админ, продолжаем...');
-    // ... остальной код
 bot.onText(/\/edit_casino (\d+)/, (msg, match) => {
+    console.log('EDIT CASINO COMMAND RECEIVED');
+    
     if (!isAdmin(msg.from.id)) {
+        console.log('NOT ADMIN');
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
     
@@ -749,6 +727,8 @@ bot.on('callback_query', async (query) => {
     const data = query.data;
     
     try {
+        console.log('CALLBACK RECEIVED:', data);
+        
         if (data.startsWith('edit_')) {
             const [action, id] = data.split('_').slice(1);
             const casinoId = parseInt(id);
@@ -800,7 +780,7 @@ bot.on('callback_query', async (query) => {
         
         await bot.answerCallbackQuery(query.id);
     } catch (error) {
-        console.error('❌ Ошибка в callback:', error);
+        console.error('Callback error:', error);
         await bot.answerCallbackQuery(query.id, { text: '❌ Произошла ошибка' });
     }
 });
@@ -1025,11 +1005,11 @@ app.post('/track-visit', async (req, res) => {
 // ===== ЗАПУСК СЕРВЕРА =====
 app.listen(PORT, async () => {
     console.log('===================================');
-    console.log('🚀 Ludogolik Bot Server запущен!');
-    console.log('📞 Порт:', PORT);
-    console.log('🌐 URL:', RENDER_URL);
-    console.log('🤖 Токен:', TOKEN ? 'Установлен' : 'Отсутствует');
-    console.log('👑 Админы:', ADMINS.join(', '));
+    console.log('Ludogolik Bot Server запущен!');
+    console.log('Порт:', PORT);
+    console.log('URL:', RENDER_URL);
+    console.log('Токен:', TOKEN ? 'Установлен' : 'Отсутствует');
+    console.log('Админы:', ADMINS.join(', '));
     console.log('===================================');
     
     // Загружаем данные при старте
@@ -1044,28 +1024,32 @@ app.listen(PORT, async () => {
     setTimeout(async () => {
         const success = await setupWebhook();
         if (success) {
-            console.log('✅ Webhook успешно настроен');
+            console.log('Webhook успешно настроен');
         } else {
-            console.log('❌ Ошибка настройки webhook');
+            console.log('Ошибка настройки webhook');
         }
     }, 3000);
 });
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-    console.log('🛑 Останавливаем бота...');
+    console.log('Останавливаем бота...');
     saveData();
     bot.deleteWebHook();
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-    console.log('🛑 Останавливаем бота...');
+    console.log('Останавливаем бота...');
     saveData();
     bot.deleteWebHook();
     process.exit(0);
 });
 
-
-
+// Простое логирование команд
+bot.on('message', (msg) => {
+    if (msg.text && msg.text.startsWith('/')) {
+        console.log('Command received:', msg.text);
+    }
+});
 
