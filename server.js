@@ -1,13 +1,3 @@
-// Логирование ВСЕХ сообщений
-bot.on('message', (msg) => {
-    console.log('📨 Сообщение от:', msg.from?.username, 'Текст:', msg.text);
-});
-
-// Логирование ВСЕХ команд
-bot.onText(/\/(.+)/, (msg, match) => {
-    console.log('⚡ Команда:', match[1], 'От:', msg.from?.username);
-});
-
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const axios = require('axios');
@@ -26,6 +16,18 @@ const RENDER_URL = 'https://go-5zty.onrender.com';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPO = process.env.GITHUB_REPO || 'mindbreakfast/go';
 // ===================
+
+
+// Логирование ВСЕХ сообщений
+bot.on('message', (msg) => {
+    console.log('📨 Сообщение от:', msg.from?.username, 'Текст:', msg.text);
+});
+
+// Логирование ВСЕХ команд
+bot.onText(/\/(.+)/, (msg, match) => {
+    console.log('⚡ Команда:', match[1], 'От:', msg.from?.username);
+});
+
 
 
 
@@ -1050,4 +1052,5 @@ process.on('SIGTERM', () => {
     bot.deleteWebHook();
     process.exit(0);
 });
+
 
