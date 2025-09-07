@@ -1,18 +1,20 @@
 {
   "name": "casinohub-bot",
-  "version": "1.0.0",
-  "description": "Telegram bot for casino links with admin management",
-  "main": "server.js",
+  "version": "1.1.0",
+  "description": "Telegram bot for casino links from Ludogolik",
+  "main": "main.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node main.js",
     "backup": "node backup.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon main.js",
+    "setup-webhook": "node -e \"require('./bot/bot.js').setupWebhook()\""
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.64.0",
     "express": "^4.18.2",
     "axios": "^1.6.0",
-    "simple-git": "^3.19.0"
+    "simple-git": "^3.19.0",
+    "dotenv": "^16.3.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
@@ -25,7 +27,9 @@
     "bot",
     "casino",
     "gambling",
-    "webapp"
+    "webapp",
+    "modular",
+    "github-api"
   ],
   "author": "mindbreakfast",
   "license": "MIT",
