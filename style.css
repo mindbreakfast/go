@@ -376,12 +376,36 @@ body {
 
 /* Стили для компактного режима */
 .casino-card.compact {
-    padding: 12px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .casino-card.compact .casino-header {
-    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 0;
+    flex: 1;
 }
+
+.casino-card.compact .casino-name {
+    margin-right: 15px;
+    font-weight: bold;
+}
+
+.casino-card.compact .action-buttons {
+    flex: 0 0 auto;
+    margin-left: 10px;
+}
+
+.casino-card.compact .action-buttons .btn {
+    padding: 8px 16px;
+    white-space: nowrap;
+}
+
+
+
 
 .casino-card.compact .promo-code,
 .casino-card.compact .promo-description,
