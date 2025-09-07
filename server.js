@@ -734,7 +734,7 @@ bot.onText(/\/edit_casino (\d+)/, (msg, match) => {
             `Редактирование: ${casino.name} (ID: ${casino.id})\nКнопки не доступны. Используйте команды:\n/edit_name_${id}\n/edit_promo_${id} и т.д.`
         );
     });
-
+});
 // Обработка callback кнопок
 bot.on('callback_query', async (query) => {
     const chatId = query.message.chat.id;
@@ -1063,5 +1063,6 @@ bot.on('message', (msg) => {
         console.log('Command received:', msg.text);
     }
 });
+
 
 
