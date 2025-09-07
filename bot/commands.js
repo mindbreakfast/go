@@ -34,6 +34,15 @@ function handleStartCommand(bot, msg) {
     const user = msg.from;
     database.trackUserAction(user.id, user, 'start');
 
+
+// Обработка команды запроса доступа
+if (msg.text && msg.text.includes('approval')) {
+    database.requestApproval(user.id, user.username || 'не указан');
+    bot.sendMessage(msg.chat.id, '✅ Ваш запрос на доступ отправлен админам!');
+    return;
+}
+
+    
     // Обработка реферальной ссылки
     if (msg.text && msg.text.includes(' ')) {
         const referralCode = msg.text.split(' ')[1];
