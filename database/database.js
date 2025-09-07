@@ -3,44 +3,65 @@ const path = require('path');
 const githubSync = require('./githubSync');
 const config = require('../config');
 
+// Разделяем данные
 let casinos = [];
 let announcements = [];
-let userChats = new Map();
-let userSettings = new Map();
-let giveaways = [];
 let streamStatus = {
     isStreamLive: false,
     streamUrl: '',
     eventDescription: '',
     lastUpdated: new Date().toISOString()
 };
+let categories = config.CATEGORIES;
+
+// Данные пользователей (не синхронизируем с GitHub)
+let userChats = new Map();
+let userSettings = new Map();
+let giveaways = [];
 
 class Database {
     constructor() {
         this.dataFilePath = path.join(__dirname, '..', 'data.json');
-        console.log('Database file path:', this.dataFilePath);
+        this.userDataFilePath = path.join(__dirname, '..', 'userdata.json');
+        console.log('Database files:', this.dataFilePath, this.userDataFilePath);
     }
 
     async loadData() {
         try {
-            console.log('Loading data from local file...');
+            // Загружаем основные данные
+            console.log('Loading main data from GitHub...');
             const data = await fs.readFile(this.dataFilePath, 'utf8');
             const parsedData = JSON.parse(data);
-            console.log('Local data file found');
-
+            
             casinos = parsedData.casinos || [];
             announcements = parsedData.announcements || [];
             streamStatus = parsedData.streamStatus || streamStatus;
-            userChats = new Map(Object.entries(parsedData.userChats || {}));
-            userSettings = new Map(Object.entries(parsedData.userSettings || {}));
-            giveaways = parsedData.giveaways || [];
+            categories = parsedData.categories || config.CATEGORIES;
+
+            // Загружаем данные пользователей
+            try {
+                console.log('Loading user data...');
+                const userData = await fs.readFile(this.userDataFilePath, 'utf8');
+                const parsedUserData = JSON.parse(userData);
+                
+                userChats = new Map(Object.entries(parsedUserData.userChats || {}));
+                userSettings = new Map(Object.entries(parsedUserData.userSettings || {}));
+                giveaways = parsedUserData.giveaways || [];
+            } catch (userError) {
+                if (userError.code === 'ENOENT') {
+                    console.log('User data file not found, creating new...');
+                    await this.saveUserData(); // Создаем файл
+                } else {
+                    console.error('Error loading user data:', userError);
+                }
+            }
 
             console.log(`Loaded: ${casinos.length} casinos, ${userChats.size} users, ${userSettings.size} settings`);
             return true;
 
         } catch (error) {
             if (error.code === 'ENOENT') {
-                console.log('Local data file not found, creating initial structure');
+                console.log('Main data file not found, creating initial structure');
                 return await this.initializeData();
             } else {
                 console.error('Error loading data:', error);
@@ -53,54 +74,84 @@ class Database {
         const initialData = {
             casinos: [],
             announcements: [],
+            streamStatus: streamStatus,
+            categories: categories,
+            lastUpdated: new Date().toISOString()
+        };
+
+        const initialUserData = {
             userChats: {},
             userSettings: {},
             giveaways: [],
-            streamStatus: streamStatus,
-            categories: config.CATEGORIES,
             lastUpdated: new Date().toISOString()
         };
 
         try {
             await fs.writeFile(this.dataFilePath, JSON.stringify(initialData, null, 2));
+            await fs.writeFile(this.userDataFilePath, JSON.stringify(initialUserData, null, 2));
+            
             casinos = [];
             announcements = [];
             userChats = new Map();
             userSettings = new Map();
             giveaways = [];
-            console.log('New data file created with initial structure');
+            
+            console.log('New data files created with initial structure');
             return true;
         } catch (error) {
-            console.error('Error creating initial data file:', error);
+            console.error('Error creating initial data files:', error);
             return false;
         }
     }
 
     async saveData() {
         try {
-            console.log('Saving data...');
+            console.log('Saving main data to GitHub...');
             const dataToSave = {
                 casinos: casinos,
                 announcements: announcements,
-                userChats: Object.fromEntries(userChats),
-                userSettings: Object.fromEntries(userSettings),
-                giveaways: giveaways,
                 streamStatus: streamStatus,
-                categories: config.CATEGORIES,
+                categories: categories,
                 lastUpdated: new Date().toISOString()
             };
 
+            // Сохраняем локально
             await fs.writeFile(this.dataFilePath, JSON.stringify(dataToSave, null, 2));
-            console.log('Data saved locally');
+            console.log('Main data saved locally');
 
-            const githubResult = await githubSync.saveDataToGitHub(JSON.stringify(dataToSave, null, 2));
-            console.log('GitHub sync result:', githubResult.success);
-
-            return { local: true, github: githubResult.success };
+            // Синхронизируем с GitHub
+            if (config.GITHUB_TOKEN) {
+                const githubResult = await githubSync.saveDataToGitHub(JSON.stringify(dataToSave, null, 2));
+                console.log('GitHub sync result:', githubResult.success);
+                return { local: true, github: githubResult.success };
+            } else {
+                console.log('GitHub token not set, skipping sync');
+                return { local: true, github: false };
+            }
 
         } catch (error) {
-            console.error('Error saving data:', error);
+            console.error('Error saving main data:', error);
             return { local: false, github: false, error: error.message };
+        }
+    }
+
+    async saveUserData() {
+        try {
+            console.log('Saving user data locally...');
+            const userDataToSave = {
+                userChats: Object.fromEntries(userChats),
+                userSettings: Object.fromEntries(userSettings),
+                giveaways: giveaways,
+                lastUpdated: new Date().toISOString()
+            };
+
+            await fs.writeFile(this.userDataFilePath, JSON.stringify(userDataToSave, null, 2));
+            console.log('User data saved locally');
+            return true;
+
+        } catch (error) {
+            console.error('Error saving user data:', error);
+            return false;
         }
     }
 
@@ -111,14 +162,14 @@ class Database {
     getStreamStatus() { return streamStatus; }
     getUserSettings() { return userSettings; }
     getGiveaways() { return giveaways; }
-    getCategories() { return config.CATEGORIES; }
+    getCategories() { return categories; }
 
     // Сеттеры
     setCasinos(newCasinos) { casinos = newCasinos; }
     setAnnouncements(newAnnouncements) { announcements = newAnnouncements; }
     setStreamStatus(newStatus) { streamStatus = { ...streamStatus, ...newStatus }; }
 
-    // Методы пользователей
+    // Методы пользователей (сохраняют только локально)
     trackUserAction(userId, userInfo, action, target = null) {
         if (!userChats.has(userId)) {
             userChats.set(userId, {
@@ -151,13 +202,9 @@ class Database {
         });
 
         console.log('User action tracked:', { userId, action, target });
+        this.saveUserData(); // ← ТОЛЬКО локальное сохранение
     }
 
-    getUserStats(userId) {
-        return userChats.get(userId) || null;
-    }
-
-    // Новые методы
     hideCasinoForUser(userId, casinoId) {
         if (!userSettings.has(userId)) {
             userSettings.set(userId, { hiddenCasinos: [], viewMode: 'full' });
@@ -175,11 +222,8 @@ class Database {
             const settings = userSettings.get(userId);
             settings.hiddenCasinos = settings.hiddenCasinos.filter(id => id !== casinoId);
             console.log('Casino unhidden:', { userId, casinoId });
+            this.saveUserData(); // ← ТОЛЬКО локальное сохранение
         }
-    }
-
-    getHiddenCasinosForUser(userId) {
-        return userSettings.get(userId)?.hiddenCasinos || [];
     }
 
     setUserViewMode(userId, mode) {
@@ -190,10 +234,7 @@ class Database {
             userSettings.get(userId).viewMode = mode;
         }
         console.log('View mode set:', { userId, mode });
-    }
-
-    getUserViewMode(userId) {
-        return userSettings.get(userId)?.viewMode || 'full';
+        this.saveUserData(); // ← ТОЛЬКО локальное сохранение
     }
 
     approveUserAccess(userId) {
@@ -211,6 +252,7 @@ class Database {
             settings.approvalDate = new Date().toISOString();
         }
         console.log('User approved for live:', userId);
+        this.saveUserData(); // ← ТОЛЬКО локальное сохранение
         return true;
     }
 
@@ -222,26 +264,10 @@ class Database {
             userData.pendingApprovalDate = new Date().toISOString();
             userData.pendingApprovalUsername = telegramUsername;
             console.log('Approval requested:', { userId, telegramUsername });
+            this.saveUserData(); // ← ТОЛЬКО локальное сохранение
             return true;
         }
         return false;
-    }
-
-    getPendingApprovals() {
-        const userChats = this.getUserChats();
-        const pending = [];
-        
-        for (const [userId, userData] of userChats) {
-            if (userData.pendingApproval) {
-                pending.push({
-                    userId: userId,
-                    username: userData.username,
-                    requestedAt: userData.pendingApprovalDate,
-                    requestedUsername: userData.pendingApprovalUsername
-                });
-            }
-        }
-        return pending;
     }
 }
 
