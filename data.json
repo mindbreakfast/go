@@ -648,13 +648,6 @@
       "isPinned": false
     }
   ],
-  "announcements": [],
-  "streamStatus": {
-    "isStreamLive": false,
-    "streamUrl": "",
-    "eventDescription": "",
-    "lastUpdated": "2025-09-07T14:53:56.657Z"
-  },
   "categories": [
     {
       "id": "kb",
@@ -685,5 +678,5 @@
       "name": "ДЖОИ"
     }
   ],
-  "lastUpdated": "2025-09-07T16:22:40.864Z"
+  "lastUpdated": "2025-09-07T16:24:25.310Z"
 }
