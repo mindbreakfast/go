@@ -440,6 +440,272 @@ async function loadInitialData() {
             }
         }
 
+
+// ===== СИСТЕМА СКРЫТИЯ КАЗИНО =====
+let hidePressTimer = null;
+let currentHideCandidate = null;
+
+function startHideTimer(casinoId, event) {
+    if (hidePressTimer) clearTimeout(hidePressTimer);
+    currentHideCandidate = casinoId;
+    
+    hidePressTimer = setTimeout(() => {
+        showHideConfirmation(casinoId);
+    }, 1000); // 1 секунда
+}
+
+function cancelHideTimer() {
+    if (hidePressTimer) {
+        clearTimeout(hidePressTimer);
+        hidePressTimer = null;
+    }
+    currentHideCandidate = null;
+}
+
+function showHideConfirmation(casinoId) {
+    const casino = allCasinos.find(c => c.id === casinoId);
+    if (!casino) return;
+    
+    const card = document.querySelector(`.casino-card[data-id="${casinoId}"]`);
+    if (!card) return;
+    
+    card.classList.add('hide-confirm');
+    card.innerHTML = `
+        <div class="casino-header">
+            <div class="casino-name">${casino.name}</div>
+        </div>
+        <p>Скрыть это казино из списка?</p>
+        <div class="hide-confirm-buttons">
+            <button class="btn btn-primary" onclick="confirmHideCasino(${casinoId})">Да</button>
+            <button class="btn btn-outline" onclick="cancelHideCasino(${casinoId})">Нет</button>
+        </div>
+    `;
+}
+
+function confirmHideCasino(casinoId) {
+    userHiddenCasinos.push(casinoId);
+    saveUserSettings();
+    renderCasinos();
+}
+
+function cancelHideCasino(casinoId) {
+    const card = document.querySelector(`.casino-card[data-id="${casinoId}"]`);
+    if (card) {
+        card.classList.remove('hide-confirm');
+    }
+    renderCasinos(); // Перерисовываем карточку
+}
+
+// ===== РЕЖИМЫ ПРОСМОТРА =====
+function toggleViewMode() {
+    userViewMode = userViewMode === 'full' ? 'compact' : 'full';
+    saveUserSettings();
+    renderCasinos();
+    
+    // Обновляем кнопку
+    const modeButton = document.getElementById('viewModeToggle');
+    if (modeButton) {
+        modeButton.textContent = userViewMode === 'full' ? '📱 Компактный' : '📋 Полный';
+    }
+}
+
+// ===== ЛАЙВ КОМНАТЫ =====
+function updateLiveRooms() {
+    const privateRoomContent = document.getElementById('privateRoomContent');
+    if (!privateRoomContent) return;
+    
+    if (isApproved) {
+        privateRoomContent.innerHTML = `
+            <p>Доступ одобрен ✅</p>
+            <button class="btn btn-primary" onclick="openLink(event, 'https://meet.google.com/xes-fsxv-gun')">
+                ПЕРЕЙТИ В КОМНАТУ
+            </button>
+        `;
+    } else {
+        privateRoomContent.innerHTML = `
+            <p>Доступ требуется запросить у админа</p>
+            <button class="btn btn-outline" onclick="requestApproval()">
+                📝 Получить одобрение
+            </button>
+        `;
+    }
+}
+
+function requestApproval() {
+    if (tg) {
+        tg.openTelegramLink('https://t.me/LudogolikClickBot?start=approval');
+    } else {
+        alert('Откройте бота @LudogolikClickBot и запросите одобрение');
+    }
+}
+
+// ===== РЕФЕРАЛЬНАЯ СИСТЕМА =====
+function copyReferralLink() {
+    if (!userId || userId === 'anonymous') {
+        alert('Нужно авторизоваться через Telegram');
+        return;
+    }
+    
+    const referralLink = `https://t.me/LudogolikClickBot?start=ref${userId}`;
+    navigator.clipboard.writeText(referralLink).then(() => {
+        alert('Реферальная ссылка скопирована!');
+    }).catch(err => {
+        console.error('Ошибка копирования:', err);
+    });
+}
+
+// ===== СОХРАНЕНИЕ НАСТРОЕК =====
+async function saveUserSettings() {
+    if (!userId || userId === 'anonymous') return;
+    
+    try {
+        await fetch('https://go-5zty.onrender.com/api/save-user-settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: userId,
+                hiddenCasinos: userHiddenCasinos,
+                viewMode: userViewMode
+            })
+        });
+    } catch (error) {
+        console.log('Ошибка сохранения настроек:', error);
+    }
+}
+
+// ===== ОБНОВЛЕННЫЙ RENDER CASINOS =====
+function renderCasinos() {
+    const container = document.getElementById('casinoList');
+    if (!container) return;
+
+    let filteredCasinos = allCasinos.filter(casino => {
+        const matchesSearch = currentSearchQuery === '' || 
+            casino.name.toLowerCase().includes(currentSearchQuery) ||
+            (casino.hiddenKeywords && casino.hiddenKeywords.some(kw => 
+                kw.toLowerCase().includes(currentSearchQuery)
+            ));
+
+        const matchesCategory = activeFilters.size === 0 || 
+            (casino.category && activeFilters.has(casino.category));
+
+        const notHidden = !userHiddenCasinos.includes(casino.id);
+        
+        return matchesSearch && matchesCategory && casino.isActive && notHidden;
+    });
+
+    const sortedCasinos = sortCasinos(filteredCasinos);
+
+    if (sortedCasinos.length === 0) {
+        container.innerHTML = `
+            <div class="no-results">
+                Ничего не найдено
+                ${userHiddenCasinos.length > 0 ? 
+                    '<button class="btn btn-outline" onclick="showHiddenCasinos()">Показать скрытые</button>' : 
+                    ''
+                }
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = sortedCasinos.map(casino => `
+        <div class="casino-card ${userViewMode === 'compact' ? 'compact' : ''}" 
+             data-id="${casino.id}"
+             onmousedown="startHideTimer(${casino.id}, event)"
+             onmouseup="cancelHideTimer()"
+             onmouseleave="cancelHideTimer()"
+             ontouchstart="startHideTimer(${casino.id}, event)"
+             ontouchend="cancelHideTimer()"
+             ontouchcancel="cancelHideTimer()">
+            
+            <div class="casino-header">
+                <div class="casino-name">${casino.name}</div>
+                ${userViewMode === 'full' ? `
+                <div class="promo-code" onclick="copyPromoCode(${casino.id}, '${casino.promocode}')">
+                    ${casino.promocode}
+                </div>
+                ` : ''}
+            </div>
+            
+            ${userViewMode === 'full' ? `
+            <div class="promo-description">
+                ${casino.shortDescription}
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="openCasino(${casino.id}, '${userViewMode}')">
+                    ПЕРЕЙТИ
+                </button>
+                ${casino.fullDescription ? `
+                <button class="btn btn-outline" onclick="toggleDetails(${casino.id})">
+                    ℹ️ Подробнее
+                </button>
+                ` : ''}
+            </div>
+
+            ${casino.fullDescription ? `
+            <div class="casino-details" id="details-${casino.id}" style="display: none;">
+                <p>${casino.fullDescription}</p>
+            </div>
+            ` : ''}
+            ` : `
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="openCasino(${casino.id}, '${userViewMode}')">
+                    ПЕРЕЙТИ
+                </button>
+            </div>
+            `}
+        </div>
+    `).join('');
+
+    // Добавляем кнопку показа скрытых, если есть скрытые казино
+    if (userHiddenCasinos.length > 0) {
+        container.innerHTML += `
+            <div class="show-hidden-container">
+                <button class="btn btn-outline" onclick="showHiddenCasinos()">
+                    👻 Показать скрытые (${userHiddenCasinos.length})
+                </button>
+            </div>
+        `;
+    }
+}
+
+function showHiddenCasinos() {
+    userHiddenCasinos = [];
+    saveUserSettings();
+    renderCasinos();
+}
+
+// ===== ОБНОВЛЕННЫЙ OPEN CASINO =====
+function openCasino(casinoId, viewMode) {
+    const casino = allCasinos.find(c => c.id === casinoId);
+    if (!casino) return;
+
+    incrementClickCount(casinoId);
+    
+    // В компактном режиме не копируем промокод и закрываем веб-приложение
+    if (viewMode === 'compact') {
+        if (tg) {
+            tg.openLink(casino.url);
+            tg.close(); // Закрываем веб-приложение после перехода
+        } else {
+            window.open(casino.url, '_blank');
+        }
+    } else {
+        // В полном режиме работаем как раньше
+        copyPromoCode(casinoId, casino.promocode);
+        if (tg) {
+            tg.openLink(casino.url);
+        } else {
+            window.open(casino.url, '_blank');
+        }
+    }
+}
+
+
+        
         // Глобальные функции
         window.openCasino = openCasino;
         window.toggleDetails = toggleDetails;
@@ -448,6 +714,7 @@ async function loadInitialData() {
     </script>
 </body>
 </html>
+
 
 
 
