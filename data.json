@@ -655,7 +655,7 @@
       "hiddenCasinos": [
         35
       ],
-      "viewMode": "compact",
+      "viewMode": "full",
       "approvedForLive": false
     }
   },
@@ -696,5 +696,5 @@
       "name": "ДЖОИ"
     }
   ],
-  "lastUpdated": "2025-09-07T15:01:19.490Z"
+  "lastUpdated": "2025-09-07T15:01:27.987Z"
 }
