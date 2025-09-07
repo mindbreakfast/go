@@ -104,33 +104,62 @@ class Database {
     }
 
     // Сохраняем ТОЛЬКО казино в GitHub
-    async saveData() {
+async saveData() {
+    try {
+        // Проверяем реальные изменения (без lastUpdated)
+        let shouldSave = false;
+        
         try {
-            console.log('Saving casinos to GitHub...');
-            const dataToSave = {
-                casinos: casinos,
-                categories: categories,
-                lastUpdated: new Date().toISOString()
+            const existingData = await fs.readFile(this.dataFilePath, 'utf8');
+            const parsedExisting = JSON.parse(existingData);
+            
+            const existingCoreData = {
+                casinos: parsedExisting.casinos,
+                categories: parsedExisting.categories
             };
-
-            await fs.writeFile(this.dataFilePath, JSON.stringify(dataToSave, null, 2));
             
-            if (config.GITHUB_TOKEN) {
-                const githubResult = await githubSync.saveDataToGitHub(
-                    JSON.stringify(dataToSave, null, 2),
-                    'data.json'
-                );
-                console.log('GitHub sync result:', githubResult.success);
-                return { local: true, github: githubResult.success };
-            }
+            const newCoreData = {
+                casinos: casinos,
+                categories: categories
+            };
             
-            return { local: true, github: false };
-
+            shouldSave = JSON.stringify(existingCoreData) !== JSON.stringify(newCoreData);
         } catch (error) {
-            console.error('Error saving main data:', error);
-            return { local: false, github: false, error: error.message };
+            // Файла нет или ошибка чтения - нужно сохранить
+            shouldSave = true;
         }
+
+        if (!shouldSave) {
+            console.log('No changes in core data, skipping save');
+            return { local: false, github: false, reason: 'no changes' };
+        }
+
+        console.log('Changes detected, saving data...');
+        const dataToSave = {
+            casinos: casinos,
+            categories: categories,
+            lastUpdated: new Date().toISOString()
+        };
+
+        await fs.writeFile(this.dataFilePath, JSON.stringify(dataToSave, null, 2));
+        
+        if (config.GITHUB_TOKEN) {
+            const githubResult = await githubSync.saveDataToGitHub(
+                JSON.stringify(dataToSave, null, 2),
+                'data.json'
+            );
+            console.log('GitHub sync result:', githubResult.success);
+            return { local: true, github: githubResult.success };
+        }
+        
+        return { local: true, github: false };
+
+    } catch (error) {
+        console.error('Error saving main data:', error);
+        return { local: false, github: false, error: error.message };
     }
+}
+
 
     // Сохраняем контент локально (без GitHub)
     async saveContentData() {
