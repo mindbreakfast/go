@@ -69,10 +69,6 @@ router.post('/webhook', (req, res) => {
 router.get('/user-data', async (req, res) => {
     try {
         const userId = req.query.userId;
-        if (!userId) {
-            return res.json({});
-        }
-
         const userSettings = database.getUserSettings();
         const userData = userSettings.get(userId) || {};
         
