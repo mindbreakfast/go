@@ -1,3 +1,4 @@
+console.log('✅ userCommands loaded');
 const config = require('../../config');
 const database = require('../../database/database');
 
