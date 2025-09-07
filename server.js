@@ -721,11 +721,19 @@ bot.onText(/\/edit_casino (\d+)/, (msg, match) => {
     };
     
     // Сокращенное сообщение
+    console.log('Keyboard created:', JSON.stringify(keyboard));
+    
+    // Пробуем отправить с клавиатурой
     bot.sendMessage(msg.chat.id, 
         `Редактирование: ${casino.name} (ID: ${casino.id})\nВыберите действие:`,
-        { reply_markup: keyboard }
-    );
-});
+        keyboard
+    ).catch(error => {
+        console.log('Error with keyboard:', error);
+        // Fallback - отправляем без клавиатуры
+        bot.sendMessage(msg.chat.id, 
+            `Редактирование: ${casino.name} (ID: ${casino.id})\nКнопки не доступны. Используйте команды:\n/edit_name_${id}\n/edit_promo_${id} и т.д.`
+        );
+    });
 
 // Обработка callback кнопок
 bot.on('callback_query', async (query) => {
@@ -1055,4 +1063,5 @@ bot.on('message', (msg) => {
         console.log('Command received:', msg.text);
     }
 });
+
 
