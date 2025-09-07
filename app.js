@@ -15,7 +15,7 @@ let userId = null; // ID пользователя
 let isApproved = false; // одобрен ли для приватной комнаты
         
         // ===== ИНИЦИАЛИЗАЦИЯ ТЕЛЕГРАМ =====
-        const tg = window.Telegram?.WebApp;
+
         if (tg) {
             tg.expand();
             tg.disableClosingConfirmation();
