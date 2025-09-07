@@ -32,44 +32,38 @@ class GitHubSync {
         }
     }
 
-    async saveDataToGitHub(dataJSON) {
-        if (!config.GITHUB_TOKEN) {
-            console.log('GitHubSync: GITHUB_TOKEN not set, skipping');
-            return { success: false, message: 'GITHUB_TOKEN not configured' };
-        }
-
-        try {
-            console.log('Starting GitHub sync...');
-            const content = Buffer.from(dataJSON).toString('base64');
-            const sha = await this.#getFileSHA();
-            const message = `Auto-update: ${new Date().toISOString()}`;
-
-            const url = `${this.baseURL}/repos/${this.owner}/${this.repo}/contents/${this.filePath}`;
-            console.log('Saving to URL:', url);
-
-            const payload = {
-                message: message,
-                content: content,
-                branch: this.branch,
-                committer: config.GITHUB_COMMITTER
-            };
-
-            if (sha) {
-                payload.sha = sha;
-            }
-
-            const response = await axios.put(url, payload, { headers: this.headers });
-            console.log('GitHubSync: Success! Commit SHA:', response.data.commit.sha);
-            return { success: true, commit: response.data.commit };
-
-        } catch (error) {
-            console.error('GitHubSync: Failed to save data:', error.message);
-            if (error.response) {
-                console.error('GitHubSync: Error response:', error.response.status, error.response.data);
-            }
-            return { success: false, error: error.message };
-        }
+async saveDataToGitHub(dataJSON, filePath = 'data.json') {
+    if (!config.GITHUB_TOKEN) {
+        console.log('GitHubSync: GITHUB_TOKEN not set, skipping');
+        return { success: false, message: 'GITHUB_TOKEN not configured' };
     }
+
+    try {
+        console.log('Starting GitHub sync for file:', filePath);
+        const content = Buffer.from(dataJSON).toString('base64');
+        const sha = await this.#getFileSHA(filePath);
+        const message = `Auto-update: ${new Date().toISOString()}`;
+
+        const url = `${this.baseURL}/repos/${this.owner}/${this.repo}/contents/${filePath}`;
+
+        const payload = {
+            message: message,
+            content: content,
+            branch: this.branch,
+            committer: config.GITHUB_COMMITTER
+        };
+
+        if (sha) payload.sha = sha;
+
+        const response = await axios.put(url, payload, { headers: this.headers });
+        console.log('GitHubSync: Success! File:', filePath);
+        return { success: true, commit: response.data.commit };
+
+    } catch (error) {
+        console.error('GitHubSync: Failed to save data:', error.message);
+        return { success: false, error: error.message };
+    }
+}
 }
 
 module.exports = new GitHubSync();
