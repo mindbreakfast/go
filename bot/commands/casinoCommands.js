@@ -1,7 +1,7 @@
 console.log('✅ casinoCommands loaded');
-const config = require('../../config');
-const database = require('../../database/database');
-const { isAdmin } = require('../../utils/isAdmin');
+const config = require('../config');
+const database = require('../database/database');
+const { isAdmin } = require('../utils/isAdmin');
 
 const ADD_CASINO_STEPS = {
     NAME: 'name',
