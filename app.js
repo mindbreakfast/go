@@ -475,7 +475,7 @@ function updateLiveRooms() {
 
 function requestApproval() {
     if (window.Telegram?.WebApp) {
-        window.Telegram.WebApp.openTelegramLink('https://t.me/ludogol_bot?start=approval');
+        window.Telegram.WebApp.openTelegramLink('https://t.me/Ludogol_bot?start=request_approval');
     } else {
         alert('Откройте бота @ludogol_bot и запросите одобрение');
     }
