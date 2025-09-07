@@ -65,7 +65,7 @@ const ADD_CASINO_STEPS = {
     CONFIRM: 'confirm'
 };
 
-// ===== ФУНКЦИИ РАБОТЫ С ДАННЫМИ =====
+// ===== ФУНКЦИИ РАБОТЫ С ДАННЫХ =====
 async function loadData() {
     try {
         console.log('Loading data...');
@@ -329,12 +329,12 @@ async function processCasinoStep(userId, message) {
             state.step = ADD_CASINO_STEPS.CONFIRM;
             
             const casinoData = `
-🎰 *Название:* ${state.data.name}
-🎫 *Промокод:* ${state.data.promocode}
-📝 *Описание:* ${state.data.shortDescription}
-🔗 *Ссылка:* ${state.data.url}
-🏷️ *Категория:* ${state.data.category}
-🔍 *Ключевые слова:* ${state.data.hiddenKeywords.join(', ')}
+Название: ${state.data.name}
+Промокод: ${state.data.promocode}
+Описание: ${state.data.shortDescription}
+Ссылка: ${state.data.url}
+Категория: ${state.data.category}
+Ключевые слова: ${state.data.hiddenKeywords.join(', ')}
 
 Для подтверждения введите "да", для отмены "нет"`;
             
@@ -466,13 +466,13 @@ bot.onText(/\/start/, (msg) => {
 // Команда /help
 bot.onText(/\/help/, (msg) => {
     const helpText = `
-🤖 *Доступные команды:*
+Доступные команды:
 
 /start - Запустить бота и открыть список казино
 /help - Показать это сообщение
 /stats - Статистика бота (только для админов)
 
-👑 *Команды для админов:*
+Команды для админов:
 /live [ссылка] [описание] - Начать стрим
 /stop - Остановить стрим
 /text [сообщение] - Добавить анонс
@@ -484,13 +484,13 @@ bot.onText(/\/help/, (msg) => {
 /list_casinos - Список казино
 /edit_casino [ID] - Редактировать казино
 
-💡 *Примеры:*
+Примеры:
 /live https://twitch.tv Мой крутой стрим
 /text цвет:green 🎉 Бонус 200%!
 /remove_text 123456789
     `;
     
-    bot.sendMessage(msg.chat.id, helpText, { parse_mode: 'Markdown' });
+    bot.sendMessage(msg.chat.id, helpText);
 });
 
 // Команда /stats
@@ -500,13 +500,12 @@ bot.onText(/\/stats/, (msg) => {
     }
     
     bot.sendMessage(msg.chat.id,
-        `📊 *Статистика бота:*\n` +
-        `👥 Пользователей: ${userChats.size}\n` +
-        `🎬 Стрим: ${streamStatus.isStreamLive ? 'В ЭФИРЕ' : 'не активен'}\n` +
-        `📝 Анонсов: ${announcements.length}\n` +
-        `🎰 Казино: ${casinos.length}\n` +
-        `🕐 Обновлено: ${new Date().toLocaleTimeString('ru-RU')}`,
-        { parse_mode: 'Markdown' }
+        `Статистика бота:\n` +
+        `Пользователей: ${userChats.size}\n` +
+        `Стрим: ${streamStatus.isStreamLive ? 'В ЭФИРЕ' : 'не активен'}\n` +
+        `Анонсов: ${announcements.length}\n` +
+        `Казино: ${casinos.length}\n` +
+        `Обновлено: ${new Date().toLocaleTimeString('ru-RU')}`
     );
 });
 
@@ -583,12 +582,11 @@ bot.onText(/\/list_text/, (msg) => {
     }
     
     const announcementList = announcements.map(a => 
-        `🆔 ID: ${a.id}\n🎨 Цвет: ${a.color}\n📝 Текст: ${a.text}\n⏰ Дата: ${new Date(a.createdAt).toLocaleString('ru-RU')}\n──────────────────`
+        `ID: ${a.id}\nЦвет: ${a.color}\nТекст: ${a.text}\nДата: ${new Date(a.createdAt).toLocaleString('ru-RU')}\n──────────────────`
     ).join('\n');
     
     bot.sendMessage(msg.chat.id, 
-        `📝 *Список анонсов (${announcements.length}):*\n\n${announcementList}`,
-        { parse_mode: 'Markdown' }
+        `Список анонсов (${announcements.length}):\n\n${announcementList}`
     );
 });
 
@@ -671,8 +669,7 @@ bot.onText(/\/list_casinos/, (msg) => {
     ).join('\n');
     
     bot.sendMessage(msg.chat.id, 
-        `📝 *Список казино (${casinos.length}):*\n\n${casinoList}`,
-        { parse_mode: 'Markdown' }
+        `📝 Список казино (${casinos.length}):\n\n${casinoList}`
     );
 });
 
@@ -716,8 +713,8 @@ bot.onText(/\/edit_casino (\d+)/, (msg, match) => {
     };
     
     bot.sendMessage(msg.chat.id, 
-        `🎰 *Редактирование казино:*\n\nID: ${casino.id}\nНазвание: ${casino.name}\nПромокод: ${casino.promocode}\nКатегория: ${casino.category}\nСтатус: ${casino.isActive ? '✅ Активно' : '❌ Скрыто'}\nЗакреплено: ${casino.isPinned ? '✅ Да' : '❌ Нет'}\n\nВыберите что редактировать:`,
-        { parse_mode: 'Markdown', reply_markup: keyboard }
+        `Редактирование казино:\n\nID: ${casino.id}\nНазвание: ${casino.name}\nПромокод: ${casino.promocode}\nКатегория: ${casino.category}\nСтатус: ${casino.isActive ? '✅ Активно' : '❌ Скрыто'}\nЗакреплено: ${casino.isPinned ? '✅ Да' : '❌ Нет'}\n\nВыберите что редактировать:`,
+        { reply_markup: keyboard }
     );
 });
 
@@ -840,12 +837,11 @@ bot.onText(/\/stats_users/, (msg) => {
     };
     
     bot.sendMessage(msg.chat.id, 
-        `📊 *Статистика пользователей:*\n\n` +
-        `👥 Всего пользователей: ${stats.totalUsers}\n` +
-        `🚀 Всего визитов: ${stats.totalVisits}\n` +
-        `🖱️ Всего кликов: ${stats.totalClicks}\n` +
-        `🔥 Активных сегодня: ${stats.activeToday}`,
-        { parse_mode: 'Markdown' }
+        `Статистика пользователей:\n\n` +
+        `Всего пользователей: ${stats.totalUsers}\n` +
+        `Всего визитов: ${stats.totalVisits}\n` +
+        `Всего кликов: ${stats.totalClicks}\n` +
+        `Активных сегодня: ${stats.activeToday}`
     );
 });
 
@@ -869,7 +865,7 @@ bot.onText(/\/stats_user (\d+)/, (msg, match) => {
         .join('\n');
     
     bot.sendMessage(msg.chat.id,
-        `👤 *Статистика пользователя:*\n\n` +
+        `Статистика пользователя:\n\n` +
         `ID: ${user.id}\n` +
         `Username: @${user.username || 'нет'}\n` +
         `Имя: ${user.firstName} ${user.lastName || ''}\n` +
@@ -877,8 +873,7 @@ bot.onText(/\/stats_user (\d+)/, (msg, match) => {
         `Последний визит: ${new Date(user.lastSeen).toLocaleString('ru-RU')}\n` +
         `Всего визитов: ${user.totalVisits}\n` +
         `Всего кликов: ${user.totalClicks}\n\n` +
-        `🎰 Топ казино:\n${topCasinos || 'Нет данных'}`,
-        { parse_mode: 'Markdown' }
+        `Топ казино:\n${topCasinos || 'Нет данных'}`
     );
 });
 
@@ -900,8 +895,7 @@ bot.onText(/\/top_casinos/, (msg) => {
     ).join('\n\n');
     
     bot.sendMessage(msg.chat.id,
-        `🏆 *Топ казино по кликам:*\n\n${topList}`,
-        { parse_mode: 'Markdown' }
+        `Топ казино по кликам:\n\n${topList}`
     );
 });
 
@@ -1052,4 +1046,3 @@ bot.on('message', (msg) => {
         console.log('Command received:', msg.text);
     }
 });
-
