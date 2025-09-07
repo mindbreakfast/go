@@ -484,13 +484,32 @@ function requestApproval() {
 // ===== РЕФЕРАЛЬНАЯ СИСТЕМА =====
 function copyReferralLink() {
     if (!userId || userId === 'anonymous') {
-        alert('Нужно авторизоваться через Telegram');
-        return;
+        return; // Не показываем alert
     }
     
-    const referralLink = `https://t.me/LudogolikClickBot?start=ref${userId}`;
+    const referralLink = `https://t.me/Ludogol_bot?start=ref${userId}`;
     navigator.clipboard.writeText(referralLink).then(() => {
-        alert('Реферальная ссылка скопирована!');
+        // Создаем красивое уведомление как у промокодов
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--promo-bg);
+            color: var(--promo-text);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        `;
+        notification.textContent = '✓ Реферальная ссылка скопирована!';
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 2000);
     }).catch(err => {
         console.error('Ошибка копирования:', err);
     });
