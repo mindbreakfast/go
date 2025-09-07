@@ -1,12 +1,33 @@
 console.log('✅ Commands index loaded');
-const adminCommands = require('./adminCommands');
-const casinoCommands = require('./casinoCommands');
-const userCommands = require('./userCommands');
-const referralCommands = require('./referralCommands');
 
 module.exports = {
-    ...adminCommands,
-    ...casinoCommands, 
-    ...userCommands,
-    ...referralCommands
+    // Admin commands
+    isAdmin: require('./adminCommands').isAdmin,
+    handleStatsCommand: require('./adminCommands').handleStatsCommand,
+    handleLiveCommand: require('./adminCommands').handleLiveCommand,
+    handleStopCommand: require('./adminCommands').handleStopCommand,
+    handleTextCommand: require('./adminCommands').handleTextCommand,
+    handleClearTextCommand: require('./adminCommands').handleClearTextCommand,
+    handleListTextCommand: require('./adminCommands').handleListTextCommand,
+    handleRemoveTextCommand: require('./adminCommands').handleRemoveTextCommand,
+    handleBroadcastCommand: require('./adminCommands').handleBroadcastCommand,
+    handleApproveCommand: require('./adminCommands').handleApproveCommand,
+    handleApprovalsCommand: require('./adminCommands').handleApprovalsCommand,
+
+    // Casino commands
+    handleAddCasinoCommand: require('./casinoCommands').handleAddCasinoCommand,
+    handleListCasinosCommand: require('./casinoCommands').handleListCasinosCommand,
+    handleEditCasinoCommand: require('./casinoCommands').handleEditCasinoCommand,
+    handleCallbackQuery: require('./casinoCommands').handleCallbackQuery,
+    handleCasinoEditResponse: require('./casinoCommands').handleCasinoEditResponse,
+    handleCasinoCreationStep: require('./casinoCommands').handleCasinoCreationStep,
+
+    // User commands
+    handleStartCommand: require('./userCommands').handleStartCommand,
+    handleHelpCommand: require('./userCommands').handleHelpCommand,
+    handleMessage: require('./userCommands').handleMessage,
+    handleApprovalRequest: require('./userCommands').handleApprovalRequest,
+
+    // Referral commands
+    handleReferralCommand: require('./referralCommands').handleReferralCommand
 };
