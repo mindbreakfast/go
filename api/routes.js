@@ -89,6 +89,7 @@ router.get('/user-data', async (req, res) => {
 // API для сохранения пользовательских настроек
 router.post('/save-user-settings', async (req, res) => {
     try {
+         console.log('Saving user settings:', req.body); // ←
         const { userId, hiddenCasinos, viewMode } = req.body;
         
         if (!userId) {
