@@ -656,7 +656,7 @@
         35,
         10
       ],
-      "viewMode": "full",
+      "viewMode": "compact",
       "approvedForLive": false
     }
   },
@@ -697,5 +697,5 @@
       "name": "ДЖОИ"
     }
   ],
-  "lastUpdated": "2025-09-07T15:01:31.476Z"
+  "lastUpdated": "2025-09-07T15:01:35.900Z"
 }
