@@ -2,90 +2,54 @@ const express = require('express');
 const database = require('../database/database');
 const router = express.Router();
 
-// API для получения всех данных (используется webapp)
+console.log('API routes loaded');
+
 router.get('/all-data', (req, res) => {
-    const data = {
-        streamStatus: database.getStreamStatus(),
-        announcements: database.getAnnouncements(),
-        casinos: database.getCasinos(),
-        categories: database.getCategories() // Нужно добавить этот метод в database.js
-    };
-    res.json(data);
-});
-
-// Трекинг кликов из веб-интерфейса
-router.post('/track-click', async (req, res) => {
+    console.log('API: /all-data called');
     try {
-        const { userId, userInfo, casinoId, action } = req.body;
-
-        if (userId && userInfo) {
-            database.trackUserAction(userId, userInfo, action, casinoId);
-        }
-
-        res.json({ status: 'ok' });
+        const data = {
+            streamStatus: database.getStreamStatus(),
+            announcements: database.getAnnouncements(),
+            casinos: database.getCasinos(),
+            categories: database.getCategories()
+        };
+        console.log('Sending data:', {
+            casinos: data.casinos.length,
+            announcements: data.announcements.length,
+            streamLive: data.streamStatus.isStreamLive
+        });
+        res.json(data);
     } catch (error) {
-        res.status(500).json({ error: 'Tracking error' });
+        console.error('Error in /all-data:', error);
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
-// Трекинг визитов из веб-интерфейса
-router.post('/track-visit', async (req, res) => {
-    try {
-        const { userId, userInfo, action } = req.body;
-
-        if (userId && userInfo) {
-            database.trackUserAction(userId, userInfo, action);
-        }
-
-        res.json({ status: 'ok' });
-    } catch (error) {
-        res.status(500).json({ error: 'Tracking error' });
-    }
-});
-
-// Endpoint для setup webhook (можно вызывать вручную)
-router.get('/setup-webhook', async (req, res) => {
-    const bot = require('../bot/bot').bot;
-    try {
-        const webhookUrl = `${process.env.RENDER_URL || 'https://go-5zty.onrender.com'}/webhook`;
-        await bot.setWebHook(webhookUrl);
-        const webhookInfo = await bot.getWebHookInfo();
-        res.json({ success: true, webhook: webhookInfo.url });
-    } catch (error) {
-        res.json({ success: false, error: error.message });
-    }
-});
-
-// Webhook endpoint для Telegram
-router.post('/webhook', (req, res) => {
-    const bot = require('../bot/bot').bot;
-    bot.processUpdate(req.body);
-    res.sendStatus(200);
-});
-
-// Добавьте эти маршруты перед module.exports
-
-// API для получения пользовательских данных
 router.get('/user-data', async (req, res) => {
     try {
         const userId = req.query.userId;
+        console.log('API: /user-data called for userId:', userId);
+        
         const userSettings = database.getUserSettings();
         const userData = userSettings.get(userId) || {};
         
-        res.json({
+        const response = {
             hiddenCasinos: userData.hiddenCasinos || [],
             viewMode: userData.viewMode || 'full',
             approvedForLive: userData.approvedForLive || false
-        });
+        };
+        
+        console.log('User data response:', response);
+        res.json(response);
     } catch (error) {
+        console.error('Error in /user-data:', error);
         res.status(500).json({ error: 'User data error' });
     }
 });
 
-// API для сохранения пользовательских настроек
 router.post('/save-user-settings', async (req, res) => {
     try {
-         console.log('Saving user settings:', req.body); // ←
+        console.log('API: /save-user-settings called with:', req.body);
         const { userId, hiddenCasinos, viewMode } = req.body;
         
         if (!userId) {
@@ -106,11 +70,65 @@ router.post('/save-user-settings', async (req, res) => {
         }
 
         await database.saveData();
+        console.log('User settings saved for userId:', userId);
         res.json({ status: 'ok' });
     } catch (error) {
+        console.error('Error in /save-user-settings:', error);
         res.status(500).json({ error: 'Save settings error' });
     }
 });
 
+router.post('/track-click', async (req, res) => {
+    try {
+        console.log('API: /track-click called with:', req.body);
+        const { userId, userInfo, casinoId, action } = req.body;
+        
+        if (userId && userInfo) {
+            database.trackUserAction(userId, userInfo, action, casinoId);
+        }
+        
+        res.json({ status: 'ok' });
+    } catch (error) {
+        console.error('Error in /track-click:', error);
+        res.status(500).json({ error: 'Tracking error' });
+    }
+});
+
+router.post('/track-visit', async (req, res) => {
+    try {
+        console.log('API: /track-visit called with:', req.body);
+        const { userId, userInfo, action } = req.body;
+        
+        if (userId && userInfo) {
+            database.trackUserAction(userId, userInfo, action);
+        }
+        
+        res.json({ status: 'ok' });
+    } catch (error) {
+        console.error('Error in /track-visit:', error);
+        res.status(500).json({ error: 'Tracking error' });
+    }
+});
+
+router.get('/setup-webhook', async (req, res) => {
+    try {
+        console.log('API: /setup-webhook called');
+        const bot = require('../bot/bot').bot;
+        const webhookUrl = `${process.env.RENDER_URL || 'https://go-5zty.onrender.com'}/webhook`;
+        await bot.setWebHook(webhookUrl);
+        const webhookInfo = await bot.getWebHookInfo();
+        res.json({ success: true, webhook: webhookInfo.url });
+    } catch (error) {
+        console.error('Error in /setup-webhook:', error);
+        res.json({ success: false, error: error.message });
+    }
+});
+
+router.post('/webhook', (req, res) => {
+    console.log('Webhook received');
+    const bot = require('../bot/bot').bot;
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+});
 
 module.exports = router;
