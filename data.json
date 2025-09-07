@@ -116,7 +116,7 @@
       "fullDescription": "",
       "url": "https://fortuna-promo1.net/alt/playfortuna/registration?bac4be0fbf512e61f3e654559e7295e2",
       "hiddenKeywords": ["Плей Фортуна", "Gktq Ajhneyf", "Play fortuna", "Здфн ащкегтф"],
-      "category": "other",
+      "category": "pf",
       "isActive": true,
       "isPinned": false
     },
@@ -200,7 +200,7 @@
   "fullDescription": "",
   "url": "https://winity.one/alt/winity/sign-up/?ba4ac2be99e4f15e1b56871e9f8817f2&promocode=SASH",
   "hiddenKeywords": ["Winity", "Цштшен", "Винити", "Dbybnb"],
-  "category": "other",
+  "category": "pf",
   "isActive": true,
   "isPinned": false
 },
@@ -212,7 +212,7 @@
   "fullDescription": "",
   "url": "https://booipromo1.com/alt/booi_bookofdead_regform_ru/?127aae8cf4ba85e33269cdbb2619d1e0",
   "hiddenKeywords": ["Буй", "booi", "eq", "ищщш"],
-  "category": "other",
+  "category": "pf",
   "isActive": true,
   "isPinned": false
 },
@@ -428,7 +428,7 @@
   "fullDescription": "",
   "url": "https://top.call2me.xyz/ru/registration?apkpop=0&partner=p27998p3315092p4f3e",
   "hiddenKeywords": ["Раменбет", "Ramenbet", "Hfvty", "Кфьут"],
-  "category": "other",
+  "category": "joy",
   "isActive": true,
   "isPinned": false
 },
@@ -440,7 +440,7 @@
   "fullDescription": "",
   "url": "https://win9.finditway.com/ru/registration?apkpop=0&partner=p27998p3315091p43ba",
   "hiddenKeywords": ["Джой", "Joycasino", "Ощу"],
-  "category": "other",
+  "category": "joy",
   "isActive": true,
   "isPinned": false
 }
@@ -450,6 +450,8 @@
     {"id": "royals", "name": "Роялы"},
     {"id": "cats", "name": "Коты"},
     {"id": "bandits", "name": "Бандиты"},
+            {"id": "pf", "name": "ПФ"},
+        {"id": "joy", "name": "ДЖОИ"},
     {"id": "other", "name": "Другие"}
   ]
 }
