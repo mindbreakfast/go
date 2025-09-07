@@ -31,6 +31,8 @@ class GitHubSync {
     }
 
     async saveDataToGitHub(dataJSON) {
+           console.log('GITHUB_TOKEN exists:', !!config.GITHUB_TOKEN);
+    console.log('Repo:', config.GITHUB_REPO_OWNER + '/' + config.GITHUB_REPO_NAME);
         // Если токен не задан, пропускаем синхронизацию с GitHub
         if (!config.GITHUB_TOKEN) {
             console.log('GitHubSync: GITHUB_TOKEN not set, skipping upload.');
