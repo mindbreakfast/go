@@ -649,17 +649,6 @@
     }
   ],
   "announcements": [],
-  "userChats": {},
-  "userSettings": {
-    "1777213824": {
-      "hiddenCasinos": [
-        31
-      ],
-      "viewMode": "full",
-      "approvedForLive": false
-    }
-  },
-  "giveaways": [],
   "streamStatus": {
     "isStreamLive": false,
     "streamUrl": "",
@@ -696,5 +685,5 @@
       "name": "ДЖОИ"
     }
   ],
-  "lastUpdated": "2025-09-07T15:29:58.931Z"
+  "lastUpdated": "2025-09-07T15:31:49.667Z"
 }
