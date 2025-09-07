@@ -399,3 +399,63 @@ body {
 .hide-confirm-buttons button {
     flex: 1;
 }
+
+
+/* Новые стили для Голосового чата */
+.live-rooms-section h2 {
+    color: #ff6b35; /* Оранжевый вместо синего */
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+}
+
+.room-subtitle {
+    text-align: center;
+    color: #888;
+    font-size: 14px;
+    margin-top: -10px;
+    margin-bottom: 20px;
+    font-style: italic;
+}
+
+/* Стили для иконки переключения режима */
+.view-mode-icon {
+    background: var(--secondary-color);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    margin-right: 10px;
+}
+
+.view-mode-icon:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* Компактный режим в одну строку */
+.casino-card.compact .casino-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0;
+}
+
+.casino-card.compact .casino-name {
+    margin-right: 0;
+    flex: 1;
+}
+
+.casino-card.compact .action-buttons {
+    flex: 0 0 auto;
+    margin-left: 10px;
+}
+
+.casino-card.compact .action-buttons .btn {
+    padding: 8px 12px;
+    font-size: 13px;
+}
