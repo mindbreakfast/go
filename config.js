@@ -14,7 +14,7 @@ GITHUB_FILE_PATH: 'data.json',
     },
     WEB_APP_URL: 'https://gogo-kohl-beta.vercel.app',
     RENDER_URL: process.env.RENDER_URL || 'https://go-5zty.onrender.com',
-    ADMINS: [1777213824].map(id => Number(id)),
+    ADMINS: [1777213824, 594143385, 1097210873].map(id => Number(id)),
     CATEGORIES: [
         {"id": "kb", "name": "КБ"},
         {"id": "royals", "name": "Роялы"},
