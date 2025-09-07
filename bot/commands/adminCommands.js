@@ -1,7 +1,7 @@
 console.log('✅ adminCommands loaded');
-const config = require('../../config');
-const database = require('../../database/database');
-const { isAdmin } = require('../../utils/isAdmin');
+const config = require('../config');
+const database = require('../database/database');
+const { isAdmin } = require('../utils/isAdmin');
 
 function handleStatsCommand(bot, msg) {
     if (!isAdmin(msg.from.id)) {
