@@ -520,6 +520,7 @@ async function saveUserSettings() {
     if (!userId || userId === 'anonymous') return;
     
     try {
+            console.log('Saving settings for user:', userId, {userHiddenCasinos, userViewMode});
         await fetch('https://go-5zty.onrender.com/api/save-user-settings', {
             method: 'POST',
             headers: {
