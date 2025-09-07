@@ -93,6 +93,7 @@ class Database {
     async saveData() {
         try {
             // Подготавливаем объект для сохранения
+                console.log('Saving data...'); 
             const dataToSave = {
                 casinos: casinos,
                 announcements: announcements,
