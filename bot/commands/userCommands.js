@@ -1,6 +1,7 @@
 console.log('✅ userCommands loaded');
 const config = require('../../config');
 const database = require('../../database/database');
+const { isAdmin } = require('../../utils/isAdmin');
 
 function handleStartCommand(bot, msg) {
     const user = msg.from;
@@ -67,12 +68,6 @@ function handleHelpCommand(bot, msg) {
 }
 
 function handleMessage(bot, msg) {
-    const { isAdmin } = require('./adminCommands');
-    const { handleReferralCommand } = require('./referralCommands');
-    
-    const approveRegex = /^\/odobri (\d+)$/;
-    const approvalsRegex = /^\/approvals$/;
-    const referralRegex = /^\/referral$/;
     const text = msg.text;
 
     const statsRegex = /^\/stats$/;
@@ -86,6 +81,9 @@ function handleMessage(bot, msg) {
     const addCasinoRegex = /^\/add_casino$/;
     const listCasinosRegex = /^\/list_casinos$/;
     const editCasinoRegex = /^\/edit_casino (\d+)/;
+    const approveRegex = /^\/odobri (\d+)$/;
+    const approvalsRegex = /^\/approvals$/;
+    const referralRegex = /^\/referral$/;
 
     if (database.getUserChats().get(msg.from.id)?.waitingForApproval) {
         handleApprovalRequest(bot, msg);
@@ -119,7 +117,7 @@ function handleMessage(bot, msg) {
     } else if (approvalsRegex.test(text)) {
         require('./adminCommands').handleApprovalsCommand(bot, msg);
     } else if (referralRegex.test(text)) {
-        handleReferralCommand(bot, msg);
+        require('./referralCommands').handleReferralCommand(bot, msg);
     }
 }
 
@@ -135,7 +133,6 @@ function handleApprovalRequest(bot, msg) {
     if (success) {
         bot.sendMessage(msg.chat.id, '✅ Ваш запрос на одобрение отправлен админам! Ожидайте.');
         
-        const { isAdmin } = require('./adminCommands');
         const admins = require('../../config').ADMINS;
         admins.forEach(adminId => {
             if (isAdmin(adminId)) {
