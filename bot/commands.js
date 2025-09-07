@@ -578,6 +578,8 @@ async function handleCasinoEditResponse(bot, msg, casinoEditingState) {
 
 // Главный обработчик сообщений
 function handleMessage(bot, msg) {
+
+    
     const approveRegex = /^\/odobri (\d+)$/;
 const approvalsRegex = /^\/approvals$/;
     const text = msg.text;
@@ -597,6 +599,11 @@ const approvalsRegex = /^\/approvals$/;
 if (database.getUserChats().get(msg.from.id)?.waitingForApproval) {
     handleApprovalRequest(bot, msg);
     return;
+
+    // И проверку в handleMessage
+} else if (referralRegex.test(text)) {
+    handleReferralCommand(bot, msg);
+}
 }
     // Проверяем команды и вызываем соответствующие обработчики
     if (statsRegex.test(text)) {
@@ -715,10 +722,7 @@ ${referralInfo.referralLink}
 // Добавьте регулярное выражение в handleMessage
 const referralRegex = /^\/referral$/;
 
-// И проверку в handleMessage
- else if (referralRegex.test(text)) {
-    handleReferralCommand(bot, msg);
-}
+
 
 // Экспортируем все обработчики
 module.exports = {
