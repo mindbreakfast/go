@@ -35,12 +35,13 @@ function handleStartCommand(bot, msg) {
     database.trackUserAction(user.id, user, 'start');
 
 
-// Обработка команды запроса доступа
-if (msg.text && msg.text.includes('approval')) {
+    if (msg.text && msg.text.includes('request_approval')) {
     database.requestApproval(user.id, user.username || 'не указан');
-    bot.sendMessage(msg.chat.id, '✅ Ваш запрос на доступ отправлен админам!');
+    bot.sendMessage(msg.chat.id, '✅ Ваш запрос на доступ отправлен админам! Ожидайте одобрения.');
     return;
 }
+
+
 
     
     // Обработка реферальной ссылки
