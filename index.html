@@ -23,9 +23,7 @@
 
 <div class="search-container">
     <div style="display: flex; align-items: center; margin-bottom: 10px;">
-        <div class="view-mode-icon" onclick="toggleViewMode()" title="Переключить режим">
-            📱
-        </div>
+
         <input 
             type="text" 
             id="searchInput" 
@@ -33,6 +31,9 @@
             autocomplete="off"
             style="flex: 1;"
         >
+             <div class="view-mode-icon" onclick="toggleViewMode()" title="Переключить режим">
+             ⚡
+        </div>
     </div>
         <div class="filters" id="filtersContainer">
             <!-- Фильтры будут сгенерированы скриптом -->
@@ -71,7 +72,7 @@
         <div class="footer-links">
             <a href="https://t.me/Ludogolik" class="footer-link">📢 Канал</a>
             <a href="https://t.me/Ludogolik666" class="footer-link">💬 Чат</a>
-            <a href="#" class="footer-link" onclick="copyReferralLink()">📊 Рефералка</a>
+            <a href="#" class="footer-link" onclick="event.preventDefault(); copyReferralLink();">📊 Рефералка</a>
         </div>
         <div class="developer">
             Разработчик <a href="https://t.me/NSDcode" class="developer-link">NSDcode</a>
@@ -84,6 +85,7 @@
   <script src="app.js?v=2"></script>
 </body>
 </html>
+
 
 
 
