@@ -1,10 +1,9 @@
-require('dotenv').config(); // Для загрузки переменных окружения локально
+require('dotenv').config();
 
 const config = {
     PORT: process.env.PORT || 3000,
     BOT_TOKEN: process.env.BOT_TOKEN,
     GITHUB_TOKEN: process.env.GITHUB_TOKEN,
-    GITHUB_REPO: process.env.GITHUB_REPO || 'mindbreakfast/go',
     GITHUB_REPO_OWNER: 'mindbreakfast',
     GITHUB_REPO_NAME: 'go',
     GITHUB_COMMITTER: {
@@ -13,21 +12,26 @@ const config = {
     },
     WEB_APP_URL: 'https://gogo-kohl-beta.vercel.app',
     RENDER_URL: process.env.RENDER_URL || 'https://go-5zty.onrender.com',
-    ADMINS: [1777213824].map(id => Number(id)), // Убедимся, что это числа и два других 594143385, 1097210873
+    ADMINS: [1777213824].map(id => Number(id)),
     CATEGORIES: [
         {"id": "kb", "name": "КБ"},
         {"id": "royals", "name": "Роялы"},
         {"id": "cats", "name": "Коты"},
-        {"id": "bandits", "name": "Банды"}, 
+        {"id": "bandits", "name": "Банды"},
         {"id": "other", "name": "Другие"},
-        {"id": "pf", "name": "ПФ"},         
-        {"id": "joy", "name": "ДЖОИ"}       
+        {"id": "pf", "name": "ПФ"},
+        {"id": "joy", "name": "ДЖОИ"}
     ]
 };
 
-// Проверка критически важных переменных
+console.log('Config loaded:', {
+    hasBotToken: !!config.BOT_TOKEN,
+    hasGitHubToken: !!config.GITHUB_TOKEN,
+    admins: config.ADMINS
+});
+
 if (!config.BOT_TOKEN) {
-    console.error('FATAL ERROR: BOT_TOKEN is not defined in environment variables.');
+    console.error('FATAL ERROR: BOT_TOKEN is not defined');
     process.exit(1);
 }
 
