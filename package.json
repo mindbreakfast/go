@@ -20,7 +20,7 @@
     "nodemon": "^3.0.1"
   },
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "keywords": [
     "telegram",
@@ -38,3 +38,4 @@
     "url": "https://github.com/mindbreakfast/go.git"
   }
 }
+
