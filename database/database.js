@@ -1,3 +1,4 @@
+const userFeatures = require('./userFeatures');
 const fs = require('fs').promises;
 const path = require('path');
 const githubSync = require('./githubSync');
