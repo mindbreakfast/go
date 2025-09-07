@@ -1,7 +1,7 @@
 console.log('✅ userCommands loaded');
-const config = require('../../config');
-const database = require('../../database/database');
-const { isAdmin } = require('../../utils/isAdmin');
+const config = require('../config');
+const database = require('../database/database');
+const { isAdmin } = require('../utils/isAdmin');
 
 function handleStartCommand(bot, msg) {
     const user = msg.from;
