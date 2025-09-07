@@ -143,7 +143,7 @@ getCategories() {
     // === Методы для работы с пользователями (аналогично исходному server.js) ===
     trackUserAction(userId, userInfo, action, target = null) { ... } // Перенеси код из server.js
     getUserStats(userId) { ... } // Перенеси код из server.js
-
+    
     // === Новые методы для Этапа 2 (Скрытие казино) ===
     hideCasinoForUser(userId, casinoId) {
         if (!userSettings.has(userId)) {
