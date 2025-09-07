@@ -1,12 +1,15 @@
 const express = require('express');
-const bot = require('./bot/bot');
 const database = require('./database/database');
-const apiRoutes = require('./api/routes'); // Создадим на следующем этапе
+const apiRoutes = require('./api/routes');
 const config = require('./config');
 
 const app = express();
 
-// Middleware
+console.log('Starting server with config:', {
+    port: config.PORT,
+    renderUrl: config.RENDER_URL
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
@@ -17,11 +20,10 @@ app.use((req, res, next) => {
 });
 app.options('*', (req, res) => res.sendStatus(200));
 
-// Подключаем маршруты API
 app.use('/api', apiRoutes);
 
-// Health check и корневой маршрут
 app.get('/', (req, res) => {
+    console.log('Root endpoint called');
     res.json({
         status: 'OK',
         message: 'Ludogolik Bot Server работает',
@@ -31,15 +33,15 @@ app.get('/', (req, res) => {
         announcements: database.getAnnouncements().length,
     });
 });
+
 app.get('/health', (req, res) => {
-    res.json({
-        status: 'ok',
+    res.json({ 
+        status: 'ok', 
         timestamp: new Date().toISOString(),
         memory: process.memoryUsage().rss / 1024 / 1024 + ' MB'
     });
 });
 
-// Функция для graceful shutdown
 function gracefulShutdown() {
     console.log('\nReceived shutdown signal. Saving data...');
     database.saveData().then(() => {
@@ -47,36 +49,35 @@ function gracefulShutdown() {
         process.exit(0);
     });
 }
+
 process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
 
-// Функция инициализации и запуска
 async function startServer() {
     console.log('===================================');
     console.log('Starting Ludogolik Bot Server...');
 
-    // 1. Загружаем данные
     const dataLoaded = await database.loadData();
     if (!dataLoaded) {
         console.error('Failed to load data. Exiting.');
         process.exit(1);
     }
 
-    // 2. Запускаем бота
+    const bot = require('./bot/bot');
     await bot.start();
 
-    // 3. Запускаем Express сервер
     app.listen(config.PORT, () => {
         console.log('✅ Server is running on port', config.PORT);
         console.log('✅ Bot is running');
         console.log('===================================');
     });
 
-    // 4. Запускаем периодическое сохранение
-    setInterval(() => database.saveData(), 5 * 60 * 1000); // Каждые 5 минут
+    setInterval(() => {
+        console.log('Auto-saving data...');
+        database.saveData();
+    }, 5 * 60 * 1000);
 }
 
-// Запускаем сервер
 startServer().catch(error => {
     console.error('Fatal error during startup:', error);
     process.exit(1);
