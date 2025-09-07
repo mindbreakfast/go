@@ -81,6 +81,89 @@ class Database {
             announcements: [],
             streamStatus: streamStatus,
             lastUpdated: new Date().toISOString()
+        };const fs = require('fs').promises;
+const path = require('path');
+const githubSync = require('./githubSync');
+const config = require('../config');
+
+// Разделяем данные на 3 части
+let casinos = [];
+let categories = config.CATEGORIES;
+
+let announcements = [];
+let streamStatus = {
+    isStreamLive: false,
+    streamUrl: '',
+    eventDescription: '',
+    lastUpdated: new Date().toISOString()
+};
+
+let userChats = new Map();
+let userSettings = new Map();
+let giveaways = [];
+
+class Database {
+    constructor() {
+        this.dataFilePath = path.join(__dirname, '..', 'data.json');
+        this.contentFilePath = path.join(__dirname, '..', 'content.json');
+        this.userDataFilePath = path.join(__dirname, '..', 'userdata.json');
+        console.log('Database files loaded');
+    }
+
+    async loadData() {
+        try {
+            // 1. Загружаем основные данные (казино + категории)
+            console.log('Loading main data (casinos)...');
+            const data = await fs.readFile(this.dataFilePath, 'utf8');
+            const parsedData = JSON.parse(data);
+            casinos = parsedData.casinos || [];
+            categories = parsedData.categories || config.CATEGORIES;
+
+            // 2. Загружаем контент (анонсы + стримы)
+            try {
+                console.log('Loading content data...');
+                const contentData = await fs.readFile(this.contentFilePath, 'utf8');
+                const parsedContent = JSON.parse(contentData);
+                announcements = parsedContent.announcements || [];
+                streamStatus = parsedContent.streamStatus || streamStatus;
+            } catch (contentError) {
+                console.log('Content file not found, creating new...');
+                await this.saveContentData();
+            }
+
+            // 3. Загружаем данные пользователей
+            try {
+                console.log('Loading user data...');
+                const userData = await fs.readFile(this.userDataFilePath, 'utf8');
+                const parsedUserData = JSON.parse(userData);
+                userChats = new Map(Object.entries(parsedUserData.userChats || {}));
+                userSettings = new Map(Object.entries(parsedUserData.userSettings || {}));
+                giveaways = parsedUserData.giveaways || [];
+            } catch (userError) {
+                console.log('User data file not found, creating new...');
+                await this.saveUserData();
+            }
+
+            console.log(`Loaded: ${casinos.length} casinos, ${announcements.length} announcements, ${userChats.size} users`);
+            return true;
+
+        } catch (error) {
+            console.error('Error loading data:', error);
+            return await this.initializeData();
+        }
+    }
+
+    async initializeData() {
+        const initialData = {
+            casinos: [],
+            categories: categories,
+            lastUpdated: new Date().toISOString()
+        };
+
+        const initialContent = {
+            announcements: [],
+            streamStatus: streamStatus,
+            lastUpdated: new Date().toISOString()
         };
 
         const initialUserData = {
@@ -118,7 +201,7 @@ class Database {
             if (config.GITHUB_TOKEN) {
                 const githubResult = await githubSync.saveDataToGitHub(
                     JSON.stringify(dataToSave, null, 2),
-                    'data.json' // Явно указываем файл
+                    'data.json'
                 );
                 console.log('GitHub sync result:', githubResult.success);
                 return { local: true, github: githubResult.success };
@@ -202,16 +285,117 @@ class Database {
     // Сеттеры
     setCasinos(newCasinos) { 
         casinos = newCasinos; 
-        this.saveData(); // → GitHub синхронизация
+        this.saveData();
     }
 
     setAnnouncements(newAnnouncements) { 
         announcements = newAnnouncements; 
-        this.saveContentData(); // → Только локально
+        this.saveContentData();
     }
 
     setStreamStatus(newStatus) { 
         streamStatus = { ...streamStatus, ...newStatus }; 
-        this.saveContentData(); // → Только локально
+        this.saveContentData();
+    }
+
+    // Методы пользователей
+    trackUserAction(userId, userInfo, action, target = null) {
+        if (!userChats.has(userId)) {
+            userChats.set(userId, {
+                id: userId,
+                username: userInfo.username,
+                firstName: userInfo.first_name,
+                lastName: userInfo.last_name,
+                firstSeen: new Date().toISOString(),
+                lastSeen: new Date().toISOString(),
+                totalVisits: 0,
+                totalClicks: 0,
+                casinoClicks: {},
+                actions: []
+            });
+        }
+
+        const user = userChats.get(userId);
+        user.lastSeen = new Date().toISOString();
+        user.totalVisits++;
+
+        if (action === 'click' && target) {
+            user.totalClicks++;
+            user.casinoClicks[target] = (user.casinoClicks[target] || 0) + 1;
+        }
+
+        user.actions.push({
+            action,
+            target,
+            timestamp: new Date().toISOString()
+        });
+
+        console.log('User action tracked:', { userId, action, target });
+        this.saveUserData();
+    }
+
+    hideCasinoForUser(userId, casinoId) {
+        if (!userSettings.has(userId)) {
+            userSettings.set(userId, { hiddenCasinos: [], viewMode: 'full' });
+        }
+        const settings = userSettings.get(userId);
+        if (!settings.hiddenCasinos.includes(casinoId)) {
+            settings.hiddenCasinos.push(casinoId);
+            console.log('Casino hidden:', { userId, casinoId });
+        }
+        this.trackUserAction(userId, { id: userId }, 'hide_casino', casinoId);
+    }
+
+    unhideCasinoForUser(userId, casinoId) {
+        if (userSettings.has(userId)) {
+            const settings = userSettings.get(userId);
+            settings.hiddenCasinos = settings.hiddenCasinos.filter(id => id !== casinoId);
+            console.log('Casino unhidden:', { userId, casinoId });
+            this.saveUserData();
+        }
+    }
+
+    setUserViewMode(userId, mode) {
+        if (!['full', 'compact'].includes(mode)) mode = 'full';
+        if (!userSettings.has(userId)) {
+            userSettings.set(userId, { hiddenCasinos: [], viewMode: mode });
+        } else {
+            userSettings.get(userId).viewMode = mode;
+        }
+        console.log('View mode set:', { userId, mode });
+        this.saveUserData();
+    }
+
+    approveUserAccess(userId) {
+        if (!userSettings.has(userId)) {
+            userSettings.set(userId, { 
+                hiddenCasinos: [], 
+                viewMode: 'full',
+                approvedForLive: true,
+                approvalDate: new Date().toISOString()
+            });
+        } else {
+            const settings = userSettings.get(userId);
+            settings.approvedForLive = true;
+            settings.approvalDate = new Date().toISOString();
+        }
+        console.log('User approved for live:', userId);
+        this.saveUserData();
+        return true;
+    }
+
+    requestApproval(userId, telegramUsername) {
+        if (userChats.has(userId)) {
+            const userData = userChats.get(userId);
+            userData.pendingApproval = true;
+            userData.pendingApprovalDate = new Date().toISOString();
+            userData.pendingApprovalUsername = telegramUsername;
+            console.log('Approval requested:', { userId, telegramUsername });
+            this.saveUserData();
+            return true;
+        }
+        return false;
     }
 }
+
+module.exports = new Database();
