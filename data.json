@@ -652,10 +652,8 @@
   "userChats": {},
   "userSettings": {
     "1777213824": {
-      "hiddenCasinos": [
-        35
-      ],
-      "viewMode": "full",
+      "hiddenCasinos": [],
+      "viewMode": "compact",
       "approvedForLive": false
     }
   },
@@ -696,5 +694,5 @@
       "name": "ДЖОИ"
     }
   ],
-  "lastUpdated": "2025-09-07T15:01:11.208Z"
+  "lastUpdated": "2025-09-07T15:01:16.560Z"
 }
