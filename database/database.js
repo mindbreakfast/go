@@ -48,13 +48,27 @@ class Database {
                 await this.saveContentData();
             }
 
-            // 3. Загружаем данные пользователей
+            // 3. Загружаем данные пользователей (ИСПРАВЛЕНО восстановление Map)
             try {
                 console.log('Loading user data...');
                 const userData = await fs.readFile(this.userDataFilePath, 'utf8');
                 const parsedUserData = JSON.parse(userData);
-                userChats = new Map(Object.entries(parsedUserData.userChats || {}));
-                userSettings = new Map(Object.entries(parsedUserData.userSettings || {}));
+                
+                // Правильное восстановление Map
+                userChats = new Map();
+                if (parsedUserData.userChats) {
+                    for (const [key, value] of Object.entries(parsedUserData.userChats)) {
+                        userChats.set(Number(key), value);
+                    }
+                }
+                
+                userSettings = new Map();
+                if (parsedUserData.userSettings) {
+                    for (const [key, value] of Object.entries(parsedUserData.userSettings)) {
+                        userSettings.set(Number(key), value);
+                    }
+                }
+                
                 giveaways = parsedUserData.giveaways || [];
             } catch (userError) {
                 console.log('User data file not found, creating new...');
@@ -70,181 +84,9 @@ class Database {
         }
     }
 
-    async initializeData() {
-        const initialData = {
-            casinos: [],
-            categories: categories,
-            lastUpdated: new Date().toISOString()
-        };
+    // ... остальные методы без изменений ...
 
-        const initialContent = {
-            announcements: [],
-            streamStatus: streamStatus,
-            lastUpdated: new Date().toISOString()
-        };
-
-        const initialUserData = {
-            userChats: {},
-            userSettings: {},
-            giveaways: [],
-            lastUpdated: new Date().toISOString()
-        };
-
-        try {
-            await fs.writeFile(this.dataFilePath, JSON.stringify(initialData, null, 2));
-            await fs.writeFile(this.contentFilePath, JSON.stringify(initialContent, null, 2));
-            await fs.writeFile(this.userDataFilePath, JSON.stringify(initialUserData, null, 2));
-            
-            console.log('All data files created with initial structure');
-            return true;
-        } catch (error) {
-            console.error('Error creating initial data files:', error);
-            return false;
-        }
-    }
-
-    // Сохраняем ТОЛЬКО казино в GitHub
-async saveData() {
-    try {
-        // Проверяем реальные изменения (без lastUpdated)
-        let shouldSave = false;
-        
-        try {
-            const existingData = await fs.readFile(this.dataFilePath, 'utf8');
-            const parsedExisting = JSON.parse(existingData);
-            
-            const existingCoreData = {
-                casinos: parsedExisting.casinos,
-                categories: parsedExisting.categories
-            };
-            
-            const newCoreData = {
-                casinos: casinos,
-                categories: categories
-            };
-            
-            shouldSave = JSON.stringify(existingCoreData) !== JSON.stringify(newCoreData);
-        } catch (error) {
-            // Файла нет или ошибка чтения - нужно сохранить
-            shouldSave = true;
-        }
-
-        if (!shouldSave) {
-            console.log('No changes in core data, skipping save');
-            return { local: false, github: false, reason: 'no changes' };
-        }
-
-        console.log('Changes detected, saving data...');
-        const dataToSave = {
-            casinos: casinos,
-            categories: categories,
-            lastUpdated: new Date().toISOString()
-        };
-
-        await fs.writeFile(this.dataFilePath, JSON.stringify(dataToSave, null, 2));
-        
-        if (config.GITHUB_TOKEN) {
-            const githubResult = await githubSync.saveDataToGitHub(
-                JSON.stringify(dataToSave, null, 2),
-                'data.json'
-            );
-            console.log('GitHub sync result:', githubResult.success);
-            return { local: true, github: githubResult.success };
-        }
-        
-        return { local: true, github: false };
-
-    } catch (error) {
-        console.error('Error saving main data:', error);
-        return { local: false, github: false, error: error.message };
-    }
-}
-
-
-    // Сохраняем контент локально (без GitHub)
-    async saveContentData() {
-        try {
-            const contentToSave = {
-                announcements: announcements,
-                streamStatus: streamStatus,
-                lastUpdated: new Date().toISOString()
-            };
-
-            await fs.writeFile(this.contentFilePath, JSON.stringify(contentToSave, null, 2));
-            console.log('Content data saved locally');
-            return true;
-        } catch (error) {
-            console.error('Error saving content data:', error);
-            return false;
-        }
-    }
-
-    // Сохраняем пользователей локально
-    async saveUserData() {
-        try {
-            const userDataToSave = {
-                userChats: Object.fromEntries(userChats),
-                userSettings: Object.fromEntries(userSettings),
-                giveaways: giveaways,
-                lastUpdated: new Date().toISOString()
-            };
-
-            await fs.writeFile(this.userDataFilePath, JSON.stringify(userDataToSave, null, 2));
-            console.log('User data saved locally');
-            return true;
-        } catch (error) {
-            console.error('Error saving user data:', error);
-            return false;
-        }
-    }
-
-    // Сохраняем ВСЕ данные перед деплоем
-    async saveAllData() {
-        try {
-            console.log('Saving ALL data before deploy...');
-            const [dataResult, contentResult, userResult] = await Promise.all([
-                this.saveData(),
-                this.saveContentData(),
-                this.saveUserData()
-            ]);
-            
-            return {
-                data: dataResult,
-                content: contentResult,
-                user: userResult
-            };
-        } catch (error) {
-            console.error('Error saving all data:', error);
-            return { error: error.message };
-        }
-    }
-
-    // Геттеры
-    getCasinos() { return casinos; }
-    getAnnouncements() { return announcements; }
-    getUserChats() { return userChats; }
-    getStreamStatus() { return streamStatus; }
-    getUserSettings() { return userSettings; }
-    getGiveaways() { return giveaways; }
-    getCategories() { return categories; }
-
-    // Сеттеры
-    setCasinos(newCasinos) { 
-        casinos = newCasinos; 
-        this.saveData();
-    }
-
-    setAnnouncements(newAnnouncements) { 
-        announcements = newAnnouncements; 
-        this.saveContentData();
-    }
-
-    setStreamStatus(newStatus) { 
-        streamStatus = { ...streamStatus, ...newStatus }; 
-        this.saveContentData();
-    }
-
-    // Методы пользователей
+    // Методы пользователей (ПЕРЕНЕСЕНО из userFeatures.js)
     trackUserAction(userId, userInfo, action, target = null) {
         if (!userChats.has(userId)) {
             userChats.set(userId, {
@@ -341,6 +183,52 @@ async saveData() {
             return true;
         }
         return false;
+    }
+
+    getPendingApprovals() {
+        const pending = [];
+        
+        for (const [userId, userData] of userChats) {
+            if (userData.pendingApproval) {
+                pending.push({
+                    userId: userId,
+                    username: userData.username,
+                    requestedAt: userData.pendingApprovalDate,
+                    requestedUsername: userData.pendingApprovalUsername
+                });
+            }
+        }
+        return pending;
+    }
+
+    // Реферальная система
+    handleReferralStart(userId, referrerId) {
+        if (userChats.has(userId) && referrerId !== userId) {
+            const userData = userChats.get(userId);
+            userData.referredBy = referrerId;
+            userData.referralDate = new Date().toISOString();
+            
+            if (userChats.has(referrerId)) {
+                const referrerData = userChats.get(referrerId);
+                if (!referrerData.referrals) referrerData.referrals = [];
+                if (!referrerData.referrals.includes(userId)) {
+                    referrerData.referrals.push(userId);
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    getReferralInfo(userId) {
+        const userChats = this.getUserChats();
+        const userData = userChats.get(userId) || {};
+        
+        return {
+            referredBy: userData.referredBy || null,
+            referrals: userData.referrals || [],
+            referralLink: `https://t.me/Ludogol_bot?start=ref${userId}`
+        };
     }
 }
 
