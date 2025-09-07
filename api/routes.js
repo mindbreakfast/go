@@ -63,4 +63,57 @@ router.post('/webhook', (req, res) => {
     res.sendStatus(200);
 });
 
+// Добавьте эти маршруты перед module.exports
+
+// API для получения пользовательских данных
+router.get('/user-data', async (req, res) => {
+    try {
+        const userId = req.query.userId;
+        if (!userId) {
+            return res.json({});
+        }
+
+        const userSettings = database.getUserSettings();
+        const userData = userSettings.get(userId) || {};
+        
+        res.json({
+            hiddenCasinos: userData.hiddenCasinos || [],
+            viewMode: userData.viewMode || 'full',
+            approvedForLive: userData.approvedForLive || false
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'User data error' });
+    }
+});
+
+// API для сохранения пользовательских настроек
+router.post('/save-user-settings', async (req, res) => {
+    try {
+        const { userId, hiddenCasinos, viewMode } = req.body;
+        
+        if (!userId) {
+            return res.status(400).json({ error: 'User ID required' });
+        }
+
+        const userSettings = database.getUserSettings();
+        if (!userSettings.has(userId)) {
+            userSettings.set(userId, {
+                hiddenCasinos: hiddenCasinos || [],
+                viewMode: viewMode || 'full',
+                approvedForLive: false
+            });
+        } else {
+            const settings = userSettings.get(userId);
+            settings.hiddenCasinos = hiddenCasinos || [];
+            settings.viewMode = viewMode || 'full';
+        }
+
+        await database.saveData();
+        res.json({ status: 'ok' });
+    } catch (error) {
+        res.status(500).json({ error: 'Save settings error' });
+    }
+});
+
+
 module.exports = router;
