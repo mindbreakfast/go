@@ -60,16 +60,18 @@ class Database {
             casinos: [],
             announcements: [],
             userChats: {},
-            userSettings: {}, // Новая структура
-            giveaways: [],   // Новая структура
+            userSettings: {}, 
+            giveaways: [],   
             streamStatus: {
                 isStreamLive: false,
                 streamUrl: "",
                 eventDescription: "",
                 lastUpdated: new Date().toISOString()
             },
-            categories: config.CATEGORIES, // Используем категории из конфига
-            lastUpdated: new Date().toISOString()
+            categories: config.CATEGORIES,
+            lastUpdated: new Date().toISOString(),
+            // Добавляем поле для реферальных кодов
+            referralCodes: {} 
         };
 
         try {
@@ -123,7 +125,7 @@ class Database {
     }
 
     // === Геттеры для доступа к данным ===
-// Добавьте этот метод в класс Database в database.js
+
 getCategories() {
     return config.CATEGORIES;
 }
@@ -184,8 +186,43 @@ getCategories() {
     }
 }
 
-// Экспортируем экземпляр класса Database
+    getUserViewMode(userId) {
+        return userSettings.get(userId)?.viewMode || 'full';
+    }
+
+    // === Новые методы для реферальной системы и одобрения ===
+    getReferralInfo(userId) {
+        return {
+            referredBy: this.getUserChats().get(userId)?.referredBy,
+            referrals: this.getUserChats().get(userId)?.referrals || [],
+            referralLink: userFeatures.generateReferralLink(userId)
+        };
+    }
+
+    handleReferralStart(userId, referrerId) {
+        return userFeatures.setUserReferrer(userId, referrerId);
+    }
+
+    approveUser(userId) {
+        return userFeatures.approveUserAccess(userId);
+    }
+
+    revokeUserApproval(userId) {
+        return userFeatures.revokeUserAccess(userId);
+    }
+
+    isUserApproved(userId) {
+        return userFeatures.isUserApproved(userId);
+    }
+
+    getPendingApprovals() {
+        return userFeatures.getPendingApprovals();
+    }
+
+    requestApproval(userId, username) {
+        return userFeatures.requestApproval(userId, username);
+    }
+} // Закрыли 
+
 module.exports = new Database();
-
-
 
