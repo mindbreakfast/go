@@ -1,6 +1,7 @@
-console.log('✅ userCommands loaded');
+console.log('✅ casinoCommands loaded');
 const config = require('../../config');
 const database = require('../../database/database');
+const { isAdmin } = require('../../utils/isAdmin');
 
 const ADD_CASINO_STEPS = {
     NAME: 'name',
@@ -23,7 +24,6 @@ function getCasino(id) {
 }
 
 function handleAddCasinoCommand(bot, msg, casinoEditingState) {
-    const { isAdmin } = require('./adminCommands');
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
@@ -129,7 +129,6 @@ async function handleCasinoCreationStep(bot, msg, casinoEditingState) {
 }
 
 async function handleListCasinosCommand(bot, msg) {
-    const { isAdmin } = require('./adminCommands');
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
@@ -156,7 +155,6 @@ async function handleListCasinosCommand(bot, msg) {
 }
 
 function handleEditCasinoCommand(bot, msg, match) {
-    const { isAdmin } = require('./adminCommands');
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команда!');
     }
@@ -316,5 +314,3 @@ module.exports = {
     handleEditCasinoCommand,
     handleCallbackQuery,
     handleCasinoEditResponse,
-    handleCasinoCreationStep
-};
