@@ -21,28 +21,33 @@
 
     <div id="announcementsContainer"></div>
 
-    <div class="search-container">
+<div class="search-container">
+    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+        <div class="view-mode-icon" onclick="toggleViewMode()" title="Переключить режим">
+            📱
+        </div>
         <input 
             type="text" 
             id="searchInput" 
             placeholder="🔍 Поиск казино..." 
             autocomplete="off"
+            style="flex: 1;"
         >
+    </div>
         <div class="filters" id="filtersContainer">
             <!-- Фильтры будут сгенерированы скриптом -->
         </div>
-            <button class="btn btn-outline" id="viewModeToggle" onclick="toggleViewMode()" style="margin-top: 10px;">
-            📱 Компактный
-        </button>
+       
     </div>
 
     <div class="casino-list" id="casinoList">
         <div class="loader">Ща всё будет...</div>
     </div>
 
-    <!-- Добавьте этот блок ПОСЛЕ casino-list и ПЕРЕД footer -->
+    <!-- Лудильня -->
     <div class="live-rooms-section">
-        <h2>🎤 Лайв лудильни</h2>
+  <h2>Голосовой чат</h2>
+    <div class="room-subtitle">Сидим, пиздим, показываем</div>
         
         <div class="room-card">
             <h3>🔒 Для VIP</h3>
@@ -52,8 +57,8 @@
         </div>
 
         <div class="room-card">
-            <h3>🔓 Всякий сброд</h3>
-            <p>Доступна для всех</p>
+            <h3>Всякий сброд</h3>
+            <p>Гоу знакомиться</p>
             <button class="btn btn-primary" onclick="openLink(event, 'https://meet.google.com/xes-fsxv-gun')">
                 ПЕРЕЙТИ В КОМНАТУ
             </button>
@@ -79,6 +84,7 @@
   <script src="app.js?v=2"></script>
 </body>
 </html>
+
 
 
 
