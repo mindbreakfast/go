@@ -653,7 +653,7 @@
   "userSettings": {
     "1777213824": {
       "hiddenCasinos": [],
-      "viewMode": "compact",
+      "viewMode": "full",
       "approvedForLive": false
     }
   },
@@ -694,5 +694,5 @@
       "name": "ДЖОИ"
     }
   ],
-  "lastUpdated": "2025-09-07T15:02:28.404Z"
+  "lastUpdated": "2025-09-07T15:02:32.693Z"
 }
