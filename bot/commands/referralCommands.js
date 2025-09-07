@@ -1,3 +1,4 @@
+console.log('✅ referalCommands loaded');
 const database = require('../../database/database');
 const config = require('../../config');
 
