@@ -34,6 +34,18 @@ function handleStartCommand(bot, msg) {
     const user = msg.from;
     database.trackUserAction(user.id, user, 'start');
 
+    // Обработка реферальной ссылки
+    if (msg.text && msg.text.includes(' ')) {
+        const referralCode = msg.text.split(' ')[1];
+        if (referralCode.startsWith('ref')) {
+            const referrerId = parseInt(referralCode.substring(3));
+            if (!isNaN(referrerId) && referrerId !== user.id) {
+                database.handleReferralStart(user.id, referrerId);
+                console.log(`User ${user.id} was referred by ${referrerId}`);
+            }
+        }
+    }
+
     const keyboard = {
         reply_markup: {
             inline_keyboard: [[
@@ -556,6 +568,8 @@ async function handleCasinoEditResponse(bot, msg, casinoEditingState) {
 
 // Главный обработчик сообщений
 function handleMessage(bot, msg) {
+    const approveRegex = /^\/odobri (\d+)$/;
+const approvalsRegex = /^\/approvals$/;
     const text = msg.text;
 
     // Регулярные выражения для команд
@@ -594,8 +608,76 @@ function handleMessage(bot, msg) {
         handleListCasinosCommand(bot, msg);
     } else if (editCasinoRegex.test(text)) {
         handleEditCasinoCommand(bot, msg, text.match(editCasinoRegex));
-    }
+    } else if (approveRegex.test(text)) {
+    handleApproveCommand(bot, msg, text.match(approveRegex));
+} else if (approvalsRegex.test(text)) {
+    handleApprovalsCommand(bot, msg);
+}
     // Можно добавить другие команды здесь
+}
+
+// Обработчик команды /odobri
+function handleApproveCommand(bot, msg, match) {
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+    }
+
+    const userId = parseInt(match[1]);
+    const success = database.approveUser(userId);
+    
+    if (success) {
+        bot.sendMessage(msg.chat.id, `✅ Пользователь ${userId} одобрен для доступа к лайв комнате!`);
+        // Уведомляем пользователя
+        bot.sendMessage(userId, '🎉 Ваш доступ к приватной лайв комнате одобрен! Обновите приложение.');
+    } else {
+        bot.sendMessage(msg.chat.id, `❌ Не удалось одобрить пользователя ${userId}`);
+    }
+}
+
+// Обработчик команды /approvals
+function handleApprovalsCommand(bot, msg) {
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+    }
+
+    const pending = database.getPendingApprovals();
+    if (pending.length === 0) {
+        return bot.sendMessage(msg.chat.id, '📝 Запросов на одобрение нет');
+    }
+
+    const approvalList = pending.map(req => 
+        `ID: ${req.userId}\nUsername: @${req.requestedUsername}\nЗапросил: ${new Date(req.requestedAt).toLocaleString('ru-RU')}\n/odobri_${req.userId}`
+    ).join('\n\n');
+
+    bot.sendMessage(msg.chat.id,
+        `Запросы на одобрение (${pending.length}):\n\n${approvalList}`
+    );
+}
+
+// Обработчик для запроса одобрения
+function handleApprovalRequest(bot, msg) {
+    const username = msg.text.trim();
+    const userId = msg.from.id;
+    
+    // Простая валидация username
+    if (!username.startsWith('@') || username.length < 5) {
+        return bot.sendMessage(msg.chat.id, '❌ Пожалуйста, введите корректный username в формате @username');
+    }
+
+    const success = database.requestApproval(userId, username);
+    if (success) {
+        bot.sendMessage(msg.chat.id, '✅ Ваш запрос на одобрение отправлен админам! Ожидайте.');
+        
+        // Уведомляем админов
+        const admins = config.ADMINS;
+        admins.forEach(adminId => {
+            bot.sendMessage(adminId,
+                `🆕 Новый запрос на одобрение!\nID: ${userId}\nUsername: ${username}\n/odobri_${userId}`
+            );
+        });
+    } else {
+        bot.sendMessage(msg.chat.id, '❌ Ошибка при отправке запроса');
+    }
 }
 
 // Экспортируем все обработчики
