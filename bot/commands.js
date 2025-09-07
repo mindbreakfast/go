@@ -716,7 +716,7 @@ ${referralInfo.referralLink}
 const referralRegex = /^\/referral$/;
 
 // И проверку в handleMessage
-} else if (referralRegex.test(text)) {
+ else if (referralRegex.test(text)) {
     handleReferralCommand(bot, msg);
 }
 
