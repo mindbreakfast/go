@@ -34,15 +34,42 @@
     </div>
 
     <div class="casino-list" id="casinoList">
-        <div class="loader">Загрузка данных...</div>
+        <div class="loader">Ща всё будет...</div>
     </div>
 
-    <div class="footer">
+    <!-- Добавьте этот блок ПОСЛЕ casino-list и ПЕРЕД footer -->
+    <div class="live-rooms-section">
+        <h2>🎤 Лайв лудильни</h2>
+        
+        <div class="room-card">
+            <h3>🔒 Для VIP</h3>
+            <div id="privateRoomContent">
+                <!-- Контент будет подставляться JavaScript -->
+            </div>
+        </div>
+
+        <div class="room-card">
+            <h3>🔓 Всякий сброд</h3>
+            <p>Доступна для всех</p>
+            <button class="btn btn-primary" onclick="openLink(event, 'https://meet.google.com/xes-fsxv-gun')">
+                ПЕРЕЙТИ В КОМНАТУ
+            </button>
+        </div>
+    </div>
+
+    
+    
+   <div class="footer">
         <div class="footer-links">
             <a href="https://t.me/Ludogolik" class="footer-link">📢 Канал</a>
             <a href="https://t.me/Ludogolik666" class="footer-link">💬 Чат</a>
+            <a href="#" class="footer-link" onclick="copyReferralLink()">📊 Рефералка</a>
         </div>
-        <div class="developer">Разработчик <a href="https://t.me/NSDcode" class="developer-link">NSDcode</a></div>
+        <div class="developer">
+            Разработчик <a href="https://t.me/NSDcode" class="developer-link">NSDcode</a>
+            <!-- Добавьте эту строку -->
+            <div class="user-id" id="userIdDisplay">ID: загрузка...</div>
+        </div>
         <button class="theme-switcher" id="themeSwitcher">🌙 Тёмная тема</button>
     </div>
 
@@ -403,5 +430,6 @@
     </script>
 </body>
 </html>
+
 
 
