@@ -536,6 +536,23 @@ async function saveUserSettings() {
         console.log('Ошибка сохранения настроек:', error);
     }
 }
+// автосейв
+function autoSaveSettings() {
+    if (userId && userId !== 'anonymous') {
+        fetch('https://go-5zty.onrender.com/save-user-settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: userId,
+                hiddenCasinos: userHiddenCasinos,
+                viewMode: userViewMode
+            })
+        }).catch(console.error);
+    }
+}
+
+// Вызывать при изменении настроек
+
 
 // Глобальные функции
 window.openCasino = openCasino;
