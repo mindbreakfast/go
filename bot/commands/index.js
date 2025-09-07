@@ -1,3 +1,4 @@
+console.log('✅ Commands index loaded');
 const adminCommands = require('./adminCommands');
 const casinoCommands = require('./casinoCommands');
 const userCommands = require('./userCommands');
