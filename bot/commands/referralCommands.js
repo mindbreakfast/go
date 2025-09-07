@@ -1,6 +1,5 @@
-console.log('✅ referalCommands loaded');
+console.log('✅ referralCommands loaded');
 const database = require('../../database/database');
-const config = require('../../config');
 
 function handleReferralCommand(bot, msg) {
     const userId = msg.from.id;
