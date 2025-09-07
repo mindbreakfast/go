@@ -650,7 +650,7 @@ bot.onText(/\/add_casino/, (msg) => {
 });
 
 // Команда /list_casinos
-bot.onText(/\/list_casinos/, (msg) => {
+bot.onText(/\/list_casinos/, async (msg) => {
     console.log('LIST CASINOS COMMAND RECEIVED');
     
     if (!isAdmin(msg.from.id)) {
@@ -663,14 +663,22 @@ bot.onText(/\/list_casinos/, (msg) => {
     if (casinos.length === 0) {
         return bot.sendMessage(msg.chat.id, '📝 Список казино пуст');
     }
-    
-    const casinoList = casinos.map(c => 
-        `🎰 ID: ${c.id} - ${c.name}\n🎫 Промо: ${c.promocode}\n🏷️ Категория: ${c.category}\n🔗 ${c.url}\n──────────────────`
-    ).join('\n');
-    
-    bot.sendMessage(msg.chat.id, 
-        `📝 Список казино (${casinos.length}):\n\n${casinoList}`
-    );
+
+    // Разбиваем список на части по 10 казино
+    const chunkSize = 10;
+    for (let i = 0; i < casinos.length; i += chunkSize) {
+        const chunk = casinos.slice(i, i + chunkSize);
+        const casinoList = chunk.map(c => 
+            `🎰 ID: ${c.id} - ${c.name}\n🎫 Промо: ${c.promocode}\n🏷️ Категория: ${c.category}\n🔗 ${c.url}\n──────────────────`
+        ).join('\n');
+        
+        const message = i === 0 ? 
+            `📝 Список казино (${casinos.length}):\n\n${casinoList}` :
+            `Продолжение (${i+1}-${Math.min(i+chunkSize, casinos.length)}):\n\n${casinoList}`;
+        
+        await bot.sendMessage(msg.chat.id, message);
+        await new Promise(resolve => setTimeout(resolve, 100)); // Небольшая задержка
+    }
 });
 
 // Команда /edit_casino
@@ -712,8 +720,9 @@ bot.onText(/\/edit_casino (\d+)/, (msg, match) => {
         }
     };
     
+    // Сокращенное сообщение
     bot.sendMessage(msg.chat.id, 
-        `Редактирование казино:\n\nID: ${casino.id}\nНазвание: ${casino.name}\nПромокод: ${casino.promocode}\nКатегория: ${casino.category}\nСтатус: ${casino.isActive ? '✅ Активно' : '❌ Скрыто'}\nЗакреплено: ${casino.isPinned ? '✅ Да' : '❌ Нет'}\n\nВыберите что редактировать:`,
+        `Редактирование: ${casino.name} (ID: ${casino.id})\nВыберите действие:`,
         { reply_markup: keyboard }
     );
 });
@@ -1046,3 +1055,4 @@ bot.on('message', (msg) => {
         console.log('Command received:', msg.text);
     }
 });
+
