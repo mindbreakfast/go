@@ -584,7 +584,10 @@ const approvalsRegex = /^\/approvals$/;
     const addCasinoRegex = /^\/add_casino$/;
     const listCasinosRegex = /^\/list_casinos$/;
     const editCasinoRegex = /^\/edit_casino (\d+)/;
-
+if (database.getUserChats().get(msg.from.id)?.waitingForApproval) {
+    handleApprovalRequest(bot, msg);
+    return;
+}
     // Проверяем команды и вызываем соответствующие обработчики
     if (statsRegex.test(text)) {
         handleStatsCommand(bot, msg);
@@ -678,6 +681,33 @@ function handleApprovalRequest(bot, msg) {
     } else {
         bot.sendMessage(msg.chat.id, '❌ Ошибка при отправке запроса');
     }
+}
+
+// Добавьте эту функцию
+function handleReferralCommand(bot, msg) {
+    const userId = msg.from.id;
+    const referralInfo = database.getReferralInfo(userId);
+    
+    const message = `
+📊 Ваша реферальная статистика:
+
+👥 Вас пригласил: ${referralInfo.referredBy ? 'User#' + referralInfo.referredBy : 'Никто'}
+📈 Вы пригласили: ${referralInfo.referrals.length} человек
+
+🔗 Ваша реферальная ссылка:
+${referralInfo.referralLink}
+
+Приглашайте друзей и получайте бонусы!`;
+    
+    bot.sendMessage(msg.chat.id, message);
+}
+
+// Добавьте регулярное выражение в handleMessage
+const referralRegex = /^\/referral$/;
+
+// И проверку в handleMessage
+} else if (referralRegex.test(text)) {
+    handleReferralCommand(bot, msg);
 }
 
 // Экспортируем все обработчики
