@@ -122,6 +122,11 @@ class Database {
     }
 
     // === Геттеры для доступа к данным ===
+// Добавьте этот метод в класс Database в database.js
+getCategories() {
+    return config.CATEGORIES;
+}
+    
     getCasinos() { return casinos; }
     getAnnouncements() { return announcements; }
     getUserChats() { return userChats; }
@@ -180,3 +185,6 @@ class Database {
 
 // Экспортируем экземпляр класса Database
 module.exports = new Database();
+
+
+
