@@ -7,7 +7,8 @@ const app = express();
 
 console.log('Starting server with config:', {
     port: config.PORT,
-    renderUrl: config.RENDER_URL
+    hasBotToken: !!config.BOT_TOKEN,
+    hasGitHubToken: !!config.GITHUB_TOKEN
 });
 
 app.use(express.json());
@@ -27,10 +28,8 @@ app.get('/', (req, res) => {
     res.json({
         status: 'OK',
         message: 'Ludogolik Bot Server работает',
-        users: database.getUserChats().size,
-        stream_live: database.getStreamStatus().isStreamLive,
-        casinos: database.getCasinos().length,
-        announcements: database.getAnnouncements().length,
+        mode: 'POLLING',
+        timestamp: new Date().toISOString()
     });
 });
 
@@ -64,11 +63,19 @@ async function startServer() {
     }
 
     const bot = require('./bot/bot');
+    
+    // Тестируем бота перед запуском
+    const botTest = await bot.testBot();
+    if (!botTest) {
+        console.error('❌ Bot test failed. Check BOT_TOKEN.');
+        process.exit(1);
+    }
+    
     await bot.start();
 
     app.listen(config.PORT, () => {
         console.log('✅ Server is running on port', config.PORT);
-        console.log('✅ Bot is running');
+        console.log('✅ Bot is running in POLLING mode');
         console.log('===================================');
     });
 
