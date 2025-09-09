@@ -232,4 +232,20 @@ router.post('/reload-data', async (req, res) => {
     }
 });
 
+// Добавляем в routes.js
+router.get('/bot-info', async (req, res) => {
+    try {
+        const bot = require('../bot/bot').bot;
+        const botInfo = await bot.getMe();
+        res.json({
+            status: 'ok',
+            bot: botInfo,
+            mode: 'polling'
+        });
+    } catch (error) {
+        console.error('Error getting bot info:', error);
+        res.status(500).json({ error: 'Bot info error' });
+    }
+});
+
 module.exports = router;
