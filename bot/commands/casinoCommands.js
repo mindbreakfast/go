@@ -1,7 +1,8 @@
 console.log('✅ casinoCommands loaded');
-const config = require('../config');
-const database = require('../database/database');
-const { isAdmin } = require('../utils/isAdmin');
+const path = require('path');
+const config = require(path.join(__dirname, '..', '..', 'config'));
+const database = require(path.join(__dirname, '..', '..', 'database', 'database'));
+const { isAdmin } = require(path.join(__dirname, '..', '..', 'utils', 'isAdmin'));
 
 const ADD_CASINO_STEPS = {
     NAME: 'name',
@@ -314,3 +315,5 @@ module.exports = {
     handleEditCasinoCommand,
     handleCallbackQuery,
     handleCasinoEditResponse,
+    handleCasinoCreationStep
+};
