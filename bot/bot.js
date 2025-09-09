@@ -26,11 +26,10 @@ async function setupWebhook() {
     }
 }
 
+// ДОБАВИМ ОБРАБОТЧИКИ СООБЩЕНИЙ ПРАВИЛЬНО
 bot.on('message', (msg) => {
-    if (msg.text && msg.text.startsWith('/')) {
-        console.log('Command received:', msg.text, 'from user:', msg.from.id);
-    }
-
+    console.log('Message received:', msg.text, 'from:', msg.from.id);
+    
     if (casinoEditingState.has(msg.from.id) && casinoEditingState.get(msg.from.id).step) {
         commandHandlers.handleCasinoCreationStep(bot, msg, casinoEditingState);
         return;
@@ -50,6 +49,8 @@ bot.on('message', (msg) => {
             commandHandlers.handleHelpCommand(bot, msg);
             return;
         }
+        
+        // ОБРАБАТЫВАЕМ ВСЕ КОМАНДЫ ЧЕРЕЗ handleMessage
         commandHandlers.handleMessage(bot, msg);
     }
 });
