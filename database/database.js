@@ -193,23 +193,23 @@ class Database {
     }
 
     // Сохраняем пользователей локально
-    async saveUserData() {
-        try {
-            const userDataToSave = {
-                userChats: Object.fromEntries(userChats),
-                userSettings: Object.fromEntries(userSettings),
-                giveaways: giveaways,
-                lastUpdated: new Date().toISOString()
-            };
+async function saveUserData() {
+    try {
+        const userDataToSave = {
+            userChats: Object.fromEntries(userChats),
+            userSettings: Object.fromEntries(userSettings),
+            giveaways: giveaways,
+            lastUpdated: new Date().toISOString()
+        };
 
-            await fs.writeFile(this.userDataFilePath, JSON.stringify(userDataToSave, null, 2));
-            console.log('User data saved locally');
-            return true;
-        } catch (error) {
-            console.error('Error saving user data:', error);
-            return false;
-        }
+        await fs.writeFile(this.userDataFilePath, JSON.stringify(userDataToSave, null, 2));
+        console.log('User data saved locally');
+        return true;
+    } catch (error) {
+        console.error('Error saving user data:', error);
+        return false;
     }
+}
 
     // Сохраняем ВСЕ данные перед деплоем
     async saveAllData() {
