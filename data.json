@@ -646,6 +646,22 @@
       "category": "joy",
       "isActive": true,
       "isPinned": false
+    },
+    {
+      "id": 38,
+      "name": "fh",
+      "promocode": "fg",
+      "shortDescription": "fg",
+      "fullDescription": "fg",
+      "url": "gf",
+      "category": "кб",
+      "hiddenKeywords": [
+        "пва"
+      ],
+      "isActive": true,
+      "isPinned": false,
+      "createdAt": "2025-09-09T13:20:27.062Z",
+      "updatedAt": "2025-09-09T13:20:27.062Z"
     }
   ],
   "categories": [
@@ -678,5 +694,5 @@
       "name": "ДЖОИ"
     }
   ],
-  "lastUpdated": "2025-09-07T16:33:28.954Z"
+  "lastUpdated": "2025-09-09T13:20:27.063Z"
 }
