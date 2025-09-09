@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const database = require('../database/database');
 const router = express.Router();
 
@@ -110,6 +111,41 @@ router.post('/track-visit', async (req, res) => {
     }
 });
 
+router.post('/request-approval', async (req, res) => {
+    try {
+        console.log('API: /request-approval called with:', req.body);
+        const { userId, username } = req.body;
+        
+        if (!userId || !username) {
+            return res.status(400).json({ error: 'User ID and username required' });
+        }
+
+        const success = database.requestApproval(userId, username);
+        
+        if (success) {
+            // Уведомляем админов
+            const { isAdmin } = require('../utils/isAdmin');
+            const config = require('../config');
+            
+            config.ADMINS.forEach(adminId => {
+                if (isAdmin(adminId)) {
+                    const bot = require('../bot/bot').bot;
+                    bot.sendMessage(adminId,
+                        `🆕 Новый запрос на одобрение!\nID: ${userId}\nUsername: ${username}\n/odobri_${userId}`
+                    ).catch(err => console.log('Error notifying admin:', err));
+                }
+            });
+            
+            res.json({ status: 'ok', message: 'Approval request sent' });
+        } else {
+            res.status(400).json({ error: 'Failed to send approval request' });
+        }
+    } catch (error) {
+        console.error('Error in /request-approval:', error);
+        res.status(500).json({ error: 'Approval request error' });
+    }
+});
+
 router.get('/setup-webhook', async (req, res) => {
     try {
         console.log('API: /setup-webhook called');
@@ -125,10 +161,15 @@ router.get('/setup-webhook', async (req, res) => {
 });
 
 router.post('/webhook', (req, res) => {
-    console.log('Webhook received:', req.body);
-    const bot = require('../bot/bot').bot;
-    bot.processUpdate(req.body);
-    res.sendStatus(200);
+    console.log('Webhook received:', req.body?.message?.text || 'No text message');
+    try {
+        const bot = require('../bot/bot').bot;
+        bot.processUpdate(req.body);
+        res.sendStatus(200);
+    } catch (error) {
+        console.error('Error processing webhook:', error);
+        res.sendStatus(200); // Всегда возвращаем 200 чтобы Telegram не повторял запрос
+    }
 });
 
 // Добавляем endpoint для сохранения всех данных
@@ -143,4 +184,52 @@ router.post('/save-all-data', async (req, res) => {
     }
 });
 
-module.exports = router; //
+// Endpoint для отладки - получить информацию о пользователе
+router.get('/debug-user/:userId', (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        console.log('API: /debug-user called for userId:', userId);
+        
+        const userData = database.getUserData(userId);
+        res.json(userData);
+    } catch (error) {
+        console.error('Error in /debug-user:', error);
+        res.status(500).json({ error: 'Debug error' });
+    }
+});
+
+// Endpoint для проверки статуса бота
+router.get('/status', (req, res) => {
+    try {
+        const userChats = database.getUserChats();
+        const streamStatus = database.getStreamStatus();
+        const announcements = database.getAnnouncements();
+        const casinos = database.getCasinos();
+        
+        res.json({
+            status: 'ok',
+            users: userChats.size,
+            streamLive: streamStatus.isStreamLive,
+            announcements: announcements.length,
+            casinos: casinos.length,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Error in /status:', error);
+        res.status(500).json({ error: 'Status check error' });
+    }
+});
+
+// Endpoint для принудительной перезагрузки данных
+router.post('/reload-data', async (req, res) => {
+    try {
+        console.log('API: Forced data reload');
+        const success = await database.loadData();
+        res.json({ success: success });
+    } catch (error) {
+        console.error('Error in /reload-data:', error);
+        res.status(500).json({ error: 'Reload error' });
+    }
+});
+
+module.exports = router;
