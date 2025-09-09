@@ -1,16 +1,16 @@
 const express = require('express');
 const database = require('./database/database');
-const apiRoutes = require('./api/routes');
+const { router: apiRoutes, initializeApiRoutes } = require('./api/routes');
+const { startBot, testBot } = require('./bot/bot'); // Импортируем функции запуска
 const config = require('./config');
 
 const app = express();
 
-console.log('Starting server with config:', {
-    port: config.PORT,
-    hasBotToken: !!config.BOT_TOKEN,
-    hasGitHubToken: !!config.GITHUB_TOKEN
-});
+console.log('===================================');
+console.log('Starting Ludogolik Bot Server...');
+console.log('===================================');
 
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
@@ -21,15 +21,12 @@ app.use((req, res, next) => {
 });
 app.options('*', (req, res) => res.sendStatus(200));
 
+// Инициализируем API routes (пока без бота)
 app.use('/api', apiRoutes);
 
+// Health check endpoints
 app.get('/', (req, res) => {
-    console.log('Root endpoint called');
-    res.json({
-        status: 'OK',
-        message: 'Ludogolik Bot Server работает',
-        timestamp: new Date().toISOString()
-    });
+    res.json({ status: 'OK', message: 'Ludogolik Bot Server работает', timestamp: new Date().toISOString() });
 });
 
 app.get('/health', (req, res) => {
@@ -40,11 +37,15 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Graceful shutdown
 function gracefulShutdown() {
-    console.log('\nReceived shutdown signal. Saving data...');
+    console.log('\n🛑 Received shutdown signal. Saving data...');
     database.saveData().then(() => {
-        console.log('Data saved. Exiting.');
+        console.log('✅ Data saved. Exiting.');
         process.exit(0);
+    }).catch(error => {
+        console.error('❌ Error saving data on shutdown:', error);
+        process.exit(1);
     });
 }
 
@@ -52,33 +53,52 @@ process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
 
 async function startServer() {
-    console.log('===================================');
-    console.log('Starting Ludogolik Bot Server...');
-
+    console.log('🔄 Step 1: Loading data from storage...');
     const dataLoaded = await database.loadData();
     if (!dataLoaded) {
-        console.error('Failed to load data. Exiting.');
+        console.error('❌ Failed to load data. Exiting.');
         process.exit(1);
     }
 
-    // Бот запускается автоматически через polling в bot.js
-    console.log('✅ Server is running on port', config.PORT);
-    console.log('✅ Bot will start automatically in polling mode');
-    console.log('===================================');
+    console.log('✅ Step 2: Data loaded successfully');
+    console.log('🔄 Step 3: Starting Telegram Bot...');
+    
+    try {
+        // Запускаем бота (явно и контролируемо)
+        const botStartResult = await startBot();
+        if (!botStartResult.success) {
+            throw new Error('Bot failed to start');
+        }
 
-    // Запускаем сервер
-    app.listen(config.PORT, () => {
-        console.log('✅ Express server started on port', config.PORT);
-    });
+        console.log('✅ Step 4: Bot started successfully');
+        
+        // Инициализируем API routes с экземпляром бота
+        const { bot } = require('./bot/bot');
+        initializeApiRoutes(bot);
+        console.log('✅ Step 5: API routes initialized with bot instance');
 
-    // Автосохранение каждые 5 минут
-    setInterval(() => {
-        console.log('Auto-saving data...');
-        database.saveData().catch(err => console.error('Auto-save error:', err));
-    }, 5 * 60 * 1000);
+        // Запускаем сервер
+        app.listen(config.PORT, () => {
+            console.log('✅ Step 6: Express server started on port', config.PORT);
+            console.log('===================================');
+            console.log('🚀 Server is fully operational!');
+            console.log('===================================');
+        });
+
+        // Автосохранение каждые 5 минут
+        setInterval(() => {
+            console.log('💾 Auto-saving data...');
+            database.saveData().catch(err => console.error('❌ Auto-save error:', err.message));
+        }, 5 * 60 * 1000);
+
+    } catch (error) {
+        console.error('❌ Error during bot startup:', error.message);
+        process.exit(1);
+    }
 }
 
+// Запускаем сервер
 startServer().catch(error => {
-    console.error('Fatal error during startup:', error);
+    console.error('❌ Fatal error during startup:', error);
     process.exit(1);
 });
