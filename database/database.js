@@ -1,6 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
-const githubSync = require('./githubSync');
+const axios = require('axios');
 const config = require('../config');
 
 // Разделяем данные на 3 части
@@ -21,7 +21,6 @@ let giveaways = [];
 
 class Database {
     constructor() {
-        // ИСПРАВЛЯЕМ ПУТИ - файлы в корневой папке src/
         this.dataFilePath = path.join(__dirname, '..', 'data.json');
         this.contentFilePath = path.join(__dirname, '..', 'content.json');
         this.userDataFilePath = path.join(__dirname, '..', 'userdata.json');
@@ -33,67 +32,154 @@ class Database {
     }
 
     async loadData() {
+        console.log('🔄 Starting data loading process...');
+        
         try {
-            // 1. Загружаем основные данные (казино + категории)
-            console.log('Loading main data from:', this.dataFilePath);
-            const data = await fs.readFile(this.dataFilePath, 'utf8');
-            const parsedData = JSON.parse(data);
-            casinos = parsedData.casinos || [];
-            categories = parsedData.categories || config.CATEGORIES;
-            console.log('Loaded casinos:', casinos.length);
-
-            // 2. Загружаем контент (анонсы + стримы)
-            try {
-                console.log('Loading content data from:', this.contentFilePath);
-                const contentData = await fs.readFile(this.contentFilePath, 'utf8');
-                const parsedContent = JSON.parse(contentData);
-                announcements = parsedContent.announcements || [];
-                streamStatus = parsedContent.streamStatus || streamStatus;
-                console.log('Loaded announcements:', announcements.length);
-            } catch (contentError) {
-                console.log('Content file not found, creating new...');
-                await this.saveContentData();
+            // 1. Пытаемся загрузить основные данные (казино) из GitHub
+            console.log('🌐 Step 1: Trying to load main data from GitHub...');
+            const githubDataLoaded = await this.#loadMainDataFromGitHub();
+            
+            if (!githubDataLoaded) {
+                // 2. Если GitHub не доступен, пробуем локальный файл
+                console.log('⚠️ GitHub load failed, trying local main data file...');
+                await this.#loadMainDataFromLocal();
             }
 
-            // 3. Загружаем данные пользователей
-            try {
-                console.log('Loading user data from:', this.userDataFilePath);
-                const userData = await fs.readFile(this.userDataFilePath, 'utf8');
-                const parsedUserData = JSON.parse(userData);
-                
-                // Правильное восстановление Map
-                userChats = new Map();
-                if (parsedUserData.userChats) {
-                    for (const [key, value] of Object.entries(parsedUserData.userChats)) {
-                        userChats.set(Number(key), value);
-                    }
-                }
-                
-                userSettings = new Map();
-                if (parsedUserData.userSettings) {
-                    for (const [key, value] of Object.entries(parsedUserData.userSettings)) {
-                        userSettings.set(Number(key), value);
-                    }
-                }
-                
-                giveaways = parsedUserData.giveaways || [];
-                console.log('Loaded user settings:', userSettings.size, 'users');
-            } catch (userError) {
-                console.log('User data file not found, creating new...');
-                await this.saveUserData();
-            }
+            // 3. Загружаем контент (анонсы + стримы) локально
+            console.log('📁 Step 2: Loading content data...');
+            await this.#loadContentData();
+
+            // 4. Загружаем данные пользователей локально
+            console.log('👥 Step 3: Loading user data...');
+            await this.#loadUserData();
 
             console.log(`✅ Successfully loaded: ${casinos.length} casinos, ${announcements.length} announcements, ${userChats.size} users`);
             return true;
 
         } catch (error) {
-            console.error('Error loading data:', error);
+            console.error('❌ Error loading data:', error.message);
+            console.log('🔄 Attempting to initialize with empty data...');
             return await this.initializeData();
         }
     }
 
+    async #loadMainDataFromGitHub() {
+        if (!config.GITHUB_TOKEN) {
+            console.log('⚠️ GITHUB_TOKEN not set, skipping GitHub load');
+            return false;
+        }
+
+        try {
+            console.log('🌐 Downloading data.json from GitHub...');
+            const url = `https://api.github.com/repos/${config.GITHUB_REPO_OWNER}/${config.GITHUB_REPO_NAME}/contents/data.json`;
+            
+            const response = await axios.get(url, {
+                headers: {
+                    'Authorization': `token ${config.GITHUB_TOKEN}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'Ludogolik-Bot-Server'
+                },
+                timeout: 10000
+            });
+
+            if (response.data && response.data.content) {
+                const content = Buffer.from(response.data.content, 'base64').toString('utf8');
+                const parsedData = JSON.parse(content);
+                
+                casinos = parsedData.casinos || [];
+                categories = parsedData.categories || config.CATEGORIES;
+                
+                console.log('✅ Successfully loaded from GitHub:', casinos.length, 'casinos');
+                
+                // Сохраняем локально для будущего использования
+                await this.#saveMainDataLocally();
+                
+                return true;
+            }
+            return false;
+            
+        } catch (error) {
+            if (error.response?.status === 404) {
+                console.log('⚠️ data.json not found on GitHub');
+            } else {
+                console.log('❌ Failed to load from GitHub:', error.message);
+            }
+            return false;
+        }
+    }
+
+    async #loadMainDataFromLocal() {
+        try {
+            console.log('📁 Loading main data from local file:', this.dataFilePath);
+            const data = await fs.readFile(this.dataFilePath, 'utf8');
+            const parsedData = JSON.parse(data);
+            casinos = parsedData.casinos || [];
+            categories = parsedData.categories || config.CATEGORIES;
+            console.log('✅ Loaded from local file:', casinos.length, 'casinos');
+        } catch (error) {
+            console.log('❌ Local data file not found or invalid, will initialize empty');
+            throw error;
+        }
+    }
+
+    async #loadContentData() {
+        try {
+            console.log('📁 Loading content data from:', this.contentFilePath);
+            const contentData = await fs.readFile(this.contentFilePath, 'utf8');
+            const parsedContent = JSON.parse(contentData);
+            announcements = parsedContent.announcements || [];
+            streamStatus = parsedContent.streamStatus || streamStatus;
+            console.log('✅ Loaded announcements:', announcements.length);
+        } catch (contentError) {
+            console.log('⚠️ Content file not found, creating new...');
+            await this.saveContentData();
+        }
+    }
+
+    async #loadUserData() {
+        try {
+            console.log('📁 Loading user data from:', this.userDataFilePath);
+            const userData = await fs.readFile(this.userDataFilePath, 'utf8');
+            const parsedUserData = JSON.parse(userData);
+            
+            userChats = new Map();
+            if (parsedUserData.userChats) {
+                for (const [key, value] of Object.entries(parsedUserData.userChats)) {
+                    userChats.set(Number(key), value);
+                }
+            }
+            
+            userSettings = new Map();
+            if (parsedUserData.userSettings) {
+                for (const [key, value] of Object.entries(parsedUserData.userSettings)) {
+                    userSettings.set(Number(key), value);
+                }
+            }
+            
+            giveaways = parsedUserData.giveaways || [];
+            console.log('✅ Loaded user settings:', userSettings.size, 'users');
+        } catch (userError) {
+            console.log('⚠️ User data file not found, creating new...');
+            await this.saveUserData();
+        }
+    }
+
+    async #saveMainDataLocally() {
+        try {
+            const dataToSave = {
+                casinos: casinos,
+                categories: categories,
+                lastUpdated: new Date().toISOString()
+            };
+            await fs.writeFile(this.dataFilePath, JSON.stringify(dataToSave, null, 2));
+            console.log('💾 Main data saved locally for future use');
+        } catch (error) {
+            console.error('❌ Error saving main data locally:', error.message);
+        }
+    }
+
     async initializeData() {
-        console.log('Initializing data files...');
+        console.log('🔄 Initializing data files...');
         const initialData = {
             casinos: [],
             categories: categories,
@@ -121,7 +207,7 @@ class Database {
             console.log('✅ All data files created with initial structure');
             return true;
         } catch (error) {
-            console.error('Error creating initial data files:', error);
+            console.error('❌ Error creating initial data files:', error);
             return false;
         }
     }
@@ -129,7 +215,7 @@ class Database {
     // Сохраняем ТОЛЬКО казино в GitHub
     async saveData() {
         try {
-            console.log('Saving main data...');
+            console.log('💾 Saving main data...');
             const dataToSave = {
                 casinos: casinos,
                 categories: categories,
@@ -141,14 +227,16 @@ class Database {
             
             if (config.GITHUB_TOKEN) {
                 try {
+                    // Используем оригинальный githubSync для сохранения
+                    const githubSync = require('./githubSync');
                     const githubResult = await githubSync.saveDataToGitHub(
                         JSON.stringify(dataToSave, null, 2),
                         'data.json'
                     );
-                    console.log('GitHub sync result:', githubResult.success);
+                    console.log('🌐 GitHub sync result:', githubResult.success);
                     return { local: true, github: githubResult.success };
                 } catch (githubError) {
-                    console.error('GitHub sync error:', githubError);
+                    console.error('❌ GitHub sync error:', githubError.message);
                     return { local: true, github: false };
                 }
             }
@@ -156,7 +244,7 @@ class Database {
             return { local: true, github: false };
 
         } catch (error) {
-            console.error('Error saving main data:', error);
+            console.error('❌ Error saving main data:', error.message);
             return { local: false, github: false, error: error.message };
         }
     }
@@ -164,7 +252,7 @@ class Database {
     // Сохраняем контент локально
     async saveContentData() {
         try {
-            console.log('Saving content data...');
+            console.log('💾 Saving content data...');
             const contentToSave = {
                 announcements: announcements,
                 streamStatus: streamStatus,
@@ -175,7 +263,7 @@ class Database {
             console.log('✅ Content data saved locally');
             return true;
         } catch (error) {
-            console.error('Error saving content data:', error);
+            console.error('❌ Error saving content data:', error.message);
             return false;
         }
     }
@@ -183,7 +271,7 @@ class Database {
     // Сохраняем пользователей локально
     async saveUserData() {
         try {
-            console.log('Saving user data...');
+            console.log('💾 Saving user data...');
             const userDataToSave = {
                 userChats: Object.fromEntries(userChats),
                 userSettings: Object.fromEntries(userSettings),
@@ -195,7 +283,7 @@ class Database {
             console.log('✅ User data saved locally');
             return true;
         } catch (error) {
-            console.error('Error saving user data:', error);
+            console.error('❌ Error saving user data:', error.message);
             return false;
         }
     }
@@ -203,21 +291,25 @@ class Database {
     // Сохраняем ВСЕ данные
     async saveAllData() {
         try {
-            console.log('Saving ALL data...');
+            console.log('💾 Saving ALL data...');
             const [dataResult, contentResult, userResult] = await Promise.all([
                 this.saveData(),
                 this.saveContentData(),
                 this.saveUserData()
             ]);
             
-            console.log('✅ All data saved:', { data: dataResult, content: contentResult, user: userResult });
+            console.log('✅ All data saved:', { 
+                data: dataResult, 
+                content: contentResult, 
+                user: userResult 
+            });
             return {
                 data: dataResult,
                 content: contentResult,
                 user: userResult
             };
         } catch (error) {
-            console.error('Error saving all data:', error);
+            console.error('❌ Error saving all data:', error.message);
             return { error: error.message };
         }
     }
@@ -279,7 +371,7 @@ class Database {
             timestamp: new Date().toISOString()
         });
 
-        console.log('User action tracked:', { userId, action, target });
+        console.log('📊 User action tracked:', { userId, action, target });
         this.saveUserData();
     }
 
@@ -290,7 +382,7 @@ class Database {
         const settings = userSettings.get(userId);
         if (!settings.hiddenCasinos.includes(casinoId)) {
             settings.hiddenCasinos.push(casinoId);
-            console.log('Casino hidden:', { userId, casinoId });
+            console.log('👻 Casino hidden:', { userId, casinoId });
             this.saveUserData();
         }
     }
@@ -299,7 +391,7 @@ class Database {
         if (userSettings.has(userId)) {
             const settings = userSettings.get(userId);
             settings.hiddenCasinos = settings.hiddenCasinos.filter(id => id !== casinoId);
-            console.log('Casino unhidden:', { userId, casinoId });
+            console.log('👀 Casino unhidden:', { userId, casinoId });
             this.saveUserData();
         }
     }
@@ -311,7 +403,7 @@ class Database {
         } else {
             userSettings.get(userId).viewMode = mode;
         }
-        console.log('View mode set:', { userId, mode });
+        console.log('🎨 View mode set:', { userId, mode });
         this.saveUserData();
     }
 
@@ -328,7 +420,7 @@ class Database {
             settings.approvedForLive = true;
             settings.approvalDate = new Date().toISOString();
         }
-        console.log('User approved for live:', userId);
+        console.log('✅ User approved for live:', userId);
         this.saveUserData();
         return true;
     }
@@ -339,7 +431,7 @@ class Database {
             userData.pendingApproval = true;
             userData.pendingApprovalDate = new Date().toISOString();
             userData.pendingApprovalUsername = telegramUsername;
-            console.log('Approval requested:', { userId, telegramUsername });
+            console.log('📋 Approval requested:', { userId, telegramUsername });
             this.saveUserData();
             return true;
         }
@@ -410,10 +502,10 @@ class Database {
             giveaways = [];
             
             await this.saveAllData();
-            console.log('All data cleared');
+            console.log('🧹 All data cleared');
             return true;
         } catch (error) {
-            console.error('Error clearing data:', error);
+            console.error('❌ Error clearing data:', error.message);
             return false;
         }
     }
