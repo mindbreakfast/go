@@ -128,10 +128,10 @@ router.post('/request-approval', async (req, res) => {
             // Уведомляем админов
             const { isAdmin } = require('../utils/isAdmin');
             const config = require('../config');
+            const bot = require('../bot/bot').bot;
             
             config.ADMINS.forEach(adminId => {
                 if (isAdmin(adminId)) {
-                    const bot = require('../bot/bot').bot;
                     bot.sendMessage(adminId,
                         `🆕 Новый запрос на одобрение!\nID: ${userId}\nUsername: ${username}\n/odobri_${userId}`
                     ).catch(err => console.log('Error notifying admin:', err));
@@ -170,14 +170,14 @@ router.post('/webhook', (req, res) => {
         res.sendStatus(200);
     } catch (error) {
         console.error('Error processing webhook:', error);
-        res.sendStatus(200); // Всегда возвращаем 200 чтобы Telegram не повторял запрос
+        res.sendStatus(200);
     }
 });
 
 // Добавляем endpoint для сохранения всех данных
 router.post('/save-all-data', async (req, res) => {
     try {
-        console.log('API: Saving all data before deploy...');
+        console.log('API: Saving all data...');
         const result = await database.saveAllData();
         res.json(result);
     } catch (error) {
@@ -186,17 +186,34 @@ router.post('/save-all-data', async (req, res) => {
     }
 });
 
-// Endpoint для отладки - получить информацию о пользователе
-router.get('/debug-user/:userId', (req, res) => {
+// Debug endpoint для проверки данных
+router.get('/debug-data', (req, res) => {
     try {
-        const userId = parseInt(req.params.userId);
-        console.log('API: /debug-user called for userId:', userId);
+        const data = {
+            casinos: database.getCasinos().length,
+            announcements: database.getAnnouncements(),
+            streamStatus: database.getStreamStatus(),
+            userSettingsSize: database.getUserSettings().size,
+            userChatsSize: database.getUserChats().size
+        };
         
-        const userData = database.getUserData(userId);
-        res.json(userData);
+        console.log('Debug data:', data);
+        res.json(data);
     } catch (error) {
-        console.error('Error in /debug-user:', error);
+        console.error('Error in /debug-data:', error);
         res.status(500).json({ error: 'Debug error' });
+    }
+});
+
+// Debug endpoint для принудительной перезагрузки
+router.post('/force-reload', async (req, res) => {
+    try {
+        console.log('Force reload requested');
+        await database.loadData();
+        res.json({ status: 'ok', message: 'Data reloaded' });
+    } catch (error) {
+        console.error('Error in force reload:', error);
+        res.status(500).json({ error: 'Force reload error' });
     }
 });
 
@@ -219,34 +236,6 @@ router.get('/status', (req, res) => {
     } catch (error) {
         console.error('Error in /status:', error);
         res.status(500).json({ error: 'Status check error' });
-    }
-});
-
-// Endpoint для принудительной перезагрузки данных
-router.post('/reload-data', async (req, res) => {
-    try {
-        console.log('API: Forced data reload');
-        const success = await database.loadData();
-        res.json({ success: success });
-    } catch (error) {
-        console.error('Error in /reload-data:', error);
-        res.status(500).json({ error: 'Reload error' });
-    }
-});
-
-// Добавляем в routes.js
-router.get('/bot-info', async (req, res) => {
-    try {
-        const bot = require('../bot/bot').bot;
-        const botInfo = await bot.getMe();
-        res.json({
-            status: 'ok',
-            bot: botInfo,
-            mode: 'polling'
-        });
-    } catch (error) {
-        console.error('Error getting bot info:', error);
-        res.status(500).json({ error: 'Bot info error' });
     }
 });
 
