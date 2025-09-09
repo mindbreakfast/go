@@ -193,23 +193,23 @@ class Database {
     }
 
     // Сохраняем пользователей локально
-async function saveUserData() {
-    try {
-        const userDataToSave = {
-            userChats: Object.fromEntries(userChats),
-            userSettings: Object.fromEntries(userSettings),
-            giveaways: giveaways,
-            lastUpdated: new Date().toISOString()
-        };
+    async saveUserData() {
+        try {
+            const userDataToSave = {
+                userChats: Object.fromEntries(userChats),
+                userSettings: Object.fromEntries(userSettings),
+                giveaways: giveaways,
+                lastUpdated: new Date().toISOString()
+            };
 
-        await fs.writeFile(this.userDataFilePath, JSON.stringify(userDataToSave, null, 2));
-        console.log('User data saved locally');
-        return true;
-    } catch (error) {
-        console.error('Error saving user data:', error);
-        return false;
+            await fs.writeFile(this.userDataFilePath, JSON.stringify(userDataToSave, null, 2));
+            console.log('User data saved locally');
+            return true;
+        } catch (error) {
+            console.error('Error saving user data:', error);
+            return false;
+        }
     }
-}
 
     // Сохраняем ВСЕ данные перед деплоем
     async saveAllData() {
@@ -301,8 +301,8 @@ async function saveUserData() {
         if (!settings.hiddenCasinos.includes(casinoId)) {
             settings.hiddenCasinos.push(casinoId);
             console.log('Casino hidden:', { userId, casinoId });
+            this.saveUserData();
         }
-        this.trackUserAction(userId, { id: userId }, 'hide_casino', casinoId);
     }
 
     unhideCasinoForUser(userId, casinoId) {
@@ -386,6 +386,7 @@ async function saveUserData() {
                     referrerData.referrals.push(userId);
                 }
             }
+            this.saveUserData();
             return true;
         }
         return false;
@@ -399,6 +400,32 @@ async function saveUserData() {
             referrals: userData.referrals || [],
             referralLink: `https://t.me/Ludogol_bot?start=ref${userId}`
         };
+    }
+
+    // Дополнительные методы для отладки
+    getUserData(userId) {
+        return {
+            chats: userChats.get(userId),
+            settings: userSettings.get(userId)
+        };
+    }
+
+    // Очистка данных (для тестирования)
+    async clearAllData() {
+        try {
+            casinos = [];
+            announcements = [];
+            userChats.clear();
+            userSettings.clear();
+            giveaways = [];
+            
+            await this.saveAllData();
+            console.log('All data cleared');
+            return true;
+        } catch (error) {
+            console.error('Error clearing data:', error);
+            return false;
+        }
     }
 }
 
