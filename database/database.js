@@ -21,10 +21,14 @@ let giveaways = [];
 
 class Database {
     constructor() {
-        this.dataFilePath = path.join(__dirname, '..', 'data.json');
-        this.contentFilePath = path.join(__dirname, '..', 'content.json');
-        this.userDataFilePath = path.join(__dirname, '..', 'userdata.json');
-        console.log('Database files loaded');
+        this.dataFilePath = path.join(__dirname, 'data.json');
+        this.contentFilePath = path.join(__dirname, 'content.json');
+        this.userDataFilePath = path.join(__dirname, 'userdata.json');
+        console.log('Database files loaded:', {
+            data: this.dataFilePath,
+            content: this.contentFilePath,
+            user: this.userDataFilePath
+        });
     }
 
     async loadData() {
@@ -43,12 +47,13 @@ class Database {
                 const parsedContent = JSON.parse(contentData);
                 announcements = parsedContent.announcements || [];
                 streamStatus = parsedContent.streamStatus || streamStatus;
+                console.log('Loaded announcements:', announcements.length);
             } catch (contentError) {
                 console.log('Content file not found, creating new...');
                 await this.saveContentData();
             }
 
-            // 3. Загружаем данные пользователей (ИСПРАВЛЕНО восстановление Map)
+            // 3. Загружаем данные пользователей
             try {
                 console.log('Loading user data...');
                 const userData = await fs.readFile(this.userDataFilePath, 'utf8');
@@ -70,12 +75,13 @@ class Database {
                 }
                 
                 giveaways = parsedUserData.giveaways || [];
+                console.log('Loaded user settings:', userSettings.size, 'users');
             } catch (userError) {
                 console.log('User data file not found, creating new...');
                 await this.saveUserData();
             }
 
-            console.log(`Loaded: ${casinos.length} casinos, ${announcements.length} announcements, ${userChats.size} users`);
+            console.log(`✅ Loaded: ${casinos.length} casinos, ${announcements.length} announcements, ${userChats.size} users`);
             return true;
 
         } catch (error) {
@@ -85,6 +91,7 @@ class Database {
     }
 
     async initializeData() {
+        console.log('Initializing data files...');
         const initialData = {
             casinos: [],
             categories: categories,
@@ -109,7 +116,7 @@ class Database {
             await fs.writeFile(this.contentFilePath, JSON.stringify(initialContent, null, 2));
             await fs.writeFile(this.userDataFilePath, JSON.stringify(initialUserData, null, 2));
             
-            console.log('All data files created with initial structure');
+            console.log('✅ All data files created with initial structure');
             return true;
         } catch (error) {
             console.error('Error creating initial data files:', error);
@@ -120,35 +127,7 @@ class Database {
     // Сохраняем ТОЛЬКО казино в GitHub
     async saveData() {
         try {
-            // Проверяем реальные изменения (без lastUpdated)
-            let shouldSave = false;
-            
-            try {
-                const existingData = await fs.readFile(this.dataFilePath, 'utf8');
-                const parsedExisting = JSON.parse(existingData);
-                
-                const existingCoreData = {
-                    casinos: parsedExisting.casinos,
-                    categories: parsedExisting.categories
-                };
-                
-                const newCoreData = {
-                    casinos: casinos,
-                    categories: categories
-                };
-                
-                shouldSave = JSON.stringify(existingCoreData) !== JSON.stringify(newCoreData);
-            } catch (error) {
-                // Файла нет или ошибка чтения - нужно сохранить
-                shouldSave = true;
-            }
-
-            if (!shouldSave) {
-                console.log('No changes in core data, skipping save');
-                return { local: false, github: false, reason: 'no changes' };
-            }
-
-            console.log('Changes detected, saving data...');
+            console.log('Saving main data...');
             const dataToSave = {
                 casinos: casinos,
                 categories: categories,
@@ -156,14 +135,20 @@ class Database {
             };
 
             await fs.writeFile(this.dataFilePath, JSON.stringify(dataToSave, null, 2));
+            console.log('✅ Main data saved locally');
             
             if (config.GITHUB_TOKEN) {
-                const githubResult = await githubSync.saveDataToGitHub(
-                    JSON.stringify(dataToSave, null, 2),
-                    'data.json'
-                );
-                console.log('GitHub sync result:', githubResult.success);
-                return { local: true, github: githubResult.success };
+                try {
+                    const githubResult = await githubSync.saveDataToGitHub(
+                        JSON.stringify(dataToSave, null, 2),
+                        'data.json'
+                    );
+                    console.log('GitHub sync result:', githubResult.success);
+                    return { local: true, github: githubResult.success };
+                } catch (githubError) {
+                    console.error('GitHub sync error:', githubError);
+                    return { local: true, github: false };
+                }
             }
             
             return { local: true, github: false };
@@ -174,9 +159,10 @@ class Database {
         }
     }
 
-    // Сохраняем контент локально (без GitHub)
+    // Сохраняем контент локально
     async saveContentData() {
         try {
+            console.log('Saving content data...');
             const contentToSave = {
                 announcements: announcements,
                 streamStatus: streamStatus,
@@ -184,7 +170,7 @@ class Database {
             };
 
             await fs.writeFile(this.contentFilePath, JSON.stringify(contentToSave, null, 2));
-            console.log('Content data saved locally');
+            console.log('✅ Content data saved locally');
             return true;
         } catch (error) {
             console.error('Error saving content data:', error);
@@ -195,6 +181,7 @@ class Database {
     // Сохраняем пользователей локально
     async saveUserData() {
         try {
+            console.log('Saving user data...');
             const userDataToSave = {
                 userChats: Object.fromEntries(userChats),
                 userSettings: Object.fromEntries(userSettings),
@@ -203,7 +190,7 @@ class Database {
             };
 
             await fs.writeFile(this.userDataFilePath, JSON.stringify(userDataToSave, null, 2));
-            console.log('User data saved locally');
+            console.log('✅ User data saved locally');
             return true;
         } catch (error) {
             console.error('Error saving user data:', error);
@@ -211,16 +198,17 @@ class Database {
         }
     }
 
-    // Сохраняем ВСЕ данные перед деплоем
+    // Сохраняем ВСЕ данные
     async saveAllData() {
         try {
-            console.log('Saving ALL data before deploy...');
+            console.log('Saving ALL data...');
             const [dataResult, contentResult, userResult] = await Promise.all([
                 this.saveData(),
                 this.saveContentData(),
                 this.saveUserData()
             ]);
             
+            console.log('✅ All data saved:', { data: dataResult, content: contentResult, user: userResult });
             return {
                 data: dataResult,
                 content: contentResult,
