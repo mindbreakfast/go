@@ -85,11 +85,11 @@ async function startServer() {
             console.log('===================================');
         });
 
-        // Автосохранение каждые 5 минут
-        setInterval(() => {
-            console.log('💾 Auto-saving data...');
-            database.saveData().catch(err => console.error('❌ Auto-save error:', err.message));
-        }, 5 * 60 * 1000);
+// Автосохранение каждые 5 минут
+// setInterval(() => {
+//     console.log('💾 Auto-saving data...');
+//     database.saveData().catch(err => console.error('❌ Auto-save error:', err.message));
+// }, 5 * 60 * 1000);
 
     } catch (error) {
         console.error('❌ Error during bot startup:', error.message);
