@@ -125,7 +125,7 @@ router.get('/setup-webhook', async (req, res) => {
 });
 
 router.post('/webhook', (req, res) => {
-    console.log('Webhook received');
+    console.log('Webhook received:', req.body);
     const bot = require('../bot/bot').bot;
     bot.processUpdate(req.body);
     res.sendStatus(200);
