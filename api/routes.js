@@ -70,9 +70,11 @@ router.post('/save-user-settings', async (req, res) => {
             settings.viewMode = viewMode || 'full';
         }
 
-        await database.saveUserData();
-        console.log('User settings saved for userId:', userId);
-        res.json({ status: 'ok' });
+        // ПРИНУДИТЕЛЬНОЕ СОХРАНЕНИЕ
+        const saveResult = await database.saveUserData();
+        console.log('User settings saved for userId:', userId, 'Success:', saveResult);
+        
+        res.json({ status: 'ok', saved: saveResult });
     } catch (error) {
         console.error('Error in /save-user-settings:', error);
         res.status(500).json({ error: 'Save settings error' });
