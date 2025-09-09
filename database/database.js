@@ -32,9 +32,9 @@ class Database {
             console.log('🌐 Loading ALL data from GitHub...');
             
             const [mainDataLoaded, contentDataLoaded, userDataLoaded] = await Promise.all([
-                this.#loadFileFromGitHub('data.json', this.#processMainData.bind(this)),
-                this.#loadFileFromGitHub('content.json', this.#processContentData.bind(this)),
-                this.#loadFileFromGitHub('userdata.json', this.#processUserData.bind(this))
+                this.#loadFileFromGitHub('data.json', (data) => this.#processMainData(data)),
+                this.#loadFileFromGitHub('content.json', (data) => this.#processContentData(data)),
+                this.#loadFileFromGitHub('userdata.json', (data) => this.#processUserData(data))
             ]);
 
             console.log(`✅ GitHub load results: Main=${mainDataLoaded}, Content=${contentDataLoaded}, User=${userDataLoaded}`);
@@ -85,7 +85,7 @@ class Database {
                 const content = Buffer.from(response.data.content, 'base64').toString('utf8');
                 const parsedData = JSON.parse(content);
                 
-                // Обрабатываем данные специфичным для файла способом
+                // Обрабатываем данные
                 processor(parsedData);
                 
                 console.log(`✅ Successfully loaded ${fileName} from GitHub`);
@@ -201,69 +201,166 @@ class Database {
         }
     }
 
-    // Сохраняем ВСЕ данные в GitHub
-    async saveAllDataToGitHub() {
+    async saveContentData() {
         try {
-            console.log('🌐 Saving ALL data to GitHub...');
+            console.log('💾 Saving content data...');
+            const contentToSave = {
+                announcements: announcements,
+                streamStatus: streamStatus,
+                lastUpdated: new Date().toISOString()
+            };
+
+            await fs.writeFile(this.contentFilePath, JSON.stringify(contentToSave, null, 2));
+            console.log('✅ Content data saved locally');
+            return true;
+        } catch (error) {
+            console.error('❌ Error saving content data:', error.message);
+            return false;
+        }
+    }
+
+    async saveUserData() {
+        try {
+            console.log('💾 Saving user data...');
+            const userDataToSave = {
+                userChats: Object.fromEntries(userChats),
+                userSettings: Object.fromEntries(userSettings),
+                giveaways: giveaways,
+                lastUpdated: new Date().toISOString()
+            };
+
+            await fs.writeFile(this.userDataFilePath, JSON.stringify(userDataToSave, null, 2));
+            console.log('✅ User data saved locally');
+            return true;
+        } catch (error) {
+            console.error('❌ Error saving user data:', error.message);
+            return false;
+        }
+    }
+
+    async initializeData() {
+        console.log('🔄 Initializing data files...');
+        const initialData = {
+            casinos: [],
+            categories: categories,
+            lastUpdated: new Date().toISOString()
+        };
+
+        const initialContent = {
+            announcements: [],
+            streamStatus: streamStatus,
+            lastUpdated: new Date().toISOString()
+        };
+
+        const initialUserData = {
+            userChats: {},
+            userSettings: {},
+            giveaways: [],
+            lastUpdated: new Date().toISOString()
+        };
+
+        try {
+            await fs.writeFile(this.dataFilePath, JSON.stringify(initialData, null, 2));
+            await fs.writeFile(this.contentFilePath, JSON.stringify(initialContent, null, 2));
+            await fs.writeFile(this.userDataFilePath, JSON.stringify(initialUserData, null, 2));
             
+            console.log('✅ All data files created with initial structure');
+            return true;
+        } catch (error) {
+            console.error('❌ Error creating initial data files:', error);
+            return false;
+        }
+    }
+
+    // ... остальные методы (getCasinos, setCasinos, trackUserAction и т.д.) ...
+    // [ВСТАВЬТЕ СЮДА ВСЕ ОСТАЛЬНЫЕ МЕТОДЫ ИЗ ПРЕДЫДУЩЕЙ ВЕРСИИ]
+
+    // Геттеры
+    getCasinos() { return casinos; }
+    getAnnouncements() { return announcements; }
+    getUserChats() { return userChats; }
+    getStreamStatus() { return streamStatus; }
+    getUserSettings() { return userSettings; }
+    getGiveaways() { return giveaways; }
+    getCategories() { return categories; }
+
+    // Сеттеры
+    setCasinos(newCasinos) { 
+        casinos = newCasinos; 
+        this.saveData();
+    }
+
+    setAnnouncements(newAnnouncements) { 
+        announcements = newAnnouncements; 
+        this.saveContentData();
+    }
+
+    setStreamStatus(newStatus) { 
+        streamStatus = { ...streamStatus, ...newStatus }; 
+        this.saveContentData();
+    }
+
+    // Сохраняем ТОЛЬКО казино в GitHub
+    async saveData() {
+        try {
+            console.log('💾 Saving main data...');
+            const dataToSave = {
+                casinos: casinos,
+                categories: categories,
+                lastUpdated: new Date().toISOString()
+            };
+
+            await fs.writeFile(this.dataFilePath, JSON.stringify(dataToSave, null, 2));
+            console.log('✅ Main data saved locally');
+            
+            if (config.GITHUB_TOKEN) {
+                try {
+                    const githubSync = require('./githubSync');
+                    const githubResult = await githubSync.saveDataToGitHub(
+                        JSON.stringify(dataToSave, null, 2),
+                        'data.json'
+                    );
+                    console.log('🌐 GitHub sync result:', githubResult.success);
+                    return { local: true, github: githubResult.success };
+                } catch (githubError) {
+                    console.error('❌ GitHub sync error:', githubError.message);
+                    return { local: true, github: false };
+                }
+            }
+            
+            return { local: true, github: false };
+
+        } catch (error) {
+            console.error('❌ Error saving main data:', error.message);
+            return { local: false, github: false, error: error.message };
+        }
+    }
+
+    // Сохраняем ВСЕ данные
+    async saveAllData() {
+        try {
+            console.log('💾 Saving ALL data...');
             const [dataResult, contentResult, userResult] = await Promise.all([
-                this.#saveFileToGitHub('data.json', {
-                    casinos: casinos,
-                    categories: categories,
-                    lastUpdated: new Date().toISOString()
-                }),
-                this.#saveFileToGitHub('content.json', {
-                    announcements: announcements,
-                    streamStatus: streamStatus,
-                    lastUpdated: new Date().toISOString()
-                }),
-                this.#saveFileToGitHub('userdata.json', {
-                    userChats: Object.fromEntries(userChats),
-                    userSettings: Object.fromEntries(userSettings),
-                    giveaways: giveaways,
-                    lastUpdated: new Date().toISOString()
-                })
+                this.saveData(),
+                this.saveContentData(),
+                this.saveUserData()
             ]);
-
-            console.log('✅ GitHub save results:', {
-                data: dataResult.success,
-                content: contentResult.success, 
-                user: userResult.success
+            
+            console.log('✅ All data saved:', { 
+                data: dataResult, 
+                content: contentResult, 
+                user: userResult 
             });
-
             return {
                 data: dataResult,
                 content: contentResult,
                 user: userResult
             };
-
         } catch (error) {
-            console.error('❌ Error saving all data to GitHub:', error.message);
+            console.error('❌ Error saving all data:', error.message);
             return { error: error.message };
         }
     }
-
-    async #saveFileToGitHub(fileName, data) {
-        if (!config.GITHUB_TOKEN) {
-            return { success: false, message: 'GITHUB_TOKEN not configured' };
-        }
-
-        try {
-            // Используем оригинальный githubSync для сохранения
-            const githubSync = require('./githubSync');
-            const result = await githubSync.saveDataToGitHub(
-                JSON.stringify(data, null, 2),
-                fileName
-            );
-            return result;
-        } catch (error) {
-            console.error(`❌ Error saving ${fileName} to GitHub:`, error.message);
-            return { success: false, error: error.message };
-        }
-    }
-
-    // ... остальные методы БЕЗ ИЗМЕНЕНИЙ (getCasinos, setCasinos, trackUserAction, etc.) ...
-    // [ВСТАВЬТЕ СЮДА ВСЕ ОСТАЛЬНЫЕ МЕТОДЫ ИЗ ПРЕДЫДУЩЕЙ ВЕРСИИ]
 }
 
 module.exports = new Database();
