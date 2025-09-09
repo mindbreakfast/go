@@ -1,7 +1,8 @@
 console.log('✅ userCommands loaded');
-const config = require('../config');
-const database = require('../database/database');
-const { isAdmin } = require('../utils/isAdmin');
+const path = require('path');
+const config = require(path.join(__dirname, '..', '..', 'config'));
+const database = require(path.join(__dirname, '..', '..', 'database', 'database'));
+const { isAdmin } = require(path.join(__dirname, '..', '..', 'utils', 'isAdmin'));
 
 function handleStartCommand(bot, msg) {
     const user = msg.from;
@@ -60,7 +61,7 @@ function handleHelpCommand(bot, msg) {
 
 Примеры:
 /live https://twitch.tv Мой крутой стрим
-/text цвет:green 🎉 Бонус 200%!
+/text цвет:green 🎉 Бonus 200%!
 /remove_text 123456789
     `;
 
@@ -91,33 +92,48 @@ function handleMessage(bot, msg) {
     }
 
     if (statsRegex.test(text)) {
-        require('./adminCommands').handleStatsCommand(bot, msg);
+        const adminCommands = require('./adminCommands');
+        adminCommands.handleStatsCommand(bot, msg);
     } else if (liveRegex.test(text)) {
-        require('./adminCommands').handleLiveCommand(bot, msg, text.match(liveRegex));
+        const adminCommands = require('./adminCommands');
+        adminCommands.handleLiveCommand(bot, msg, text.match(liveRegex));
     } else if (stopRegex.test(text)) {
-        require('./adminCommands').handleStopCommand(bot, msg);
+        const adminCommands = require('./adminCommands');
+        adminCommands.handleStopCommand(bot, msg);
     } else if (textRegex.test(text)) {
-        require('./adminCommands').handleTextCommand(bot, msg, text.match(textRegex));
+        const adminCommands = require('./adminCommands');
+        adminCommands.handleTextCommand(bot, msg, text.match(textRegex));
     } else if (clearTextRegex.test(text)) {
-        require('./adminCommands').handleClearTextCommand(bot, msg);
+        const adminCommands = require('./adminCommands');
+        adminCommands.handleClearTextCommand(bot, msg);
     } else if (listTextRegex.test(text)) {
-        require('./adminCommands').handleListTextCommand(bot, msg);
+        const adminCommands = require('./adminCommands');
+        adminCommands.handleListTextCommand(bot, msg);
     } else if (removeTextRegex.test(text)) {
-        require('./adminCommands').handleRemoveTextCommand(bot, msg, text.match(removeTextRegex));
+        const adminCommands = require('./adminCommands');
+        adminCommands.handleRemoveTextCommand(bot, msg, text.match(removeTextRegex));
     } else if (broadcastRegex.test(text)) {
-        require('./adminCommands').handleBroadcastCommand(bot, msg, text.match(broadcastRegex));
+        const adminCommands = require('./adminCommands');
+        adminCommands.handleBroadcastCommand(bot, msg, text.match(broadcastRegex));
     } else if (addCasinoRegex.test(text)) {
-        require('./casinoCommands').handleAddCasinoCommand(bot, msg, require('../bot').casinoEditingState());
+        const casinoCommands = require('./casinoCommands');
+        const botInstance = require('../bot');
+        casinoCommands.handleAddCasinoCommand(bot, msg, botInstance.casinoEditingState());
     } else if (listCasinosRegex.test(text)) {
-        require('./casinoCommands').handleListCasinosCommand(bot, msg);
+        const casinoCommands = require('./casinoCommands');
+        casinoCommands.handleListCasinosCommand(bot, msg);
     } else if (editCasinoRegex.test(text)) {
-        require('./casinoCommands').handleEditCasinoCommand(bot, msg, text.match(editCasinoRegex));
+        const casinoCommands = require('./casinoCommands');
+        casinoCommands.handleEditCasinoCommand(bot, msg, text.match(editCasinoRegex));
     } else if (approveRegex.test(text)) {
-        require('./adminCommands').handleApproveCommand(bot, msg, text.match(approveRegex));
+        const adminCommands = require('./adminCommands');
+        adminCommands.handleApproveCommand(bot, msg, text.match(approveRegex));
     } else if (approvalsRegex.test(text)) {
-        require('./adminCommands').handleApprovalsCommand(bot, msg);
+        const adminCommands = require('./adminCommands');
+        adminCommands.handleApprovalsCommand(bot, msg);
     } else if (referralRegex.test(text)) {
-        require('./referralCommands').handleReferralCommand(bot, msg);
+        const referralCommands = require('./referralCommands');
+        referralCommands.handleReferralCommand(bot, msg);
     }
 }
 
@@ -133,7 +149,7 @@ function handleApprovalRequest(bot, msg) {
     if (success) {
         bot.sendMessage(msg.chat.id, '✅ Ваш запрос на одобрение отправлен админам! Ожидайте.');
         
-        const admins = require('../../config').ADMINS;
+        const admins = config.ADMINS;
         admins.forEach(adminId => {
             if (isAdmin(adminId)) {
                 bot.sendMessage(adminId,
