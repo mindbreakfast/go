@@ -21,10 +21,11 @@ let giveaways = [];
 
 class Database {
     constructor() {
-        this.dataFilePath = path.join(__dirname, 'data.json');
-        this.contentFilePath = path.join(__dirname, 'content.json');
-        this.userDataFilePath = path.join(__dirname, 'userdata.json');
-        console.log('Database files loaded:', {
+        // ИСПРАВЛЯЕМ ПУТИ - файлы в корневой папке src/
+        this.dataFilePath = path.join(__dirname, '..', 'data.json');
+        this.contentFilePath = path.join(__dirname, '..', 'content.json');
+        this.userDataFilePath = path.join(__dirname, '..', 'userdata.json');
+        console.log('Database files configured:', {
             data: this.dataFilePath,
             content: this.contentFilePath,
             user: this.userDataFilePath
@@ -34,15 +35,16 @@ class Database {
     async loadData() {
         try {
             // 1. Загружаем основные данные (казино + категории)
-            console.log('Loading main data (casinos)...');
+            console.log('Loading main data from:', this.dataFilePath);
             const data = await fs.readFile(this.dataFilePath, 'utf8');
             const parsedData = JSON.parse(data);
             casinos = parsedData.casinos || [];
             categories = parsedData.categories || config.CATEGORIES;
+            console.log('Loaded casinos:', casinos.length);
 
             // 2. Загружаем контент (анонсы + стримы)
             try {
-                console.log('Loading content data...');
+                console.log('Loading content data from:', this.contentFilePath);
                 const contentData = await fs.readFile(this.contentFilePath, 'utf8');
                 const parsedContent = JSON.parse(contentData);
                 announcements = parsedContent.announcements || [];
@@ -55,7 +57,7 @@ class Database {
 
             // 3. Загружаем данные пользователей
             try {
-                console.log('Loading user data...');
+                console.log('Loading user data from:', this.userDataFilePath);
                 const userData = await fs.readFile(this.userDataFilePath, 'utf8');
                 const parsedUserData = JSON.parse(userData);
                 
@@ -81,7 +83,7 @@ class Database {
                 await this.saveUserData();
             }
 
-            console.log(`✅ Loaded: ${casinos.length} casinos, ${announcements.length} announcements, ${userChats.size} users`);
+            console.log(`✅ Successfully loaded: ${casinos.length} casinos, ${announcements.length} announcements, ${userChats.size} users`);
             return true;
 
         } catch (error) {
