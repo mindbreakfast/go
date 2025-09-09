@@ -12,7 +12,7 @@ let isApproved = false;
 let hidePressTimer = null;
 let currentHideCandidate = null;
 let searchTimeout = null;
-let saveTimeout = null; // ← ДОБАВИЛИ ТАЙМЕР ДЛЯ СОХРАНЕНИЯ
+let saveTimeout = null;
 
 // ===== ИНИЦИАЛИЗАЦИЯ =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -35,7 +35,7 @@ function toggleTheme() {
     const isDark = document.body.classList.toggle('theme-dark');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
     document.getElementById('themeSwitcher').textContent = isDark ? '☀️ Светлая тема' : '🌙 Тёмная тема';
-    debouncedSaveSettings(); // ← СОХРАНЯЕМ НАСТРОЙКИ ТЕМЫ
+    debouncedSaveSettings();
 }
 
 // ===== ОТКРЫТИЕ ССЫЛОК БЕЗ ЗАКРЫТИЯ WEBAPP =====
@@ -82,13 +82,13 @@ function incrementClickCount(casinoId) {
 // ===== DEBOUNCED СОХРАНЕНИЕ НАСТРОЕК =====
 function debouncedSaveSettings() {
     clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(saveUserSettings, 2000); // Сохраняем через 2 секунды
+    saveTimeout = setTimeout(saveUserSettings, 2000);
 }
 
 async function saveUserSettings() {
     if (userId && userId !== 'anonymous') {
         try {
-            const response = await fetch('https://go-5zty.onrender.com/save-user-settings', {
+            const response = await fetch('https://go-5zty.onrender.com/api/save-user-settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -97,6 +97,9 @@ async function saveUserSettings() {
                     viewMode: userViewMode
                 })
             });
+            
+            const result = await response.json();
+            console.log('Settings save result:', result);
             
             if (!response.ok) {
                 console.log('Ошибка сохранения настроек');
@@ -113,6 +116,8 @@ async function loadInitialData() {
         const tg = window.Telegram?.WebApp;
         const currentUserId = tg?.initDataUnsafe?.user?.id || 'anonymous';
         
+        console.log('Loading data for user:', currentUserId);
+        
         const [casinosData, userData] = await Promise.all([
             fetch('https://go-5zty.onrender.com/api/all-data').then(r => {
                 if (!r.ok) throw new Error('Ошибка загрузки данных');
@@ -120,11 +125,25 @@ async function loadInitialData() {
             }),
             fetch(`https://go-5zty.onrender.com/api/user-data?userId=${currentUserId}`)
                 .then(r => r.json())
-                .catch(e => ({}))
+                .catch(e => {
+                    console.log('User data load error, using defaults');
+                    return { hiddenCasinos: [], viewMode: 'full', approvedForLive: false };
+                })
         ]);
+
+        console.log('Loaded data:', {
+            casinos: casinosData.casinos?.length,
+            announcements: casinosData.announcements?.length,
+            streamLive: casinosData.streamStatus?.isStreamLive,
+            userSettings: userData
+        });
 
         allCasinos = casinosData.casinos || [];
         renderFilters(casinosData.categories || []);
+        
+        // ПОКАЗЫВАЕМ АНОНСЫ И СТРИМ
+        showAnnouncements(casinosData.announcements || []);
+        updateStreamStatus(casinosData.streamStatus);
         
         userHiddenCasinos = userData.hiddenCasinos || [];
         userViewMode = userData.viewMode || 'full';
@@ -137,7 +156,7 @@ async function loadInitialData() {
 
         if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
             const user = tg.initDataUnsafe.user;
-            fetch('https://go-5zty.onrender.com/track-visit', {
+            fetch('https://go-5zty.onrender.com/api/track-visit', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -156,7 +175,7 @@ async function loadInitialData() {
     }
 }
 
-// ===== ОТОБРАЖЕНИЕ АНОНСОВ =====
+// ===== ОТОБРАЖЕНИЕ АНОНСОВ И СТРИМА =====
 function showAnnouncements(announcements) {
     const container = document.getElementById('announcementsContainer');
     if (!announcements || announcements.length === 0) {
@@ -169,6 +188,20 @@ function showAnnouncements(announcements) {
             ${announcement.text}
         </div>
     `).join('');
+}
+
+function updateStreamStatus(streamStatus) {
+    const streamBanner = document.getElementById('streamBanner');
+    const streamLink = document.getElementById('streamLink');
+    const streamDescription = document.getElementById('streamDescription');
+    
+    if (streamStatus && streamStatus.isStreamLive && streamStatus.streamUrl) {
+        streamBanner.style.display = 'block';
+        streamLink.href = streamStatus.streamUrl;
+        streamDescription.textContent = streamStatus.eventDescription || 'Идет прямой эфир!';
+    } else {
+        streamBanner.style.display = 'none';
+    }
 }
 
 // ===== ПОИСК И ФИЛЬТРАЦИЯ =====
@@ -350,7 +383,7 @@ function hideCasino(casinoId) {
     if (!userHiddenCasinos.includes(casinoId)) {
         userHiddenCasinos.push(casinoId);
         renderCasinos();
-        debouncedSaveSettings(); // ← СОХРАНЯЕМ НАСТРОЙКИ
+        debouncedSaveSettings();
     }
 }
 
@@ -365,13 +398,13 @@ function cancelHide(casinoId) {
 function showHiddenCasinos() {
     userHiddenCasinos = [];
     renderCasinos();
-    debouncedSaveSettings(); // ← СОХРАНЯЕМ НАСТРОЙКИ
+    debouncedSaveSettings();
 }
 
 function toggleViewMode() {
     userViewMode = userViewMode === 'full' ? 'compact' : 'full';
     renderCasinos();
-    debouncedSaveSettings(); // ← СОХРАНЯЕМ НАСТРОЙКИ
+    debouncedSaveSettings();
 }
 
 function toggleDetails(casinoId) {
@@ -427,7 +460,7 @@ function updateLiveRooms() {
 
 function requestApproval() {
     if (userId && userId !== 'anonymous') {
-        fetch('https://go-5zty.onrender.com/request-approval', {
+        fetch('https://go-5zty.onrender.com/api/request-approval', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
