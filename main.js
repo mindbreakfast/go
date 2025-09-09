@@ -39,13 +39,10 @@ app.get('/health', (req, res) => {
 
 // Graceful shutdown
 function gracefulShutdown() {
-    console.log('\n🛑 Received shutdown signal. Saving data...');
-    database.saveData().then(() => {
-        console.log('✅ Data saved. Exiting.');
+    console.log('\n🛑 Received shutdown signal. Saving ALL data...');
+    database.saveAllDataToGitHub().then(() => { // Используем новую функцию
+        console.log('✅ All data saved to GitHub. Exiting.');
         process.exit(0);
-    }).catch(error => {
-        console.error('❌ Error saving data on shutdown:', error);
-        process.exit(1);
     });
 }
 
