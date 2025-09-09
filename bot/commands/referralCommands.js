@@ -1,5 +1,6 @@
 console.log('✅ referralCommands loaded');
-const database = require('../database/database');
+const path = require('path');
+const database = require(path.join(__dirname, '..', '..', 'database', 'database'));
 
 function handleReferralCommand(bot, msg) {
     const userId = msg.from.id;
