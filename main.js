@@ -28,7 +28,6 @@ app.get('/', (req, res) => {
     res.json({
         status: 'OK',
         message: 'Ludogolik Bot Server работает',
-        mode: 'POLLING',
         timestamp: new Date().toISOString()
     });
 });
@@ -62,26 +61,20 @@ async function startServer() {
         process.exit(1);
     }
 
-    const bot = require('./bot/bot');
-    
-    // Тестируем бота перед запуском
-    const botTest = await bot.testBot();
-    if (!botTest) {
-        console.error('❌ Bot test failed. Check BOT_TOKEN.');
-        process.exit(1);
-    }
-    
-    await bot.start();
+    // Бот запускается автоматически через polling в bot.js
+    console.log('✅ Server is running on port', config.PORT);
+    console.log('✅ Bot will start automatically in polling mode');
+    console.log('===================================');
 
+    // Запускаем сервер
     app.listen(config.PORT, () => {
-        console.log('✅ Server is running on port', config.PORT);
-        console.log('✅ Bot is running in POLLING mode');
-        console.log('===================================');
+        console.log('✅ Express server started on port', config.PORT);
     });
 
+    // Автосохранение каждые 5 минут
     setInterval(() => {
         console.log('Auto-saving data...');
-        database.saveData();
+        database.saveData().catch(err => console.error('Auto-save error:', err));
     }, 5 * 60 * 1000);
 }
 
