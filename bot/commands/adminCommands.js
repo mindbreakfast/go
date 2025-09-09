@@ -1,7 +1,8 @@
 console.log('✅ adminCommands loaded');
-const config = require('../config');
-const database = require('../database/database');
-const { isAdmin } = require('../utils/isAdmin');
+const path = require('path');
+const config = require(path.join(__dirname, '..', '..', 'config'));
+const database = require(path.join(__dirname, '..', '..', 'database', 'database'));
+const { isAdmin } = require(path.join(__dirname, '..', '..', 'utils', 'isAdmin'));
 
 function handleStatsCommand(bot, msg) {
     if (!isAdmin(msg.from.id)) {
@@ -48,7 +49,7 @@ function handleLiveCommand(bot, msg, match) {
 
 function handleStopCommand(bot, msg) {
     if (!isAdmin(msg.from.id)) {
-        return bot.sendMessage(msg.chat.id, '❌ Н� прав для выполнения этой команды!');
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
 
     database.setStreamStatus({
