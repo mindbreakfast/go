@@ -80,7 +80,7 @@ router.post('/user-settings', async (req, res) => {
             return res.status(400).json({ error: 'User ID and settings required' });
         }
 
-        console.log('API: /user-settings called for user:', userId);
+        console.log('API: /user-settings called for user:', userId, 'settings:', settings);
         
         const success = database.updateUserSettings(userId, settings);
         
