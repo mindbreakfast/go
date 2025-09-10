@@ -14,7 +14,7 @@ function initializeApiRoutes(bot) {
     console.log('✅ Bot instance set in API routes');
 }
 
-// 🔥 ДОБАВЛЯЕМ ГЛАВНЫЙ ЭНДПОИНТ ДЛЯ ВЕБ-ПРИЛОЖЕНИЯ
+// 🔥 ГЛАВНЫЕ ЭНДПОИНТЫ ДЛЯ ВЕБ-ПРИЛОЖЕНИЯ
 router.get('/data', async (req, res) => {
     try {
         console.log('API: /data called');
@@ -30,6 +30,43 @@ router.get('/data', async (req, res) => {
     } catch (error) {
         console.error('Error in /data endpoint:', error);
         res.status(500).json({ error: 'Failed to load data' });
+    }
+});
+
+// 🔥 ЭНДПОИНТ ДЛЯ НОВОЙ ВЕРСИИ ВЕБ-ПРИЛОЖЕНИЯ
+router.get('/all-data', async (req, res) => {
+    try {
+        console.log('API: /all-data called');
+        const data = {
+            casinos: database.getCasinos(),
+            categories: database.getCategories(),
+            announcements: database.getAnnouncements(),
+            streamStatus: database.getStreamStatus()
+        };
+        
+        console.log(`Sending all data: ${data.casinos.length} casinos, ${data.announcements.length} announcements`);
+        res.json(data);
+    } catch (error) {
+        console.error('Error in /all-data endpoint:', error);
+        res.status(500).json({ error: 'Failed to load all data' });
+    }
+});
+
+// 🔥 ЭНДПОИНТ ДЛЯ ПОЛЬЗОВАТЕЛЬСКИХ ДАННЫХ
+router.get('/user-data', async (req, res) => {
+    try {
+        const userId = req.query.userId;
+        console.log('API: /user-data called for user:', userId);
+        
+        // Здесь должна быть логика получения пользовательских данных
+        // Пока просто возвращаем заглушку
+        res.json({ 
+            settings: {}, 
+            hiddenCasinos: [] 
+        });
+    } catch (error) {
+        console.error('Error in /user-data endpoint:', error);
+        res.status(500).json({ error: 'Failed to load user data' });
     }
 });
 
@@ -154,5 +191,5 @@ router.get('/status', (req, res) => {
 
 module.exports = {
     router,
-    initializeApiRoutes // Добавляем функцию инициализации
+    initializeApiRoutes
 };
