@@ -2,7 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const axios = require('axios');
 const config = require('../config');
-const githubSync = require('./githubSync'); // Импортируем модуль синхронизации
+const githubSync = require('./githubSync');
 
 // Разделяем данные на 3 части
 let casinos = [];
@@ -17,8 +17,8 @@ let streamStatus = {
 let userChats = new Map();
 let userSettings = new Map();
 let giveaways = [];
-let pendingApprovals = []; // ✅ ДОБАВЛЕНО: очередь одобрений
-let referralData = new Map(); // ✅ ДОБАВЛЕНО: реферальные данные
+let pendingApprovals = [];
+let referralData = new Map();
 
 class Database {
     constructor() {
@@ -31,7 +31,6 @@ class Database {
         console.log('🔄 Starting COMPLETE data loading from GitHub...');
         
         try {
-            // 1. Загружаем ВСЕ данные из GitHub
             console.log('🌐 Loading ALL data from GitHub...');
             
             const [mainDataLoaded, contentDataLoaded, userDataLoaded] = await Promise.all([
@@ -42,19 +41,9 @@ class Database {
 
             console.log(`✅ GitHub load results: Main=${mainDataLoaded}, Content=${contentDataLoaded}, User=${userDataLoaded}`);
 
-            // 2. Если какие-то файлы не загрузились с GitHub, пробуем локально
-            if (!mainDataLoaded) {
-                console.log('⚠️ Trying local main data...');
-                await this.#loadMainDataFromLocal();
-            }
-            if (!contentDataLoaded) {
-                console.log('⚠️ Trying local content data...');
-                await this.#loadContentDataFromLocal();
-            }
-            if (!userDataLoaded) {
-                console.log('⚠️ Trying local user data...');
-                await this.#loadUserDataFromLocal();
-            }
+            if (!mainDataLoaded) await this.#loadMainDataFromLocal();
+            if (!contentDataLoaded) await this.#loadContentDataFromLocal();
+            if (!userDataLoaded) await this.#loadUserDataFromLocal();
 
             console.log(`✅ FINAL: ${casinos.length} casinos, ${announcements.length} announcements, ${userChats.size} users`);
             return true;
@@ -87,10 +76,7 @@ class Database {
             if (response.data && response.data.content) {
                 const content = Buffer.from(response.data.content, 'base64').toString('utf8');
                 const parsedData = JSON.parse(content);
-                
-                // Обрабатываем данные
                 processor(parsedData);
-                
                 console.log(`✅ Successfully loaded ${fileName} from GitHub`);
                 return true;
             }
@@ -134,8 +120,9 @@ class Database {
         }
         
         giveaways = parsedData.giveaways || [];
-        pendingApprovals = parsedData.pendingApprovals || []; // ✅ ДОБАВЛЕНО
-        referralData = new Map(); // ✅ ДОБАВЛЕНО
+        pendingApprovals = parsedData.pendingApprovals || [];
+        referralData = new Map();
+        
         if (parsedData.referralData) {
             for (const [key, value] of Object.entries(parsedData.referralData)) {
                 referralData.set(Number(key), value);
@@ -191,8 +178,9 @@ class Database {
             }
             
             giveaways = parsedUserData.giveaways || [];
-            pendingApprovals = parsedUserData.pendingApprovals || []; // ✅ ДОБАВЛЕНО
-            referralData = new Map(); // ✅ ДОБАВЛЕНО
+            pendingApprovals = parsedUserData.pendingApprovals || [];
+            referralData = new Map();
+            
             if (parsedUserData.referralData) {
                 for (const [key, value] of Object.entries(parsedUserData.referralData)) {
                     referralData.set(Number(key), value);
@@ -257,12 +245,14 @@ class Database {
     async saveUserData() {
         try {
             console.log('💾 Saving user data...');
+            
+            // ✅ ГАРАНТИРУЕМ что все данные актуальны
             const userDataToSave = {
                 userChats: Object.fromEntries(userChats),
                 userSettings: Object.fromEntries(userSettings),
                 giveaways: giveaways,
-                pendingApprovals: pendingApprovals, // ✅ ДОБАВЛЕНО
-                referralData: Object.fromEntries(referralData), // ✅ ДОБАВЛЕНО
+                pendingApprovals: pendingApprovals,
+                referralData: Object.fromEntries(referralData),
                 lastUpdated: new Date().toISOString()
             };
 
@@ -293,24 +283,15 @@ class Database {
 
     async initializeData() {
         console.log('🔄 Initializing data files...');
-        const initialData = {
-            casinos: [],
-            categories: categories,
-            lastUpdated: new Date().toISOString()
-        };
-
-        const initialContent = {
-            announcements: [],
-            streamStatus: streamStatus,
-            lastUpdated: new Date().toISOString()
-        };
-
+        
+        const initialData = { casinos: [], categories: categories, lastUpdated: new Date().toISOString() };
+        const initialContent = { announcements: [], streamStatus: streamStatus, lastUpdated: new Date().toISOString() };
         const initialUserData = {
             userChats: {},
             userSettings: {},
             giveaways: [],
-            pendingApprovals: [], // ✅ ДОБАВЛЕНО
-            referralData: {}, // ✅ ДОБАВЛЕНО
+            pendingApprovals: [],
+            referralData: {},
             lastUpdated: new Date().toISOString()
         };
 
@@ -327,7 +308,7 @@ class Database {
         }
     }
 
-    // ✅ ДОБАВЛЕНО: Методы для работы с пользователями
+    // ✅ Методы для работы с пользователями
     trackUserAction(userId, userData, actionType) {
         console.log(`📊 Tracking user action: ${userId}, ${actionType}`);
         
@@ -353,14 +334,13 @@ class Database {
             userSettings.set(userId, {
                 hiddenCasinos: [],
                 notifications: true,
-                theme: 'light'
+                theme: 'light',
+                hasLiveAccess: false
             });
         }
         
-        // Автосохранение каждые 10 действий
-        if (Math.random() < 0.1) {
-            this.saveUserData().catch(err => console.error('Auto-save error:', err));
-        }
+        // ✅ НЕМЕДЛЕННОЕ СОХРАНЕНИЕ при действиях пользователя
+        this.saveUserData().catch(err => console.error('Auto-save error:', err));
         
         return true;
     }
@@ -368,7 +348,6 @@ class Database {
     requestApproval(userId, username) {
         console.log(`📋 Approval request from user ${userId}: ${username}`);
         
-        // Проверяем нет ли уже запроса
         const existingRequest = pendingApprovals.find(req => req.userId === userId);
         if (existingRequest) {
             console.log(`⚠️ User ${userId} already has pending approval`);
@@ -399,11 +378,9 @@ class Database {
             return false;
         }
         
-        // Обновляем статус запроса
         pendingApprovals[requestIndex].status = 'approved';
         pendingApprovals[requestIndex].approvedAt = new Date().toISOString();
         
-        // Обновляем настройки пользователя
         if (userSettings.has(userId)) {
             const settings = userSettings.get(userId);
             settings.hasLiveAccess = true;
@@ -417,30 +394,20 @@ class Database {
     handleReferralStart(userId, referrerId) {
         console.log(`🤝 Referral start: user ${userId} referred by ${referrerId}`);
         
-        // Инициализируем реферальные данные если их нет
         if (!referralData.has(referrerId)) {
-            referralData.set(referrerId, {
-                referrals: [],
-                totalEarned: 0
-            });
+            referralData.set(referrerId, { referrals: [], totalEarned: 0 });
         }
         
         if (!referralData.has(userId)) {
-            referralData.set(userId, {
-                referredBy: referrerId,
-                referrals: [],
-                totalEarned: 0
-            });
+            referralData.set(userId, { referredBy: referrerId, referrals: [], totalEarned: 0 });
         }
         
-        // Добавляем реферала
         const referrerData = referralData.get(referrerId);
         if (!referrerData.referrals.includes(userId)) {
             referrerData.referrals.push(userId);
             referralData.set(referrerId, referrerData);
         }
         
-        // Обновляем информацию о том, кем приглашен
         const userRefData = referralData.get(userId);
         userRefData.referredBy = referrerId;
         referralData.set(userId, userRefData);
@@ -491,6 +458,7 @@ class Database {
             });
         }
         
+        // ✅ НЕМЕДЛЕННОЕ СОХРАНЕНИЕ при изменении настроек
         this.saveUserData().catch(err => console.error('Save user settings error:', err));
         return true;
     }
@@ -503,7 +471,7 @@ class Database {
     getUserSettings() { return userSettings; }
     getGiveaways() { return giveaways; }
     getCategories() { return categories; }
-    getPendingApprovals() { return pendingApprovals.filter(req => req.status === 'pending'); } // ✅ ДОБАВЛЕНО
+    getPendingApprovals() { return pendingApprovals.filter(req => req.status === 'pending'); }
 
     // Сеттеры
     setCasinos(newCasinos) { 
@@ -521,7 +489,6 @@ class Database {
         this.saveContentData();
     }
 
-    // Сохраняем ТОЛЬКО казино в GitHub
     async saveData() {
         try {
             console.log('💾 Saving main data...');
@@ -556,7 +523,6 @@ class Database {
         }
     }
 
-    // Сохраняем ВСЕ данные
     async saveAllData() {
         try {
             console.log('💾 Saving ALL data...');
