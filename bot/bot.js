@@ -78,6 +78,22 @@ async function startBot() {
     console.log('🌐 Webhook URL would be:', config.RENDER_URL + '/webhook');
     
     try {
+        // 🔥 ГАРАНТИРОВАННАЯ ОЧИСТКА СТАРЫХ СЕССИЙ
+        try {
+            console.log('🛑 Attempting to close all active sessions...');
+            // Пробуем несколько методов для гарантированного выхода
+            await bot.close();
+            console.log('✅ Bot instance closed successfully');
+        } catch (closeError) {
+            console.log('ℹ️ Close method failed, trying logOut...');
+            try {
+                await bot.logOut();
+                console.log('✅ Successfully logged out from all sessions');
+            } catch (logoutError) {
+                console.log('⚠️ Both close and logOut failed, continuing...');
+            }
+        }
+
         // Сначала убедимся, что вебхук отключен
         try {
             await bot.deleteWebHook();
@@ -86,10 +102,18 @@ async function startBot() {
             console.log('ℹ️ No webhook to delete or error:', error.message);
         }
         
-        // Явно запускаем polling
-        await bot.startPolling();
-        const me = await bot.getMe();
+        // Даем время на закрытие сессий
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
+        // Явно запускаем polling
+        console.log('🔄 Starting polling...');
+        await bot.startPolling({ 
+            timeout: 10,
+            limit: 100,
+            allowed_updates: ['message', 'callback_query']
+        });
+        
+        const me = await bot.getMe();
         console.log('✅ Telegram Bot is running in POLLING mode');
         console.log('🤖 Bot username:', me.username);
         console.log('📊 Bot state users:', casinoEditingState.size);
@@ -98,6 +122,13 @@ async function startBot() {
     } catch (error) {
         console.error('❌ Error starting bot:', error.message);
         console.error('❌ Error details:', JSON.stringify(error, null, 2));
+        
+        // Пробуем перезапуститься через 5 секунд при ошибке 409
+        if (error.message.includes('409')) {
+            console.log('🔄 Restarting bot in 5 seconds due to 409 conflict...');
+            setTimeout(startBot, 5000);
+        }
+        
         throw error;
     }
 }
