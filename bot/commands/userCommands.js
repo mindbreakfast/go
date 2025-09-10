@@ -8,6 +8,8 @@ const { casinoEditingState } = require('../state'); // Импортируем с
 function handleStartCommand(bot, msg) {
     console.log(`🎬 Handling /start for user ${msg.from.id}`);
     const user = msg.from;
+    
+    // ✅ ИСПРАВЛЕНО: Используем правильный метод
     database.trackUserAction(user.id, user, 'start');
 
     if (msg.text && msg.text.includes('request_approval')) {
@@ -81,22 +83,38 @@ function handleMessage(bot, msg) {
         return;
     }
 
-    console.log(`📝 Handling message: "${text.substring(0, 30)}" from user ${msg.from.id}`);
+    console.log(`📝 Handling message: "${text}" from user ${msg.from.id}`);
 
-    const statsRegex = /^\/stats$/;
-    const liveRegex = /^\/live (.+?) (.+)/;
-    const stopRegex = /^\/stop$/;
-    const textRegex = /^\/text (.+)/;
-    const clearTextRegex = /^\/clear_text$/;
-    const listTextRegex = /^\/list_text$/;
-    const removeTextRegex = /^\/remove_text (\d+)/;
-    const broadcastRegex = /^\/broadcast (.+)/;
-    const addCasinoRegex = /^\/add_casino$/;
-    const listCasinosRegex = /^\/list_casinos$/;
-    const editCasinoRegex = /^\/edit_casino (\d+)/;
-    const approveRegex = /^\/odobri (\d+)$/;
-    const approvalsRegex = /^\/approvals$/;
-    const referralRegex = /^\/referral$/;
+    // ✅ ИСПРАВЛЕННЫЕ РЕГУЛЯРНЫЕ ВЫРАЖЕНИЯ (добавлен |\s для параметров)
+    const statsRegex = /^\/stats($|\s)/;
+    const liveRegex = /^\/live($|\s)/;
+    const stopRegex = /^\/stop($|\s)/;
+    const textRegex = /^\/text($|\s)/;
+    const clearTextRegex = /^\/clear_text($|\s)/;
+    const listTextRegex = /^\/list_text($|\s)/;
+    const removeTextRegex = /^\/remove_text($|\s)/;
+    const broadcastRegex = /^\/broadcast($|\s)/;
+    const addCasinoRegex = /^\/add_casino($|\s)/;
+    const listCasinosRegex = /^\/list_casinos($|\s)/;
+    const editCasinoRegex = /^\/edit_casino($|\s)/;
+    const approveRegex = /^\/odobri($|\s)/;
+    const approvalsRegex = /^\/approvals($|\s)/;
+    const referralRegex = /^\/referral($|\s)/;
+    const startRegex = /^\/start($|\s)/;
+    const helpRegex = /^\/help($|\s)/;
+
+    // ✅ ОБРАБОТКА /start И /help ПЕРВЫМИ
+    if (startRegex.test(text)) {
+        console.log(`🎬 Handling /start from user ${msg.from.id}`);
+        handleStartCommand(bot, msg);
+        return;
+    }
+
+    if (helpRegex.test(text)) {
+        console.log(`❓ Handling /help from user ${msg.from.id}`);
+        handleHelpCommand(bot, msg);
+        return;
+    }
 
     if (database.getUserChats().get(msg.from.id)?.waitingForApproval) {
         console.log(`⏳ Handling approval response from user ${msg.from.id}`);
@@ -111,7 +129,16 @@ function handleMessage(bot, msg) {
     } else if (liveRegex.test(text)) {
         console.log(`🎥 Handling /live from user ${msg.from.id}`);
         const adminCommands = require('./adminCommands');
-        adminCommands.handleLiveCommand(bot, msg, text.match(liveRegex));
+        // Получаем параметры после команды
+        const params = text.substring(6).trim();
+        const spaceIndex = params.indexOf(' ');
+        if (spaceIndex > 0) {
+            const streamUrl = params.substring(0, spaceIndex);
+            const eventDescription = params.substring(spaceIndex + 1);
+            adminCommands.handleLiveCommand(bot, msg, [null, streamUrl, eventDescription]);
+        } else {
+            bot.sendMessage(msg.chat.id, '❌ Формат: /live [ссылка] [описание]');
+        }
     } else if (stopRegex.test(text)) {
         console.log(`⏹️ Handling /stop from user ${msg.from.id}`);
         const adminCommands = require('./adminCommands');
@@ -119,7 +146,8 @@ function handleMessage(bot, msg) {
     } else if (textRegex.test(text)) {
         console.log(`📝 Handling /text from user ${msg.from.id}`);
         const adminCommands = require('./adminCommands');
-        adminCommands.handleTextCommand(bot, msg, text.match(textRegex));
+        const messageText = text.substring(5).trim();
+        adminCommands.handleTextCommand(bot, msg, [null, messageText]);
     } else if (clearTextRegex.test(text)) {
         console.log(`🧹 Handling /clear_text from user ${msg.from.id}`);
         const adminCommands = require('./adminCommands');
@@ -131,15 +159,16 @@ function handleMessage(bot, msg) {
     } else if (removeTextRegex.test(text)) {
         console.log(`🗑️ Handling /remove_text from user ${msg.from.id}`);
         const adminCommands = require('./adminCommands');
-        adminCommands.handleRemoveTextCommand(bot, msg, text.match(removeTextRegex));
+        const id = parseInt(text.substring(12).trim());
+        adminCommands.handleRemoveTextCommand(bot, msg, [null, id]);
     } else if (broadcastRegex.test(text)) {
         console.log(`📢 Handling /broadcast from user ${msg.from.id}`);
         const adminCommands = require('./adminCommands');
-        adminCommands.handleBroadcastCommand(bot, msg, text.match(broadcastRegex));
+        const message = text.substring(10).trim();
+        adminCommands.handleBroadcastCommand(bot, msg, [null, message]);
     } else if (addCasinoRegex.test(text)) {
         console.log(`🎰 Handling /add_casino from user ${msg.from.id}`);
         const casinoCommands = require('./casinoCommands');
-        // УБИРАЕМ импорт бота - используем переданный экземпляр и общее состояние
         casinoCommands.handleAddCasinoCommand(bot, msg, casinoEditingState);
     } else if (listCasinosRegex.test(text)) {
         console.log(`📋 Handling /list_casinos from user ${msg.from.id}`);
@@ -148,11 +177,13 @@ function handleMessage(bot, msg) {
     } else if (editCasinoRegex.test(text)) {
         console.log(`✏️ Handling /edit_casino from user ${msg.from.id}`);
         const casinoCommands = require('./casinoCommands');
-        casinoCommands.handleEditCasinoCommand(bot, msg, text.match(editCasinoRegex));
+        const id = parseInt(text.substring(12).trim());
+        casinoCommands.handleEditCasinoCommand(bot, msg, [null, id]);
     } else if (approveRegex.test(text)) {
         console.log(`✅ Handling /odobri from user ${msg.from.id}`);
         const adminCommands = require('./adminCommands');
-        adminCommands.handleApproveCommand(bot, msg, text.match(approveRegex));
+        const userId = parseInt(text.substring(7).trim());
+        adminCommands.handleApproveCommand(bot, msg, [null, userId]);
     } else if (approvalsRegex.test(text)) {
         console.log(`📋 Handling /approvals from user ${msg.from.id}`);
         const adminCommands = require('./adminCommands');
@@ -163,6 +194,11 @@ function handleMessage(bot, msg) {
         referralCommands.handleReferralCommand(bot, msg);
     } else {
         console.log(`❓ Unknown command: "${text}" from user ${msg.from.id}`);
+        // Если это не команда, а просто текст - игнорируем
+        if (text.startsWith('/')) {
+            bot.sendMessage(msg.chat.id, '❌ Неизвестная команда. Используйте /help для списка команд.')
+                .catch(error => console.error('Error sending unknown command message:', error.message));
+        }
     }
 }
 
