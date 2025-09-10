@@ -5,7 +5,7 @@ const config = {
     BOT_TOKEN: process.env.BOT_TOKEN,
     GITHUB_TOKEN: process.env.GITHUB_TOKEN,
     GITHUB_REPO_OWNER: 'mindbreakfast',
-    GITHUB_REPO_NAME: 'go-data', // ✅ ИСПРАВЛЕНО: было 'go', стало 'go-data'
+    GITHUB_REPO_NAME: 'go', 
     GITHUB_FILE_PATH: 'data.json', 
     GITHUB_COMMITTER: {
         name: 'mindbreakfast',
