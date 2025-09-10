@@ -31,7 +31,7 @@
       "notifications": true,
       "theme": "dark",
       "hasLiveAccess": false,
-      "viewMode": "full"
+      "viewMode": "compact"
     }
   },
   "giveaways": [],
@@ -44,5 +44,5 @@
     }
   ],
   "referralData": {},
-  "lastUpdated": "2025-09-10T17:40:07.604Z"
+  "lastUpdated": "2025-09-10T17:40:09.448Z"
 }
