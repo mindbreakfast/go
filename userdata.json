@@ -14,12 +14,13 @@
     "1777213824": {
       "hiddenCasinos": [],
       "notifications": true,
-      "theme": "light",
-      "hasLiveAccess": false
+      "theme": "dark",
+      "hasLiveAccess": false,
+      "viewMode": "full"
     }
   },
   "giveaways": [],
   "pendingApprovals": [],
   "referralData": {},
-  "lastUpdated": "2025-09-10T17:38:47.670Z"
+  "lastUpdated": "2025-09-10T17:38:54.026Z"
 }
