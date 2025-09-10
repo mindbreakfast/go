@@ -39,7 +39,7 @@ function handleLiveCommand(bot, msg, match) {
         lastUpdated: new Date().toISOString()
     });
 
-    database.saveData().then(success => {
+    database.saveContentData().then(success => { // <- Исправлено на saveContentData
         bot.sendMessage(msg.chat.id, success ?
             `✅ Стрим запущен!\nСсылка: ${streamUrl}\nОписание: ${eventDescription}` :
             '❌ Ошибка обновления статуса стрима'
@@ -59,7 +59,7 @@ function handleStopCommand(bot, msg) {
         lastUpdated: new Date().toISOString()
     });
 
-    database.saveData().then(success => {
+    database.saveContentData().then(success => { // <- Исправлено на saveContentData
         bot.sendMessage(msg.chat.id, success ?
             '✅ Стрим остановлен' :
             '❌ Ошибка остановки стрима'
@@ -91,7 +91,7 @@ function handleTextCommand(bot, msg, match) {
     announcements.push(newAnnouncement);
     database.setAnnouncements(announcements);
 
-    database.saveData().then(() => {
+    database.saveContentData().then(() => { // <- Исправлено на saveContentData
         bot.sendMessage(msg.chat.id,
             `✅ Анонс добавлен!\nID: ${newAnnouncement.id}\nЦвет: ${color}\nТекст: ${text}`
         );
@@ -104,7 +104,7 @@ function handleClearTextCommand(bot, msg) {
     }
 
     database.setAnnouncements([]);
-    database.saveData().then(() => {
+    database.saveContentData().then(() => { // <- Исправлено на saveContentData
         bot.sendMessage(msg.chat.id, '✅ Все анонсы очищены!');
     });
 }
@@ -140,7 +140,7 @@ function handleRemoveTextCommand(bot, msg, match) {
     if (index !== -1) {
         const removed = announcements.splice(index, 1)[0];
         database.setAnnouncements(announcements);
-        database.saveData().then(() => {
+        database.saveContentData().then(() => { // <- Исправлено на saveContentData
             bot.sendMessage(msg.chat.id,
                 `✅ Анонс удален!\nID: ${id}\nТекст: ${removed.text}`
             );
