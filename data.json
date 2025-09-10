@@ -291,9 +291,10 @@
         "Винити",
         "Dbybnb"
       ],
-      "category": "other",
+      "category": "pf",
       "isActive": true,
-      "isPinned": false
+      "isPinned": false,
+      "updatedAt": "2025-09-10T14:32:51.252Z"
     },
     {
       "id": 18,
@@ -686,5 +687,5 @@
       "name": "Другие"
     }
   ],
-  "lastUpdated": "2025-09-10T12:25:50.946Z"
+  "lastUpdated": "2025-09-10T14:32:51.253Z"
 }
