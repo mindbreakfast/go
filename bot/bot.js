@@ -75,55 +75,52 @@ async function safeSendMessage(chatId, text, options = {}) {
 async function startBot() {
     console.log('🚀 Starting Telegram Bot with POLLING...');
     console.log('🔑 Using BOT_TOKEN:', config.BOT_TOKEN ? config.BOT_TOKEN.substring(0, 10) + '...' : 'MISSING!');
-    console.log('🌐 Webhook URL would be:', config.RENDER_URL + '/webhook');
     
     try {
-        // 🔥 ГАРАНТИРОВАННАЯ ОЧИСТКА СТАРЫХ СЕССИЙ
+        // 🔥 КРИТИЧЕСКИЙ ФИКС: Ждем 10 секунд перед запуском
+        console.log('⏳ Waiting 10 seconds to avoid session conflicts...');
+        await new Promise(resolve => setTimeout(resolve, 10000));
+
+        // 🔥 Принудительная очистка ВСЕХ сессий
         try {
-            console.log('🛑 Attempting to close all active sessions...');
-            // Пробуем несколько методов для гарантированного выхода
+            console.log('🛑 Force closing all sessions...');
             await bot.close();
-            console.log('✅ Bot instance closed successfully');
         } catch (closeError) {
-            console.log('ℹ️ Close method failed, trying logOut...');
-            try {
-                await bot.logOut();
-                console.log('✅ Successfully logged out from all sessions');
-            } catch (logoutError) {
-                console.log('⚠️ Both close and logOut failed, continuing...');
-            }
+            console.log('ℹ️ Normal close failed, trying emergency cleanup...');
         }
 
-        // Сначала убедимся, что вебхук отключен
+        // 🔥 Гарантированная очистка вебхуков
         try {
-            await bot.deleteWebHook();
-            console.log('✅ Webhook deleted (if existed)');
-        } catch (error) {
-            console.log('ℹ️ No webhook to delete or error:', error.message);
+            await bot.deleteWebHook({ drop_pending_updates: true });
+            console.log('✅ Webhook deleted with pending updates drop');
+        } catch (webhookError) {
+            console.log('ℹ️ Webhook delete failed:', webhookError.message);
         }
-        
-        // Даем время на закрытие сессий
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Явно запускаем polling
-        console.log('🔄 Starting polling...');
-        await bot.startPolling({ 
-            timeout: 10,
-            limit: 100,
-            allowed_updates: ['message', 'callback_query']
+
+        // 🔥 Еще одно ожидание для гарантии
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        // 🔥 Запускаем polling с принудительными параметрами
+        console.log('🔄 Starting fresh polling session...');
+        await bot.startPolling({
+            timeout: 30,
+            limit: 1, // Минимальный лимит для избежания конфликтов
+            allowed_updates: ['message', 'callback_query'],
+            drop_pending_updates: true // ⚠️ КРИТИЧЕСКИЙ ПАРАМЕТР
         });
         
         const me = await bot.getMe();
         console.log('✅ Telegram Bot is running in POLLING mode');
         console.log('🤖 Bot username:', me.username);
-        console.log('📊 Bot state users:', casinoEditingState.size);
         
         return { success: true, botInfo: me };
-    } catch (error) {
-        console.error('❌ Error starting bot:', error.message);
-        console.error('❌ Error details:', JSON.stringify(error, null, 2));
         
-        // ✅ УБРАН автоматический перезапуск - обрабатываем ошибку нормально
+    } catch (error) {
+        console.error('❌ FATAL: Cannot start bot:', error.message);
+        
+        // 🔥 НЕ перезапускаем автоматически - это смертельно!
+        console.log('💀 Bot startup failed completely. Manual intervention required.');
+        
         throw error;
     }
 }
