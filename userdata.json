@@ -1,6 +1,25 @@
 {
-  "userChats": {},
-  "userSettings": {},
+  "userChats": {
+    "1777213824": {
+      "id": 1777213824,
+      "username": "NSDcode",
+      "first_name": "Zulu",
+      "last_name": "NSD",
+      "language_code": "ru",
+      "joined_at": "2025-09-10T17:10:33.867Z",
+      "last_activity": "2025-09-10T17:10:33.867Z"
+    }
+  },
+  "userSettings": {
+    "1777213824": {
+      "hiddenCasinos": [],
+      "notifications": true,
+      "theme": "light",
+      "hasLiveAccess": false
+    }
+  },
   "giveaways": [],
-  "lastUpdated": "2025-09-10T09:34:27.738Z"
+  "pendingApprovals": [],
+  "referralData": {},
+  "lastUpdated": "2025-09-10T17:10:33.867Z"
 }
