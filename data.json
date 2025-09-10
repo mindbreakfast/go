@@ -646,6 +646,22 @@
       "category": "other",
       "isActive": true,
       "isPinned": false
+    },
+    {
+      "id": 38,
+      "name": "fg",
+      "promocode": "fdg",
+      "shortDescription": "fh",
+      "fullDescription": "df",
+      "url": "fdg",
+      "category": "pf",
+      "hiddenKeywords": [
+        "gf"
+      ],
+      "isActive": true,
+      "isPinned": false,
+      "createdAt": "2025-09-10T12:25:50.945Z",
+      "updatedAt": "2025-09-10T12:25:50.945Z"
     }
   ],
   "categories": [
@@ -670,5 +686,5 @@
       "name": "Другие"
     }
   ],
-  "lastUpdated": "2025-09-10T05:18:51.942Z"
+  "lastUpdated": "2025-09-10T12:25:50.946Z"
 }
