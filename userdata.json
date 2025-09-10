@@ -25,7 +25,7 @@
       ],
       "notifications": true,
       "theme": "dark",
-      "hasLiveAccess": false,
+      "hasLiveAccess": true,
       "viewMode": "compact"
     },
     "6770360650": {
@@ -45,7 +45,8 @@
       "userId": 1777213824,
       "requestedUsername": "@user1777213824",
       "requestedAt": "2025-09-10T17:39:26.098Z",
-      "status": "pending"
+      "status": "approved",
+      "approvedAt": "2025-09-10T18:13:18.320Z"
     },
     {
       "userId": 6770360650,
@@ -56,5 +57,5 @@
     }
   ],
   "referralData": {},
-  "lastUpdated": "2025-09-10T18:10:13.492Z"
+  "lastUpdated": "2025-09-10T18:13:18.320Z"
 }
