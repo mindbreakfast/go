@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const axios = require('axios');
 const config = require('../config');
+const githubSync = require('./githubSync'); // Импортируем модуль синхронизации
 
 // Разделяем данные на 3 части
 let casinos = [];
@@ -212,10 +213,26 @@ class Database {
 
             await fs.writeFile(this.contentFilePath, JSON.stringify(contentToSave, null, 2));
             console.log('✅ Content data saved locally');
-            return true;
+
+            if (config.GITHUB_TOKEN) {
+                try {
+                    const githubResult = await githubSync.saveDataToGitHub(
+                        JSON.stringify(contentToSave, null, 2),
+                        'content.json'
+                    );
+                    console.log('🌐 GitHub sync result for content:', githubResult.success);
+                    return { local: true, github: githubResult.success };
+                } catch (githubError) {
+                    console.error('❌ GitHub sync error for content:', githubError.message);
+                    return { local: true, github: false };
+                }
+            }
+            
+            return { local: true, github: false };
+
         } catch (error) {
             console.error('❌ Error saving content data:', error.message);
-            return false;
+            return { local: false, github: false, error: error.message };
         }
     }
 
@@ -231,10 +248,26 @@ class Database {
 
             await fs.writeFile(this.userDataFilePath, JSON.stringify(userDataToSave, null, 2));
             console.log('✅ User data saved locally');
-            return true;
+
+            if (config.GITHUB_TOKEN) {
+                try {
+                    const githubResult = await githubSync.saveDataToGitHub(
+                        JSON.stringify(userDataToSave, null, 2),
+                        'userdata.json'
+                    );
+                    console.log('🌐 GitHub sync result for userdata:', githubResult.success);
+                    return { local: true, github: githubResult.success };
+                } catch (githubError) {
+                    console.error('❌ GitHub sync error for userdata:', githubError.message);
+                    return { local: true, github: false };
+                }
+            }
+            
+            return { local: true, github: false };
+
         } catch (error) {
             console.error('❌ Error saving user data:', error.message);
-            return false;
+            return { local: false, github: false, error: error.message };
         }
     }
 
@@ -272,9 +305,6 @@ class Database {
         }
     }
 
-    // ... остальные методы (getCasinos, setCasinos, trackUserAction и т.д.) ...
-    // [ВСТАВЬТЕ СЮДА ВСЕ ОСТАЛЬНЫЕ МЕТОДЫ ИЗ ПРЕДЫДУЩЕЙ ВЕРСИИ]
-
     // Геттеры
     getCasinos() { return casinos; }
     getAnnouncements() { return announcements; }
@@ -292,12 +322,12 @@ class Database {
 
     setAnnouncements(newAnnouncements) { 
         announcements = newAnnouncements; 
-        this.saveContentData();
+        this.saveContentData(); // Теперь сохраняет и в GitHub
     }
 
     setStreamStatus(newStatus) { 
         streamStatus = { ...streamStatus, ...newStatus }; 
-        this.saveContentData();
+        this.saveContentData(); // Теперь сохраняет и в GitHub
     }
 
     // Сохраняем ТОЛЬКО казино в GitHub
@@ -315,7 +345,6 @@ class Database {
             
             if (config.GITHUB_TOKEN) {
                 try {
-                    const githubSync = require('./githubSync');
                     const githubResult = await githubSync.saveDataToGitHub(
                         JSON.stringify(dataToSave, null, 2),
                         'data.json'
