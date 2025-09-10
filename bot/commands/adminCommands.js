@@ -13,6 +13,7 @@ function handleStatsCommand(bot, msg) {
     const streamStatus = database.getStreamStatus();
     const announcements = database.getAnnouncements();
     const casinos = database.getCasinos();
+    const pendingApprovals = database.getPendingApprovals();
 
     bot.sendMessage(msg.chat.id,
         `Статистика бота:\n` +
@@ -20,6 +21,7 @@ function handleStatsCommand(bot, msg) {
         `Стрим: ${streamStatus.isStreamLive ? 'В ЭФИРЕ' : 'не активен'}\n` +
         `Анонсов: ${announcements.length}\n` +
         `Казино: ${casinos.length}\n` +
+        `Ожидают одобрения: ${pendingApprovals.length}\n` +
         `Обновлено: ${new Date().toLocaleTimeString('ru-RU')}`
     );
 }
@@ -39,7 +41,8 @@ function handleLiveCommand(bot, msg, match) {
         lastUpdated: new Date().toISOString()
     });
 
-    database.saveContentData().then(success => { // <- Исправлено на saveContentData
+    // ✅ ИСПРАВЛЕНО: Правильное использование saveContentData
+    database.saveContentData().then(success => {
         bot.sendMessage(msg.chat.id, success ?
             `✅ Стрим запущен!\nСсылка: ${streamUrl}\nОписание: ${eventDescription}` :
             '❌ Ошибка обновления статуса стрима'
@@ -59,7 +62,8 @@ function handleStopCommand(bot, msg) {
         lastUpdated: new Date().toISOString()
     });
 
-    database.saveContentData().then(success => { // <- Исправлено на saveContentData
+    // ✅ ИСПРАВЛЕНО: Правильное использование saveContentData
+    database.saveContentData().then(success => {
         bot.sendMessage(msg.chat.id, success ?
             '✅ Стрим остановлен' :
             '❌ Ошибка остановки стрима'
@@ -91,10 +95,15 @@ function handleTextCommand(bot, msg, match) {
     announcements.push(newAnnouncement);
     database.setAnnouncements(announcements);
 
-    database.saveContentData().then(() => { // <- Исправлено на saveContentData
-        bot.sendMessage(msg.chat.id,
-            `✅ Анонс добавлен!\nID: ${newAnnouncement.id}\nЦвет: ${color}\nТекст: ${text}`
-        );
+    // ✅ ИСПРАВЛЕНО: Правильное использование saveContentData
+    database.saveContentData().then(success => {
+        if (success) {
+            bot.sendMessage(msg.chat.id,
+                `✅ Анонс добавлен!\nID: ${newAnnouncement.id}\nЦвет: ${color}\nТекст: ${text}`
+            );
+        } else {
+            bot.sendMessage(msg.chat.id, '❌ Ошибка сохранения анонса');
+        }
     });
 }
 
@@ -104,8 +113,13 @@ function handleClearTextCommand(bot, msg) {
     }
 
     database.setAnnouncements([]);
-    database.saveContentData().then(() => { // <- Исправлено на saveContentData
-        bot.sendMessage(msg.chat.id, '✅ Все анонсы очищены!');
+    
+    // ✅ ИСПРАВЛЕНО: Правильное использование saveContentData
+    database.saveContentData().then(success => {
+        bot.sendMessage(msg.chat.id, success ?
+            '✅ Все анонсы очищены!' :
+            '❌ Ошибка очистки анонсов'
+        );
     });
 }
 
@@ -140,10 +154,16 @@ function handleRemoveTextCommand(bot, msg, match) {
     if (index !== -1) {
         const removed = announcements.splice(index, 1)[0];
         database.setAnnouncements(announcements);
-        database.saveContentData().then(() => { // <- Исправлено на saveContentData
-            bot.sendMessage(msg.chat.id,
-                `✅ Анонс удален!\nID: ${id}\nТекст: ${removed.text}`
-            );
+        
+        // ✅ ИСПРАВЛЕНО: Правильное использование saveContentData
+        database.saveContentData().then(success => {
+            if (success) {
+                bot.sendMessage(msg.chat.id,
+                    `✅ Анонс удален!\nID: ${id}\nТекст: ${removed.text}`
+                );
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Ошибка удаления анонса');
+            }
         });
     } else {
         bot.sendMessage(msg.chat.id, `❌ Анонс с ID ${id} не найден`);
@@ -189,7 +209,13 @@ function handleApproveCommand(bot, msg, match) {
     
     if (success) {
         bot.sendMessage(msg.chat.id, `✅ Пользователь ${userId} одобрен для доступа к лайв комнате!`);
-        bot.sendMessage(userId, '🎉 Ваш доступ к приватной лайв комнате одобрен! Обновите приложение.');
+        
+        // Уведомляем пользователя
+        try {
+            bot.sendMessage(userId, '🎉 Ваш доступ к приватной лайв комнате одобрен! Обновите приложение.');
+        } catch (error) {
+            console.log(`⚠️ Cannot notify user ${userId}:`, error.message);
+        }
     } else {
         bot.sendMessage(msg.chat.id, `❌ Не удалось одобрить пользователя ${userId}`);
     }
