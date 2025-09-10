@@ -5,7 +5,7 @@ const config = {
     BOT_TOKEN: process.env.BOT_TOKEN,
     GITHUB_TOKEN: process.env.GITHUB_TOKEN,
     GITHUB_REPO_OWNER: 'mindbreakfast',
-    GITHUB_REPO_NAME: 'go',
+    GITHUB_REPO_NAME: 'go-data', // ✅ ИСПРАВЛЕНО: было 'go', стало 'go-data'
     GITHUB_FILE_PATH: 'data.json', 
     GITHUB_COMMITTER: {
         name: 'mindbreakfast',
@@ -24,15 +24,16 @@ const config = {
         {"id": "other", "name": "Другие"},
         {"id": "pf", "name": "ПФ"},
         {"id": "joy", "name": "ДЖОИ"}
-    ]
+    ],
+    BUST_CACHE: process.env.BUST_CACHE === 'true' // ✅ Добавлена переменная
 };
 
 console.log('Config loaded:', {
     hasBotToken: !!config.BOT_TOKEN,
-        botToken: config.BOT_TOKEN ? config.BOT_TOKEN.substring(0, 10) + '...' : 'missing', // Логируем только начало токена
+    botToken: config.BOT_TOKEN ? config.BOT_TOKEN.substring(0, 10) + '...' : 'missing',
     hasGitHubToken: !!config.GITHUB_TOKEN,
-    admins: config.ADMINS,
-    githubRepo: config.GITHUB_REPO_OWNER + '/' + config.GITHUB_REPO_NAME
+    githubRepo: config.GITHUB_REPO_OWNER + '/' + config.GITHUB_REPO_NAME,
+    bustCache: config.BUST_CACHE
 });
 
 if (!config.BOT_TOKEN) {
