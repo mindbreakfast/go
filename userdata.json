@@ -20,7 +20,14 @@
     }
   },
   "giveaways": [],
-  "pendingApprovals": [],
+  "pendingApprovals": [
+    {
+      "userId": 1777213824,
+      "requestedUsername": "@user1777213824",
+      "requestedAt": "2025-09-10T17:39:26.098Z",
+      "status": "pending"
+    }
+  ],
   "referralData": {},
-  "lastUpdated": "2025-09-10T17:39:21.501Z"
+  "lastUpdated": "2025-09-10T17:39:26.098Z"
 }
