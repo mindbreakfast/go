@@ -44,8 +44,14 @@
       "requestedUsername": "@user1777213824",
       "requestedAt": "2025-09-10T17:39:26.098Z",
       "status": "pending"
+    },
+    {
+      "userId": 6770360650,
+      "requestedUsername": "@user6770360650",
+      "requestedAt": "2025-09-10T17:40:42.931Z",
+      "status": "pending"
     }
   ],
   "referralData": {},
-  "lastUpdated": "2025-09-10T17:40:36.360Z"
+  "lastUpdated": "2025-09-10T17:40:42.932Z"
 }
