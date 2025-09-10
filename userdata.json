@@ -8,6 +8,14 @@
       "language_code": "ru",
       "joined_at": "2025-09-10T17:10:33.867Z",
       "last_activity": "2025-09-10T17:39:13.490Z"
+    },
+    "6770360650": {
+      "id": 6770360650,
+      "username": "Zuluzozo",
+      "first_name": "Киборг Убийца",
+      "language_code": "ru",
+      "joined_at": "2025-09-10T17:39:57.669Z",
+      "last_activity": "2025-09-10T17:39:57.669Z"
     }
   },
   "userSettings": {
@@ -17,6 +25,12 @@
       "theme": "dark",
       "hasLiveAccess": false,
       "viewMode": "full"
+    },
+    "6770360650": {
+      "hiddenCasinos": [],
+      "notifications": true,
+      "theme": "light",
+      "hasLiveAccess": false
     }
   },
   "giveaways": [],
@@ -29,5 +43,5 @@
     }
   ],
   "referralData": {},
-  "lastUpdated": "2025-09-10T17:39:26.098Z"
+  "lastUpdated": "2025-09-10T17:39:57.669Z"
 }
