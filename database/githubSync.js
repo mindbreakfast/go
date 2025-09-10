@@ -12,13 +12,12 @@ class GitHubSync {
         };
         this.owner = config.GITHUB_REPO_OWNER;
         this.repo = config.GITHUB_REPO_NAME;
-        this.filePath = 'data.json';
         this.branch = 'main';
     }
 
-    async #getFileSHA() {
+    async #getFileSHA(filePath) { // <- Теперь принимает filePath
         try {
-            const url = `${this.baseURL}/repos/${this.owner}/${this.repo}/contents/${this.filePath}`;
+            const url = `${this.baseURL}/repos/${this.owner}/${this.repo}/contents/${filePath}`;
             console.log('Getting file SHA from:', url);
             const response = await axios.get(url, { headers: this.headers });
             return response.data.sha;
@@ -41,7 +40,7 @@ async saveDataToGitHub(dataJSON, filePath = 'data.json') {
     try {
         console.log('Starting GitHub sync for file:', filePath);
         const content = Buffer.from(dataJSON).toString('base64');
-        const sha = await this.#getFileSHA(filePath);
+        const sha = await this.#getFileSHA(filePath); // <- Передаем filePath
         const message = `Auto-update: ${new Date().toISOString()}`;
 
         const url = `${this.baseURL}/repos/${this.owner}/${this.repo}/contents/${filePath}`;
