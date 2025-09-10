@@ -49,7 +49,7 @@ bot.on('callback_query', (query) => {
 // Обработчик ошибок polling
 bot.on('polling_error', (error) => {
     console.error('❌ Polling error:', error.code, error.message);
-    // Можно добавить логику перезапуска при определенных ошибках
+    // ✅ УБРАН автоматический перезапуск при 409 ошибке
 });
 
 bot.on('error', (error) => {
@@ -123,12 +123,7 @@ async function startBot() {
         console.error('❌ Error starting bot:', error.message);
         console.error('❌ Error details:', JSON.stringify(error, null, 2));
         
-        // Пробуем перезапуститься через 5 секунд при ошибке 409
-        if (error.message.includes('409')) {
-            console.log('🔄 Restarting bot in 5 seconds due to 409 conflict...');
-            setTimeout(startBot, 5000);
-        }
-        
+        // ✅ УБРАН автоматический перезапуск - обрабатываем ошибку нормально
         throw error;
     }
 }
