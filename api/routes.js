@@ -14,6 +14,25 @@ function initializeApiRoutes(bot) {
     console.log('✅ Bot instance set in API routes');
 }
 
+// 🔥 ДОБАВЛЯЕМ ГЛАВНЫЙ ЭНДПОИНТ ДЛЯ ВЕБ-ПРИЛОЖЕНИЯ
+router.get('/data', async (req, res) => {
+    try {
+        console.log('API: /data called');
+        const data = {
+            casinos: database.getCasinos(),
+            categories: database.getCategories(),
+            announcements: database.getAnnouncements(),
+            streamStatus: database.getStreamStatus()
+        };
+        
+        console.log(`Sending data: ${data.casinos.length} casinos, ${data.announcements.length} announcements`);
+        res.json(data);
+    } catch (error) {
+        console.error('Error in /data endpoint:', error);
+        res.status(500).json({ error: 'Failed to load data' });
+    }
+});
+
 router.post('/request-approval', async (req, res) => {
     try {
         console.log('API: /request-approval called with:', req.body);
