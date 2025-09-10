@@ -29,6 +29,7 @@ const config = {
 
 console.log('Config loaded:', {
     hasBotToken: !!config.BOT_TOKEN,
+        botToken: config.BOT_TOKEN ? config.BOT_TOKEN.substring(0, 10) + '...' : 'missing', // Логируем только начало токена
     hasGitHubToken: !!config.GITHUB_TOKEN,
     admins: config.ADMINS,
     githubRepo: config.GITHUB_REPO_OWNER + '/' + config.GITHUB_REPO_NAME
