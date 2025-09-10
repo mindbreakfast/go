@@ -74,6 +74,9 @@ async function safeSendMessage(chatId, text, options = {}) {
 
 async function startBot() {
     console.log('🚀 Starting Telegram Bot with POLLING...');
+    console.log('🔑 Using BOT_TOKEN:', config.BOT_TOKEN ? config.BOT_TOKEN.substring(0, 10) + '...' : 'MISSING!');
+    console.log('🌐 Webhook URL would be:', config.RENDER_URL + '/webhook');
+    
     try {
         // Сначала убедимся, что вебхук отключен
         try {
@@ -94,6 +97,7 @@ async function startBot() {
         return { success: true, botInfo: me };
     } catch (error) {
         console.error('❌ Error starting bot:', error.message);
+        console.error('❌ Error details:', JSON.stringify(error, null, 2));
         throw error;
     }
 }
