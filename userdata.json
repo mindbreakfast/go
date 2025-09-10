@@ -33,7 +33,7 @@
       ],
       "notifications": true,
       "theme": "dark",
-      "hasLiveAccess": false,
+      "hasLiveAccess": true,
       "viewMode": "compact"
     }
   },
@@ -49,9 +49,10 @@
       "userId": 6770360650,
       "requestedUsername": "@user6770360650",
       "requestedAt": "2025-09-10T17:40:42.931Z",
-      "status": "pending"
+      "status": "approved",
+      "approvedAt": "2025-09-10T17:41:05.657Z"
     }
   ],
   "referralData": {},
-  "lastUpdated": "2025-09-10T17:40:42.932Z"
+  "lastUpdated": "2025-09-10T17:41:05.657Z"
 }
