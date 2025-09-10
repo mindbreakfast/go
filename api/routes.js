@@ -52,21 +52,45 @@ router.get('/all-data', async (req, res) => {
     }
 });
 
-// 🔥 ЭНДПОИНТ ДЛЯ ПОЛЬЗОВАТЕЛЬСКИХ ДАННЫХ
+// 🔥 ЭНДПОИНТ ДЛЯ ПОЛЬЗОВАТЕЛЬСКИХ ДАННЫХ (ПОЛНОСТЬЮ ПЕРЕРАБОТАН)
 router.get('/user-data', async (req, res) => {
     try {
-        const userId = req.query.userId;
+        const userId = parseInt(req.query.userId);
+        if (!userId || isNaN(userId)) {
+            return res.status(400).json({ error: 'Valid user ID required' });
+        }
+
         console.log('API: /user-data called for user:', userId);
         
-        // Здесь должна быть логика получения пользовательских данных
-        // Пока просто возвращаем заглушку
-        res.json({ 
-            settings: {}, 
-            hiddenCasinos: [] 
-        });
+        const userData = database.getUserData(userId);
+        
+        res.json(userData);
     } catch (error) {
         console.error('Error in /user-data endpoint:', error);
         res.status(500).json({ error: 'Failed to load user data' });
+    }
+});
+
+// 🔥 ЭНДПОИНТ ДЛЯ ОБНОВЛЕНИЯ ПОЛЬЗОВАТЕЛЬСКИХ НАСТРОЕК
+router.post('/user-settings', async (req, res) => {
+    try {
+        const { userId, settings } = req.body;
+        
+        if (!userId || !settings) {
+            return res.status(400).json({ error: 'User ID and settings required' });
+        }
+
+        console.log('API: /user-settings called for user:', userId);
+        
+        const success = database.updateUserSettings(userId, settings);
+        
+        res.json({ 
+            success: success,
+            message: success ? 'Settings updated' : 'Failed to update settings'
+        });
+    } catch (error) {
+        console.error('Error in /user-settings:', error);
+        res.status(500).json({ error: 'Failed to update settings' });
     }
 });
 
@@ -144,7 +168,8 @@ router.get('/debug-data', (req, res) => {
             announcements: database.getAnnouncements(),
             streamStatus: database.getStreamStatus(),
             userSettingsSize: database.getUserSettings().size,
-            userChatsSize: database.getUserChats().size
+            userChatsSize: database.getUserChats().size,
+            pendingApprovals: database.getPendingApprovals().length
         };
         
         console.log('Debug data:', data);
@@ -158,38 +183,4 @@ router.get('/debug-data', (req, res) => {
 // Debug endpoint для принудительной перезагрузки
 router.post('/force-reload', async (req, res) => {
     try {
-        console.log('Force reload requested');
-        await database.loadData();
-        res.json({ status: 'ok', message: 'Data reloaded' });
-    } catch (error) {
-        console.error('Error in force reload:', error);
-        res.status(500).json({ error: 'Force reload error' });
-    }
-});
-
-// Endpoint для проверки статуса бота
-router.get('/status', (req, res) => {
-    try {
-        const userChats = database.getUserChats();
-        const streamStatus = database.getStreamStatus();
-        const announcements = database.getAnnouncements();
-        const casinos = database.getCasinos();
-        
-        res.json({
-            status: 'ok',
-            users: userChats.size,
-            streamLive: streamStatus.isStreamLive,
-            announcements: announcements.length,
-            casinos: casinos.length,
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        console.error('Error in /status:', error);
-        res.status(500).json({ error: 'Status check error' });
-    }
-});
-
-module.exports = {
-    router,
-    initializeApiRoutes
-};
+        console.log('Force
