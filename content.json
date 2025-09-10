@@ -1,10 +1,17 @@
 {
-  "announcements": [],
+  "announcements": [
+    {
+      "id": 1757523167469,
+      "text": "gjjj",
+      "color": "blue",
+      "createdAt": "2025-09-10T16:52:47.469Z"
+    }
+  ],
   "streamStatus": {
     "isStreamLive": true,
     "streamUrl": "f",
     "eventDescription": "f",
     "lastUpdated": "2025-09-10T12:23:40.936Z"
   },
-  "lastUpdated": "2025-09-10T14:33:18.763Z"
+  "lastUpdated": "2025-09-10T16:52:47.469Z"
 }
