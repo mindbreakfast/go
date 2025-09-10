@@ -183,4 +183,40 @@ router.get('/debug-data', (req, res) => {
 // Debug endpoint для принудительной перезагрузки
 router.post('/force-reload', async (req, res) => {
     try {
-        console.log('Force
+        console.log('Force reload requested');
+        await database.loadData();
+        res.json({ status: 'ok', message: 'Data reloaded' });
+    } catch (error) {
+        console.error('Error in force reload:', error);
+        res.status(500).json({ error: 'Force reload error' });
+    }
+});
+
+// Endpoint для проверки статуса бота
+router.get('/status', (req, res) => {
+    try {
+        const userChats = database.getUserChats();
+        const streamStatus = database.getStreamStatus();
+        const announcements = database.getAnnouncements();
+        const casinos = database.getCasinos();
+        const pendingApprovals = database.getPendingApprovals();
+        
+        res.json({
+            status: 'ok',
+            users: userChats.size,
+            streamLive: streamStatus.isStreamLive,
+            announcements: announcements.length,
+            casinos: casinos.length,
+            pendingApprovals: pendingApprovals.length,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Error in /status:', error);
+        res.status(500).json({ error: 'Status check error' });
+    }
+});
+
+module.exports = {
+    router,
+    initializeApiRoutes
+};
