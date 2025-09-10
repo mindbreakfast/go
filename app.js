@@ -7,6 +7,7 @@ let userHiddenCasinos = [];
 let userViewMode = 'full';
 let userId = null;
 let isApproved = false;
+let currentTheme = 'light';
 
 // ===== ТАЙМЕРЫ =====
 let hidePressTimer = null;
@@ -27,13 +28,15 @@ function initTheme() {
     const savedTheme = localStorage.getItem('theme');
     const isDark = savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
     
+    currentTheme = isDark ? 'dark' : 'light';
     document.body.classList.toggle('theme-dark', isDark);
     document.getElementById('themeSwitcher').textContent = isDark ? '☀️ Светлая тема' : '🌙 Тёмная тема';
 }
 
 function toggleTheme() {
     const isDark = document.body.classList.toggle('theme-dark');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    currentTheme = isDark ? 'dark' : 'light';
+    localStorage.setItem('theme', currentTheme);
     document.getElementById('themeSwitcher').textContent = isDark ? '☀️ Светлая тема' : '🌙 Тёмная тема';
     debouncedSaveSettings();
 }
@@ -64,7 +67,7 @@ function incrementClickCount(casinoId) {
     
     if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
         const user = window.Telegram.WebApp.initDataUnsafe.user;
-        fetch('https://go-5zty.onrender.com/track-click', {
+        fetch('https://go-5zty.onrender.com/api/track-click', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -82,7 +85,7 @@ function incrementClickCount(casinoId) {
 // ===== DEBOUNCED СОХРАНЕНИЕ НАСТРОЕК =====
 function debouncedSaveSettings() {
     clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(saveUserSettings, 2000);
+    saveTimeout = setTimeout(saveUserSettings, 1000);
 }
 
 async function saveUserSettings() {
@@ -94,18 +97,20 @@ async function saveUserSettings() {
                 body: JSON.stringify({
                     userId: userId,
                     hiddenCasinos: userHiddenCasinos,
-                    viewMode: userViewMode
+                    viewMode: userViewMode,
+                    theme: currentTheme
                 })
             });
             
             const result = await response.json();
-            console.log('Settings save result:', result);
             
-            if (!response.ok) {
-                console.log('Ошибка сохранения настроек');
+            if (result.success) {
+                console.log('✅ Settings saved successfully');
+            } else {
+                console.error('❌ Failed to save settings:', result.message);
             }
         } catch (error) {
-            console.log('Ошибка сохранения настроек:', error);
+            console.error('❌ Error saving settings:', error);
         }
     }
 }
@@ -127,7 +132,7 @@ async function loadInitialData() {
                 .then(r => r.json())
                 .catch(e => {
                     console.log('User data load error, using defaults');
-                    return { hiddenCasinos: [], viewMode: 'full', approvedForLive: false };
+                    return { settings: { hiddenCasinos: [], viewMode: 'full', theme: 'light' }, approvedForLive: false };
                 })
         ]);
 
@@ -135,7 +140,7 @@ async function loadInitialData() {
             casinos: casinosData.casinos?.length,
             announcements: casinosData.announcements?.length,
             streamLive: casinosData.streamStatus?.isStreamLive,
-            userSettings: userData
+            userSettings: userData.settings
         });
 
         allCasinos = casinosData.casinos || [];
@@ -145,10 +150,17 @@ async function loadInitialData() {
         showAnnouncements(casinosData.announcements || []);
         updateStreamStatus(casinosData.streamStatus);
         
-        userHiddenCasinos = userData.hiddenCasinos || [];
-        userViewMode = userData.viewMode || 'full';
+        // ✅ ЗАГРУЖАЕМ НАСТРОЙКИ ИЗ СЕРВЕРА
+        userHiddenCasinos = userData.settings?.hiddenCasinos || [];
+        userViewMode = userData.settings?.viewMode || 'full';
+        currentTheme = userData.settings?.theme || 'light';
         userId = currentUserId;
-        isApproved = userData.approvedForLive || false;
+        isApproved = userData.settings?.hasLiveAccess || false;
+        
+        // ПРИМЕНЯЕМ ТЕМУ ИЗ СЕРВЕРА
+        document.body.classList.toggle('theme-dark', currentTheme === 'dark');
+        document.getElementById('themeSwitcher').textContent = currentTheme === 'dark' ? '☀️ Светлая тема' : '🌙 Тёмная тема';
+        localStorage.setItem('theme', currentTheme);
         
         document.getElementById('userIdDisplay').textContent = `ID: ${userId}`;
         renderCasinos();
@@ -287,6 +299,7 @@ function renderCasinos() {
     container.innerHTML = sortedCasinos.map(casino => `
         <div class="casino-card ${userViewMode === 'compact' ? 'compact' : ''}" 
              data-id="${casino.id}"
+             data-casino-id="${casino.id}"
              onmousedown="startHideTimer(${casino.id}, event)"
              onmouseup="cancelHideTimer()"
              onmouseleave="cancelHideTimer()"
