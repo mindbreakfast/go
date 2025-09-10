@@ -5,16 +5,14 @@ const router = express.Router();
 
 console.log('✅ API routes loaded');
 
-// Сохраняем ссылку на бота, который будет передан при инициализации
 let botInstance = null;
 
-// Функция для инициализации (будет вызвана из main.js)
 function initializeApiRoutes(bot) {
     botInstance = bot;
     console.log('✅ Bot instance set in API routes');
 }
 
-// 🔥 ГЛАВНЫЕ ЭНДПОИНТЫ ДЛЯ ВЕБ-ПРИЛОЖЕНИЯ
+// 🔥 ГЛАВНЫЕ ЭНДПОИНТЫ
 router.get('/data', async (req, res) => {
     try {
         console.log('API: /data called');
@@ -33,7 +31,6 @@ router.get('/data', async (req, res) => {
     }
 });
 
-// 🔥 ЭНДПОИНТ ДЛЯ НОВОЙ ВЕРСИИ ВЕБ-ПРИЛОЖЕНИЯ
 router.get('/all-data', async (req, res) => {
     try {
         console.log('API: /all-data called');
@@ -52,7 +49,7 @@ router.get('/all-data', async (req, res) => {
     }
 });
 
-// 🔥 ЭНДПОИНТ ДЛЯ ПОЛЬЗОВАТЕЛЬСКИХ ДАННЫХ (ПОЛНОСТЬЮ ПЕРЕРАБОТАН)
+// 🔥 ЭНДПОИНТ ДЛЯ ПОЛЬЗОВАТЕЛЬСКИХ ДАННЫХ
 router.get('/user-data', async (req, res) => {
     try {
         const userId = parseInt(req.query.userId);
@@ -71,29 +68,39 @@ router.get('/user-data', async (req, res) => {
     }
 });
 
-// 🔥 ЭНДПОИНТ ДЛЯ ОБНОВЛЕНИЯ ПОЛЬЗОВАТЕЛЬСКИХ НАСТРОЕК
-router.post('/user-settings', async (req, res) => {
+// 🔥 ЭНДПОИНТ ДЛЯ СОХРАНЕНИЯ НАСТРОЕК (ДОБАВЛЕНО)
+router.post('/save-user-settings', async (req, res) => {
     try {
-        const { userId, settings } = req.body;
+        const { userId, hiddenCasinos, viewMode, theme } = req.body;
         
-        if (!userId || !settings) {
-            return res.status(400).json({ error: 'User ID and settings required' });
+        if (!userId) {
+            return res.status(400).json({ error: 'User ID required' });
         }
 
-        console.log('API: /user-settings called for user:', userId, 'settings:', settings);
-        
-        const success = database.updateUserSettings(userId, settings);
+        console.log('API: /save-user-settings called for user:', userId, {
+            hiddenCasinos: hiddenCasinos?.length,
+            viewMode: viewMode,
+            theme: theme
+        });
+
+        const settingsToUpdate = {};
+        if (hiddenCasinos !== undefined) settingsToUpdate.hiddenCasinos = hiddenCasinos;
+        if (viewMode !== undefined) settingsToUpdate.viewMode = viewMode;
+        if (theme !== undefined) settingsToUpdate.theme = theme;
+
+        const success = database.updateUserSettings(userId, settingsToUpdate);
         
         res.json({ 
             success: success,
-            message: success ? 'Settings updated' : 'Failed to update settings'
+            message: success ? 'Settings updated successfully' : 'Failed to update settings'
         });
     } catch (error) {
-        console.error('Error in /user-settings:', error);
-        res.status(500).json({ error: 'Failed to update settings' });
+        console.error('Error in /save-user-settings:', error);
+        res.status(500).json({ error: 'Failed to save settings' });
     }
 });
 
+// 🔥 ЭНДПОИНТ ДЛЯ ОДОБРЕНИЯ
 router.post('/request-approval', async (req, res) => {
     try {
         console.log('API: /request-approval called with:', req.body);
@@ -106,7 +113,6 @@ router.post('/request-approval', async (req, res) => {
         const success = database.requestApproval(userId, username);
         
         if (success && botInstance) {
-            // Уведомляем админов через переданный экземпляр бота
             const { isAdmin } = require('../utils/isAdmin');
             const config = require('../config');
             
@@ -131,7 +137,40 @@ router.post('/request-approval', async (req, res) => {
     }
 });
 
-// Убираем обработчики webhook или оставляем с проверкой botInstance
+// 🔥 ЭНДПОИНТ ДЛЯ ТРЕКИНГА (ДОБАВЛЕНО)
+router.post('/track-visit', async (req, res) => {
+    try {
+        const { userId, userInfo, action } = req.body;
+        
+        if (userId && userInfo) {
+            console.log('📊 Tracking visit:', { userId, action });
+            database.trackUserAction(userId, userInfo, action);
+        }
+        
+        res.json({ status: 'ok' });
+    } catch (error) {
+        console.error('Error in /track-visit:', error);
+        res.status(500).json({ error: 'Tracking error' });
+    }
+});
+
+router.post('/track-click', async (req, res) => {
+    try {
+        const { userId, userInfo, casinoId, action } = req.body;
+        
+        if (userId && casinoId) {
+            console.log('📊 Tracking click:', { userId, casinoId, action });
+            database.trackUserAction(userId, userInfo, `${action}_${casinoId}`);
+        }
+        
+        res.json({ status: 'ok' });
+    } catch (error) {
+        console.error('Error in /track-click:', error);
+        res.status(500).json({ error: 'Tracking error' });
+    }
+});
+
+// Другие эндпоинты остаются без изменений
 router.post('/webhook', (req, res) => {
     if (!botInstance) {
         console.error('❌ Webhook received but bot instance not initialized');
@@ -148,7 +187,6 @@ router.post('/webhook', (req, res) => {
     }
 });
 
-// Добавляем endpoint для сохранения всех данных
 router.post('/save-all-data', async (req, res) => {
     try {
         console.log('API: Saving all data...');
@@ -160,7 +198,6 @@ router.post('/save-all-data', async (req, res) => {
     }
 });
 
-// Debug endpoint для проверки данных
 router.get('/debug-data', (req, res) => {
     try {
         const data = {
@@ -180,7 +217,6 @@ router.get('/debug-data', (req, res) => {
     }
 });
 
-// Debug endpoint для принудительной перезагрузки
 router.post('/force-reload', async (req, res) => {
     try {
         console.log('Force reload requested');
@@ -192,7 +228,6 @@ router.post('/force-reload', async (req, res) => {
     }
 });
 
-// Endpoint для проверки статуса бота
 router.get('/status', (req, res) => {
     try {
         const userChats = database.getUserChats();
