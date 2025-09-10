@@ -28,7 +28,8 @@
     },
     "6770360650": {
       "hiddenCasinos": [
-        1
+        1,
+        38
       ],
       "notifications": true,
       "theme": "dark",
@@ -46,5 +47,5 @@
     }
   ],
   "referralData": {},
-  "lastUpdated": "2025-09-10T17:40:26.514Z"
+  "lastUpdated": "2025-09-10T17:40:36.360Z"
 }
