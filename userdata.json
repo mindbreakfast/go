@@ -20,9 +20,7 @@
   },
   "userSettings": {
     "1777213824": {
-      "hiddenCasinos": [
-        35
-      ],
+      "hiddenCasinos": [],
       "notifications": true,
       "theme": "dark",
       "hasLiveAccess": true,
@@ -57,5 +55,5 @@
     }
   ],
   "referralData": {},
-  "lastUpdated": "2025-09-11T03:19:05.468Z"
+  "lastUpdated": "2025-09-11T03:19:12.274Z"
 }
