@@ -13,6 +13,8 @@ module.exports = {
     handleBroadcastCommand: require('./adminCommands').handleBroadcastCommand,
     handleApproveCommand: require('./adminCommands').handleApproveCommand,
     handleApprovalsCommand: require('./adminCommands').handleApprovalsCommand,
+    handleCasinoStatsCommand: require('./adminCommands').handleCasinoStatsCommand,
+    handleVoiceAuditCommand: require('./adminCommands').handleVoiceAuditCommand,
 
     // Casino commands
     handleAddCasinoCommand: require('./casinoCommands').handleAddCasinoCommand,
@@ -27,7 +29,9 @@ module.exports = {
     handleHelpCommand: require('./userCommands').handleHelpCommand,
     handleMessage: require('./userCommands').handleMessage,
     handleApprovalRequest: require('./userCommands').handleApprovalRequest,
+    handleContestJoin: require('./userCommands').handleContestJoin,
 
     // Referral commands
-    handleReferralCommand: require('./referralCommands').handleReferralCommand
+    handleReferralCommand: require('./referralCommands').handleReferralCommand,
+    handleRefStatsCommand: require('./referralCommands').handleRefStatsCommand
 };
