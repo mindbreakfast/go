@@ -41,7 +41,7 @@ function toggleTheme() {
     debouncedSaveSettings();
 }
 
-// ===== ОТКРЫТИЕ ССЫЛОК БЕЗ ЗАКРЫТИЯ WEBAPP =====
+// ===== ОТКРЫТИЕ ССЫЛОК =====
 function openLink(event, url) {
     event.preventDefault();
     if (window.Telegram?.WebApp) {
@@ -50,6 +50,23 @@ function openLink(event, url) {
         window.open(url, '_blank');
     }
     return false;
+}
+
+function openVoiceRoom(event, roomType, roomUrl) {
+    if (userId && userId !== 'anonymous') {
+        fetch('https://go-5zty.onrender.com/api/track-voice-access', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: userId,
+                username: `user${userId}`,
+                roomType: roomType,
+                userAgent: navigator.userAgent
+            })
+        }).catch(error => console.log('Ошибка трекинга голосовой:', error));
+    }
+    
+    openLink(event, roomUrl);
 }
 
 // ===== СТАТИСТИКА КЛИКОВ =====
@@ -118,9 +135,14 @@ async function loadInitialData() {
             }),
             fetch(`https://go-5zty.onrender.com/api/user-data?userId=${currentUserId}`)
                 .then(r => r.json())
-                .catch(e => {
-                    return { settings: { hiddenCasinos: [], viewMode: 'full', theme: 'light' }, approvedForLive: false };
-                })
+                .catch(e => ({ 
+                    settings: { 
+                        hiddenCasinos: [], 
+                        viewMode: 'full', 
+                        theme: 'light',
+                        hasLiveAccess: false 
+                    } 
+                }))
         ]);
 
         allCasinos = casinosData.casinos || [];
@@ -129,11 +151,13 @@ async function loadInitialData() {
         showAnnouncements(casinosData.announcements || []);
         updateStreamStatus(casinosData.streamStatus);
         
-        userHiddenCasinos = userData.settings?.hiddenCasinos || [];
-        userViewMode = userData.settings?.viewMode || 'full';
-        currentTheme = userData.settings?.theme || 'light';
+        // ЕДИНЫЙ ИСТОЧНИК НАСТРОЕК
+        const userSettings = userData.settings || {};
+        userHiddenCasinos = userSettings.hiddenCasinos || [];
+        userViewMode = userSettings.viewMode || 'full';
+        currentTheme = userSettings.theme || 'light';
         userId = currentUserId;
-        isApproved = userData.settings?.hasLiveAccess || false;
+        isApproved = userSettings.hasLiveAccess || false;
         
         document.body.classList.toggle('theme-dark', currentTheme === 'dark');
         document.getElementById('themeSwitcher').textContent = currentTheme === 'dark' ? '☀️ Светлая тема' : '🌙 Тёмная тема';
@@ -431,7 +455,7 @@ function updateLiveRooms() {
         if (isApproved) {
             privateRoomContent.innerHTML = `
                 <p>Доступ открыт! Присоединяйтесь к приватному голосовому чату</p>
-                <button class="btn btn-primary" onclick="openLink(event, 'https://meet.google.com/xxx-xxxx-xxx')">
+                <button class="btn btn-primary" onclick="openVoiceRoom(event, 'vip', 'https://meet.google.com/xxx-xxxx-xxx')">
                     ПЕРЕЙТИ В ПРИВАТНУЮ КОМНАТУ
                 </button>
             `;
@@ -498,7 +522,6 @@ function setupEventListeners() {
             }, 300);
         });
 
-        // Автофокус на поиск
         setTimeout(() => {
             searchInput.focus();
         }, 500);
@@ -528,6 +551,7 @@ function showError(message) {
 // ===== ГЛОБАЛЬНЫЕ ФУНКЦИИ =====
 window.toggleTheme = toggleTheme;
 window.openLink = openLink;
+window.openVoiceRoom = openVoiceRoom;
 window.startHideTimer = startHideTimer;
 window.cancelHideTimer = cancelHideTimer;
 window.hideCasino = hideCasino;
