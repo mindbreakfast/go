@@ -1,5 +1,6 @@
 const axios = require('axios');
-const config = require('./config');
+const path = require('path');
+const config = require(path.join(__dirname, '..', 'config')); // Исправленный путь
 const logger = require('./logger');
 
 class WarmupService {
