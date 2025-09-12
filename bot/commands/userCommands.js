@@ -49,7 +49,6 @@ function handleStartCommand(bot, msg) {
 function handleContestJoin(bot, msg, contestId) {
     const user = msg.from;
     
-    // Сохраняем состояние конкурса для пользователя
     database.updateUserSettings(user.id, {
         contestState: {
             active: true,
@@ -59,138 +58,148 @@ function handleContestJoin(bot, msg, contestId) {
     });
 
     bot.sendMessage(msg.chat.id,
-        `🎁 Вы участвуете в конкурсе!\n\n` +
-        `Для завершения регистрации нам нужно:\n` +
-        `📧 Ваша почта в казино\n` +
-        `📸 Скриншот депозита\n\n` +
-        `Отправьте вашу почту:`
+        `🎁 Вы участвуете в конкурсе!\n\nОтправьте вашу почту в казино:`
     );
 }
 
 function handleHelpCommand(bot, msg) {
     const helpText = `
 Доступные команды:
-
-/start - Запустить бота и открыть список казино
+/start - Запустить бота
 /help - Показать это сообщение
-/stats - Статистика бота (только для админов)
-/casino_stats - Статистика казино (только для админов)
-/voice_audit - Аудит голосовых (только для админов)
+/stats - Статистика бота
+/casino_stats - Статистика казино
+/voice_audit - Аудит голосовых
 /referral - Реферальная статистика
 
 Команды для админов:
 /live [ссылка] [описание] - Начать стрим
 /stop - Остановить стрим
 /text [сообщение] - Добавить анонс
-/clear_text - Очистить все анонсы
-/list_text - Показать все анонсы
-/remove_text [ID] - Удалить конкретный анонс
+/clear_text - Очистить анонсы
+/list_text - Показать анонсы
+/remove_text [ID] - Удалить анонс
 /broadcast [сообщение] - Сделать рассылку
 /add_casino - Добавить казино
 /list_casinos - Список казино
 /edit_casino [ID] - Редактировать казино
 /ref_stats - Топ рефереров
-
-Примеры:
-/live https://twitch.tv Мой крутой стрим
-/text цвет:green 🎉 Бonus 200%!
-/remove_text 123456789
     `.trim();
 
-    bot.sendMessage(msg.chat.id, helpText)
-        .catch(error => console.error('Error sending help:', error));
+    bot.sendMessage(msg.chat.id, helpText);
 }
 
 function handleMessage(bot, msg) {
     const text = msg.text;
     if (!text) return;
 
-    const statsRegex = /^\/stats($|\s)/;
-    const liveRegex = /^\/live($|\s)/;
-    const stopRegex = /^\/stop($|\s)/;
-    const textRegex = /^\/text($|\s)/;
-    const clearTextRegex = /^\/clear_text($|\s)/;
-    const listTextRegex = /^\/list_text($|\s)/;
-    const removeTextRegex = /^\/remove_text($|\s)/;
-    const broadcastRegex = /^\/broadcast($|\s)/;
-    const addCasinoRegex = /^\/add_casino($|\s)/;
-    const listCasinosRegex = /^\/list_casinos($|\s)/;
-    const editCasinoRegex = /^\/edit_casino($|\s)/;
-    const approveRegex = /^\/odobri($|\s)/;
-    const approvalsRegex = /^\/approvals($|\s)/;
-    const referralRegex = /^\/referral($|\s)/;
-    const startRegex = /^\/start($|\s)/;
-    const helpRegex = /^\/help($|\s)/;
-    const casinoStatsRegex = /^\/casino_stats($|\s)/;
-    const voiceAuditRegex = /^\/voice_audit($|\s)/;
-    const refStatsRegex = /^\/ref_stats($|\s)/;
+    console.log('Processing message:', text);
 
-    if (startRegex.test(text)) {
-        handleStartCommand(bot, msg);
+    // Сначала проверяем команды
+    if (text.startsWith('/')) {
+        processCommand(bot, msg, text);
         return;
     }
 
-    if (helpRegex.test(text)) {
-        handleHelpCommand(bot, msg);
-        return;
-    }
-
-    // Обработка конкурсов
+    // Затем проверяем конкурсы
     const userData = database.getUserData(msg.from.id);
-    if (userData.settings?.contestState?.active && !text.startsWith('/')) {
+    if (userData.settings?.contestState?.active) {
         handleContestResponse(bot, msg, text, userData.settings.contestState);
         return;
     }
 
-    if (textRegex.test(text)) {
-        const adminCommands = require('./adminCommands');
-        const messageText = text.substring(5).trim();
-        adminCommands.handleTextCommand(bot, msg, [null, messageText]);
-        return;
-    }
+    // Если это не команда и не конкурс - игнорируем
+    console.log('Ignoring non-command message:', text);
+}
 
-    if (casinoStatsRegex.test(text)) {
-        const adminCommands = require('./adminCommands');
-        adminCommands.handleCasinoStatsCommand(bot, msg);
-        return;
-    }
+function processCommand(bot, msg, text) {
+    const command = text.split(' ')[0].toLowerCase();
 
-    if (voiceAuditRegex.test(text)) {
-        const adminCommands = require('./adminCommands');
-        adminCommands.handleVoiceAuditCommand(bot, msg);
-        return;
+    switch (command) {
+        case '/start':
+            handleStartCommand(bot, msg);
+            break;
+        case '/help':
+            handleHelpCommand(bot, msg);
+            break;
+        case '/stats':
+            if (isAdmin(msg.from.id)) {
+                const adminCommands = require('./adminCommands');
+                adminCommands.handleStatsCommand(bot, msg);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        case '/casino_stats':
+            if (isAdmin(msg.from.id)) {
+                const adminCommands = require('./adminCommands');
+                adminCommands.handleCasinoStatsCommand(bot, msg);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        case '/voice_audit':
+            if (isAdmin(msg.from.id)) {
+                const adminCommands = require('./adminCommands');
+                adminCommands.handleVoiceAuditCommand(bot, msg);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        case '/text':
+            if (isAdmin(msg.from.id)) {
+                const adminCommands = require('./adminCommands');
+                const messageText = text.substring(5).trim();
+                adminCommands.handleTextCommand(bot, msg, [null, messageText]);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        case '/live':
+            if (isAdmin(msg.from.id)) {
+                const adminCommands = require('./adminCommands');
+                const params = text.substring(6).trim();
+                const spaceIndex = params.indexOf(' ');
+                if (spaceIndex > 0) {
+                    const streamUrl = params.substring(0, spaceIndex);
+                    const eventDescription = params.substring(spaceIndex + 1);
+                    adminCommands.handleLiveCommand(bot, msg, [null, streamUrl, eventDescription]);
+                } else {
+                    bot.sendMessage(msg.chat.id, '❌ Формат: /live [ссылка] [описание]');
+                }
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        case '/stop':
+            if (isAdmin(msg.from.id)) {
+                const adminCommands = require('./adminCommands');
+                adminCommands.handleStopCommand(bot, msg);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        case '/referral':
+            const referralCommands = require('./referralCommands');
+            referralCommands.handleReferralCommand(bot, msg);
+            break;
+        case '/ref_stats':
+            if (isAdmin(msg.from.id)) {
+                const referralCommands = require('./referralCommands');
+                referralCommands.handleRefStatsCommand(bot, msg);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        default:
+            bot.sendMessage(msg.chat.id, '❌ Неизвестная команда. Используйте /help для списка команд.');
     }
-
-    if (refStatsRegex.test(text)) {
-        const referralCommands = require('./referralCommands');
-        referralCommands.handleRefStatsCommand(bot, msg);
-        return;
-    }
-
-    // Остальные команды...
-    if (statsRegex.test(text)) {
-        const adminCommands = require('./adminCommands');
-        adminCommands.handleStatsCommand(bot, msg);
-    } else if (liveRegex.test(text)) {
-        const adminCommands = require('./adminCommands');
-        const params = text.substring(6).trim();
-        const spaceIndex = params.indexOf(' ');
-        if (spaceIndex > 0) {
-            const streamUrl = params.substring(0, spaceIndex);
-            const eventDescription = params.substring(spaceIndex + 1);
-            adminCommands.handleLiveCommand(bot, msg, [null, streamUrl, eventDescription]);
-        } else {
-            bot.sendMessage(msg.chat.id, '❌ Формат: /live [ссылка] [описание]');
-        }
-    }
-    // ... другие команды
 }
 
 function handleContestResponse(bot, msg, text, contestState) {
     const user = msg.from;
 
     if (contestState.step === 'email') {
-        // Сохраняем почту и запрашиваем скриншот
         database.updateUserSettings(user.id, {
             contestState: {
                 ...contestState,
@@ -199,14 +208,13 @@ function handleContestResponse(bot, msg, text, contestState) {
             }
         });
 
-        bot.sendMessage(msg.chat.id, '✅ Почта сохранена!\n\nТеперь отправьте скриншот депозита:');
+        bot.sendMessage(msg.chat.id, '✅ Почта сохранена! Теперь отправьте скриншот депозита:');
     } else if (contestState.step === 'screenshot') {
-        // Завершаем конкурс
         database.updateUserSettings(user.id, {
             contestState: null
         });
 
-        bot.sendMessage(msg.chat.id, '✅ Заявка на конкурс отправлена!\n\nОжидайте проверки админом.');
+        bot.sendMessage(msg.chat.id, '✅ Заявка на конкурс отправлена! Ожидайте проверки админом.');
 
         // Уведомляем админов
         const admins = config.ADMINS;
@@ -214,7 +222,7 @@ function handleContestResponse(bot, msg, text, contestState) {
             if (isAdmin(adminId)) {
                 bot.sendMessage(adminId,
                     `🎁 Новая заявка на конкурс!\nID: ${user.id}\nUsername: @${user.username}\nПочта: ${contestState.email}`
-                ).catch(error => console.error('Error notifying admin:', error));
+                );
             }
         });
     }
@@ -237,7 +245,7 @@ function handleApprovalRequest(bot, msg) {
             if (isAdmin(adminId)) {
                 bot.sendMessage(adminId,
                     `🆕 Новый запрос на одобрение!\nID: ${userId}\nUsername: ${username}\n/odobri_${userId}`
-                ).catch(error => console.error('Error notifying admin:', error));
+                );
             }
         });
     } else {
