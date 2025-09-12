@@ -69,9 +69,7 @@ function incrementClickCount(casinoId) {
         const user = window.Telegram.WebApp.initDataUnsafe.user;
         fetch('https://go-5zty.onrender.com/api/track-click', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 userId: user.id,
                 userInfo: user,
@@ -82,7 +80,7 @@ function incrementClickCount(casinoId) {
     }
 }
 
-// ===== DEBOUNCED СОХРАНЕНИЕ НАСТРОЕК =====
+// ===== СОХРАНЕНИЕ НАСТРОЕК =====
 function debouncedSaveSettings() {
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(saveUserSettings, 1000);
@@ -91,7 +89,7 @@ function debouncedSaveSettings() {
 async function saveUserSettings() {
     if (userId && userId !== 'anonymous') {
         try {
-            const response = await fetch('https://go-5zty.onrender.com/api/save-user-settings', {
+            await fetch('https://go-5zty.onrender.com/api/save-user-settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -101,16 +99,8 @@ async function saveUserSettings() {
                     theme: currentTheme
                 })
             });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                console.log('✅ Settings saved successfully');
-            } else {
-                console.error('❌ Failed to save settings:', result.message);
-            }
         } catch (error) {
-            console.error('❌ Error saving settings:', error);
+            console.error('Ошибка сохранения настроек:', error);
         }
     }
 }
@@ -121,8 +111,6 @@ async function loadInitialData() {
         const tg = window.Telegram?.WebApp;
         const currentUserId = tg?.initDataUnsafe?.user?.id || 'anonymous';
         
-        console.log('Loading data for user:', currentUserId);
-        
         const [casinosData, userData] = await Promise.all([
             fetch('https://go-5zty.onrender.com/api/all-data').then(r => {
                 if (!r.ok) throw new Error('Ошибка загрузки данных');
@@ -131,33 +119,22 @@ async function loadInitialData() {
             fetch(`https://go-5zty.onrender.com/api/user-data?userId=${currentUserId}`)
                 .then(r => r.json())
                 .catch(e => {
-                    console.log('User data load error, using defaults');
                     return { settings: { hiddenCasinos: [], viewMode: 'full', theme: 'light' }, approvedForLive: false };
                 })
         ]);
 
-        console.log('Loaded data:', {
-            casinos: casinosData.casinos?.length,
-            announcements: casinosData.announcements?.length,
-            streamLive: casinosData.streamStatus?.isStreamLive,
-            userSettings: userData.settings
-        });
-
         allCasinos = casinosData.casinos || [];
         renderFilters(casinosData.categories || []);
         
-        // ПОКАЗЫВАЕМ АНОНСЫ И СТРИМ
         showAnnouncements(casinosData.announcements || []);
         updateStreamStatus(casinosData.streamStatus);
         
-        // ✅ ЗАГРУЖАЕМ НАСТРОЙКИ ИЗ СЕРВЕРА
         userHiddenCasinos = userData.settings?.hiddenCasinos || [];
         userViewMode = userData.settings?.viewMode || 'full';
         currentTheme = userData.settings?.theme || 'light';
         userId = currentUserId;
         isApproved = userData.settings?.hasLiveAccess || false;
         
-        // ПРИМЕНЯЕМ ТЕМУ ИЗ СЕРВЕРА
         document.body.classList.toggle('theme-dark', currentTheme === 'dark');
         document.getElementById('themeSwitcher').textContent = currentTheme === 'dark' ? '☀️ Светлая тема' : '🌙 Тёмная тема';
         localStorage.setItem('theme', currentTheme);
@@ -170,9 +147,7 @@ async function loadInitialData() {
             const user = tg.initDataUnsafe.user;
             fetch('https://go-5zty.onrender.com/api/track-visit', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     userId: user.id,
                     userInfo: user,
@@ -501,7 +476,7 @@ function copyReferralLink() {
     if (userId && userId !== 'anonymous') {
         const referralLink = `https://t.me/Ludogol_bot?start=ref${userId}`;
         navigator.clipboard.writeText(referralLink).then(() => {
-            alert('✅ Реферальная ссылка скопирована!\n\nДелитесь с друзьями и получайте бонусы!');
+            alert('✅ Реферальная ссылка скопирована!\n\nКиньте ссылку другу!');
         }).catch(err => {
             console.error('Error copying referral link:', err);
             alert('❌ Ошибка при копировании ссылки');
@@ -522,6 +497,11 @@ function setupEventListeners() {
                 renderCasinos();
             }, 300);
         });
+
+        // Автофокус на поиск
+        setTimeout(() => {
+            searchInput.focus();
+        }, 500);
     }
 
     const themeSwitcher = document.getElementById('themeSwitcher');
