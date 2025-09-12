@@ -6,6 +6,29 @@ let userClickStats = {};
 let userHiddenCasinos = [];
 let userViewMode = 'full';
 let userId = null;
+let isApproved = false;// ===== БЕЗОПАСНОСТЬ: Функция для экранирования HTML (Защита от XSS) =====
+function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return unsafe
+        .toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// ===== СТАБИЛЬНОСТЬ RENDER: Динамическое определение URL API =====
+const API_BASE = window.location.origin; // Автоматически работает на любом домене Render
+
+// ===== ПЕРЕМЕННЫЕ =====
+let allCasinos = [];
+let activeFilters = new Set();
+let currentSearchQuery = '';
+let userClickStats = {};
+let userHiddenCasinos = [];
+let userViewMode = 'full';
+let userId = null;
 let isApproved = false;
 let currentTheme = 'light';
 
@@ -54,7 +77,7 @@ function openLink(event, url) {
 
 function openVoiceRoom(event, roomType, roomUrl) {
     if (userId && userId !== 'anonymous') {
-        fetch('https://go-5zty.onrender.com/api/track-voice-access', {
+        fetch(`${API_BASE}/api/track-voice-access`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -84,12 +107,12 @@ function incrementClickCount(casinoId) {
     
     if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
         const user = window.Telegram.WebApp.initDataUnsafe.user;
-        fetch('https://go-5zty.onrender.com/api/track-click', {
+        fetch(`${API_BASE}/api/track-click`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 userId: user.id,
-                userInfo: user,
+                userInfo: { id: user.id, username: user.username }, // Отправляем только нужные данные
                 casinoId: casinoId,
                 action: 'click'
             })
@@ -106,7 +129,7 @@ function debouncedSaveSettings() {
 async function saveUserSettings() {
     if (userId && userId !== 'anonymous') {
         try {
-            await fetch('https://go-5zty.onrender.com/api/save-user-settings', {
+            await fetch(`${API_BASE}/api/save-user-settings`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -125,16 +148,17 @@ async function saveUserSettings() {
 // ===== ЗАГРУЗКА ДАННЫХ =====
 async function loadInitialData() {
     try {
+        showLoadingState();
         const tg = window.Telegram?.WebApp;
         const currentUserId = tg?.initDataUnsafe?.user?.id || 'anonymous';
         
-        const [casinosData, userData] = await Promise.all([
-            fetch('https://go-5zty.onrender.com/api/all-data').then(r => {
+        const [casinosData, userData] = await Promise.allSettled([
+            fetch(`${API_BASE}/api/all-data`).then(r => {
                 if (!r.ok) throw new Error('Ошибка загрузки данных');
                 return r.json();
             }),
-            fetch(`https://go-5zty.onrender.com/api/user-data?userId=${currentUserId}`)
-                .then(r => r.json())
+            fetch(`${API_BASE}/api/user-data?userId=${currentUserId}`)
+                .then(r => r.ok ? r.json() : Promise.reject('User data error'))
                 .catch(e => ({ 
                     settings: { 
                         hiddenCasinos: [], 
@@ -145,14 +169,21 @@ async function loadInitialData() {
                 }))
         ]);
 
-        allCasinos = casinosData.casinos || [];
-        renderFilters(casinosData.categories || []);
-        
-        showAnnouncements(casinosData.announcements || []);
-        updateStreamStatus(casinosData.streamStatus);
+        // Обработка результатов запросов
+        if (casinosData.status === 'fulfilled') {
+            allCasinos = casinosData.value.casinos || [];
+            renderFilters(casinosData.value.categories || []);
+            showAnnouncements(casinosData.value.announcements || []);
+            updateStreamStatus(casinosData.value.streamStatus);
+        } else {
+            throw new Error('Не удалось загрузить данные казино');
+        }
+
+        const userSettings = (userData.status === 'fulfilled') ? 
+            (userData.value.settings || {}) : 
+            { hiddenCasinos: [], viewMode: 'full', theme: 'light', hasLiveAccess: false };
         
         // ЕДИНЫЙ ИСТОЧНИК НАСТРОЕК
-        const userSettings = userData.settings || {};
         userHiddenCasinos = userSettings.hiddenCasinos || [];
         userViewMode = userSettings.viewMode || 'full';
         currentTheme = userSettings.theme || 'light';
@@ -169,12 +200,12 @@ async function loadInitialData() {
 
         if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
             const user = tg.initDataUnsafe.user;
-            fetch('https://go-5zty.onrender.com/api/track-visit', {
+            fetch(`${API_BASE}/api/track-visit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     userId: user.id,
-                    userInfo: user,
+                    userInfo: { id: user.id, username: user.username }, // Только необходимые данные
                     action: 'visit'
                 })
             }).catch(error => console.log('Ошибка отправки статистики:', error));
@@ -183,7 +214,22 @@ async function loadInitialData() {
     } catch (error) {
         console.error('Ошибка загрузки:', error);
         showError('Ошибка при загрузке данных. Попробуйте обновить страницу.');
+    } finally {
+        hideLoadingState();
     }
+}
+
+function showLoadingState() {
+    const container = document.getElementById('casinoList');
+    if (container) {
+        container.innerHTML = '<div class="loader">Загрузка...</div>';
+    }
+}
+
+function hideLoadingState() {
+    // Убираем лоадер, если он есть
+    const loader = document.querySelector('.loader');
+    if (loader) loader.style.display = 'none';
 }
 
 // ===== ОТОБРАЖЕНИЕ АНОНСОВ И СТРИМА =====
@@ -194,9 +240,10 @@ function showAnnouncements(announcements) {
         return;
     }
 
+    // 🔒 БЕЗОПАСНОСТЬ: Используем escapeHtml для защиты от XSS
     container.innerHTML = announcements.map(announcement => `
         <div class="announcement-banner announcement-${announcement.color || 'blue'}">
-            ${announcement.text}
+            ${escapeHtml(announcement.text)}
         </div>
     `).join('');
 }
@@ -307,17 +354,17 @@ function renderCasinos() {
              ontouchcancel="cancelHideTimer()">
             
             <div class="casino-header">
-                <div class="casino-name">${casino.name}</div>
+                <div class="casino-name">${escapeHtml(casino.name)}</div>
                 ${userViewMode === 'full' ? `
-                <div class="promo-code" onclick="copyPromoCode(${casino.id}, '${casino.promocode}')">
-                    ${casino.promocode}
+                <div class="promo-code" onclick="copyPromoCode(${casino.id}, '${escapeHtml(casino.promocode)}')">
+                    ${escapeHtml(casino.promocode)}
                 </div>
                 ` : ''}
             </div>
             
             ${userViewMode === 'full' ? `
             <div class="promo-description">
-                ${casino.shortDescription}
+                ${escapeHtml(casino.shortDescription)}
             </div>
 
             <div class="action-buttons">
@@ -333,7 +380,7 @@ function renderCasinos() {
 
             ${casino.fullDescription ? `
             <div class="casino-details" id="details-${casino.id}" style="display: none;">
-                <p>${casino.fullDescription}</p>
+                <p>${escapeHtml(casino.fullDescription)}</p>
             </div>
             ` : ''}
             ` : `
@@ -472,7 +519,7 @@ function updateLiveRooms() {
 
 function requestApproval() {
     if (userId && userId !== 'anonymous') {
-        fetch('https://go-5zty.onrender.com/api/request-approval', {
+        fetch(`${API_BASE}/api/request-approval`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -539,7 +586,7 @@ function showError(message) {
     if (container) {
         container.innerHTML = `
             <div class="error-message">
-                ${message}
+                ${escapeHtml(message)}
                 <button class="btn btn-outline" onclick="location.reload()">
                     🔄 Обновить страницу
                 </button>
