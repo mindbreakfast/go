@@ -52,12 +52,10 @@ function handleStartCommand(bot, msg) {
         .catch(error => logger.error('Error sending welcome message:', { error: error.message }));
 }
 
-// 🔥 НОВАЯ ФУНКЦИЯ: Обработка участия в конкурсе
 function handleContestJoin(bot, msg, contestId) {
     const user = msg.from;
     logger.info('Contest join attempt', { userId: user.id, contestId });
 
-    // Здесь будет логика проверки условий конкурса и сбора данных
     bot.sendMessage(msg.chat.id,
         `🎁 Вы участвуете в конкурсе!\n\n` +
         `Для завершения регистрации нам нужно:\n` +
@@ -77,6 +75,7 @@ function handleHelpCommand(bot, msg) {
 /stats - Статистика бота (только для админов)
 /casino_stats - Статистика казино (только для админов)
 /voice_audit - Аудит голосовых (только для админов)
+/referral - Реферальная статистика
 
 Команды для админов:
 /live [ссылка] [описание] - Начать стрим
@@ -89,6 +88,7 @@ function handleHelpCommand(bot, msg) {
 /add_casino - Добавить казино
 /list_casinos - Список казино
 /edit_casino [ID] - Редактировать казино
+/ref_stats - Топ рефереров
 
 Примеры:
 /live https://twitch.tv Мой крутой стрим
@@ -109,10 +109,11 @@ function handleMessage(bot, msg) {
 
     logger.debug('Handling message', { userId: msg.from.id, text: text.substring(0, 50) });
 
+    // Регулярные выражения для всех команд
     const statsRegex = /^\/stats($|\s)/;
     const liveRegex = /^\/live($|\s)/;
     const stopRegex = /^\/stop($|\s)/;
-    const textRegex = /^\/text($|\s)/;
+    const textRegex = /^\/text($|\s)/; // ✅ ДОБАВЛЕНО
     const clearTextRegex = /^\/clear_text($|\s)/;
     const listTextRegex = /^\/list_text($|\s)/;
     const removeTextRegex = /^\/remove_text($|\s)/;
@@ -127,6 +128,7 @@ function handleMessage(bot, msg) {
     const helpRegex = /^\/help($|\s)/;
     const casinoStatsRegex = /^\/casino_stats($|\s)/;
     const voiceAuditRegex = /^\/voice_audit($|\s)/;
+    const refStatsRegex = /^\/ref_stats($|\s)/;
 
     if (startRegex.test(text)) {
         handleStartCommand(bot, msg);
@@ -135,6 +137,15 @@ function handleMessage(bot, msg) {
 
     if (helpRegex.test(text)) {
         handleHelpCommand(bot, msg);
+        return;
+    }
+
+    // ✅ ОБРАБОТКА TEXT КОМАНДЫ
+    if (textRegex.test(text)) {
+        logger.info('Text command received', { userId: msg.from.id });
+        const adminCommands = require('./adminCommands');
+        const messageText = text.substring(5).trim();
+        adminCommands.handleTextCommand(bot, msg, [null, messageText]);
         return;
     }
 
@@ -158,6 +169,13 @@ function handleMessage(bot, msg) {
         return;
     }
 
+    if (refStatsRegex.test(text)) {
+        logger.info('Ref stats command received', { userId: msg.from.id });
+        const referralCommands = require('./referralCommands');
+        referralCommands.handleRefStatsCommand(bot, msg);
+        return;
+    }
+
     // Остальная обработка команд...
     if (statsRegex.test(text)) {
         logger.info('Stats command received', { userId: msg.from.id });
@@ -176,10 +194,9 @@ function handleMessage(bot, msg) {
             bot.sendMessage(msg.chat.id, '❌ Формат: /live [ссылка] [описание]');
         }
     }
-    // ... остальная обработка команд без изменений
+    // ... остальные команды
 }
 
-// Остальные функции без изменений, но с добавлением logger
 function handleApprovalRequest(bot, msg) {
     const username = msg.text.trim();
     const userId = msg.from.id;
