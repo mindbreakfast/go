@@ -1,4 +1,5 @@
 require('dotenv').config();
+const logger = require('./utils/logger');
 
 const config = {
     PORT: process.env.PORT || 3000,
@@ -22,22 +23,24 @@ const config = {
         {"id": "cats", "name": "Коты"},
         {"id": "bandits", "name": "Банды"},
         {"id": "other", "name": "Другие"},
-        {"id": "pf", "name": "ПФ"},
-        {"id": "joy", "name": "ДЖОИ"}
+        {"id": "pf", "name": "Пф"},
+        {"id": "joy", "name": "Джои"}
     ],
-    BUST_CACHE: process.env.BUST_CACHE === 'true' // ✅ Добавлена переменная
+    BUST_CACHE: process.env.BUST_CACHE === 'true',
+    LOG_LEVEL: process.env.LOG_LEVEL || 'info'
 };
 
-console.log('Config loaded:', {
+logger.info('Config loaded:', {
     hasBotToken: !!config.BOT_TOKEN,
     botToken: config.BOT_TOKEN ? config.BOT_TOKEN.substring(0, 10) + '...' : 'missing',
     hasGitHubToken: !!config.GITHUB_TOKEN,
     githubRepo: config.GITHUB_REPO_OWNER + '/' + config.GITHUB_REPO_NAME,
-    bustCache: config.BUST_CACHE
+    bustCache: config.BUST_CACHE,
+    port: config.PORT
 });
 
 if (!config.BOT_TOKEN) {
-    console.error('FATAL ERROR: BOT_TOKEN is not defined');
+    logger.error('FATAL ERROR: BOT_TOKEN is not defined');
     process.exit(1);
 }
 
