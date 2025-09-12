@@ -1,14 +1,16 @@
 const express = require('express');
 const database = require('./database/database');
 const { router: apiRoutes, initializeApiRoutes } = require('./api/routes');
-const { startBot, testBot } = require('./bot/bot'); // Импортируем функции запуска
+const { startBot, testBot } = require('./bot/bot');
 const config = require('./config');
+const logger = require('./utils/logger');
+const warmupService = require('./utils/warmup');
 
 const app = express();
 
-console.log('===================================');
-console.log('Starting Ludogolik Bot Server...');
-console.log('===================================');
+logger.info('===================================');
+logger.info('Starting Ludogolik Bot Server...');
+logger.info('===================================');
 
 // Middleware
 app.use(express.json());
@@ -37,12 +39,24 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Warmup endpoint
+app.get('/warmup', (req, res) => {
+    logger.info('Manual warmup requested');
+    warmupService.warmup();
+    res.json({ status: 'warmup_started' });
+});
+
 // Graceful shutdown
 function gracefulShutdown() {
-    console.log('\n🛑 Received shutdown signal. Saving ALL data...');
-    database.saveAllDataToGitHub().then(() => { // Используем новую функцию
-        console.log('✅ All data saved to GitHub. Exiting.');
+    logger.info('🛑 Received shutdown signal. Saving ALL data...');
+    warmupService.stop();
+    
+    database.saveAllDataToGitHub().then(() => {
+        logger.info('✅ All data saved to GitHub. Exiting.');
         process.exit(0);
+    }).catch(error => {
+        logger.error('❌ Error saving data during shutdown', { error: error.message });
+        process.exit(1);
     });
 }
 
@@ -50,15 +64,15 @@ process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
 
 async function startServer() {
-    console.log('🔄 Step 1: Loading data from storage...');
+    logger.info('🔄 Step 1: Loading data from storage...');
     const dataLoaded = await database.loadData();
     if (!dataLoaded) {
-        console.error('❌ Failed to load data. Exiting.');
+        logger.error('❌ Failed to load data. Exiting.');
         process.exit(1);
     }
 
-    console.log('✅ Step 2: Data loaded successfully');
-    console.log('🔄 Step 3: Starting Telegram Bot...');
+    logger.info('✅ Step 2: Data loaded successfully');
+    logger.info('🔄 Step 3: Starting Telegram Bot...');
     
     try {
         // Запускаем бота (явно и контролируемо)
@@ -67,35 +81,33 @@ async function startServer() {
             throw new Error('Bot failed to start');
         }
 
-        console.log('✅ Step 4: Bot started successfully');
+        logger.info('✅ Step 4: Bot started successfully');
         
         // Инициализируем API routes с экземпляром бота
         const { bot } = require('./bot/bot');
         initializeApiRoutes(bot);
-        console.log('✅ Step 5: API routes initialized with bot instance');
+        logger.info('✅ Step 5: API routes initialized with bot instance');
+
+        // Запускаем сервис прогрева
+        warmupService.start();
+        logger.info('✅ Step 6: Warmup service started');
 
         // Запускаем сервер
         app.listen(config.PORT, () => {
-            console.log('✅ Step 6: Express server started on port', config.PORT);
-            console.log('===================================');
-            console.log('🚀 Server is fully operational!');
-            console.log('===================================');
+            logger.info('✅ Step 7: Express server started on port', { port: config.PORT });
+            logger.info('===================================');
+            logger.info('🚀 Server is fully operational!');
+            logger.info('===================================');
         });
 
-// Автосохранение каждые 5 минут
-// setInterval(() => {
-//     console.log('💾 Auto-saving data...');
-//     database.saveData().catch(err => console.error('❌ Auto-save error:', err.message));
-// }, 5 * 60 * 1000);
-
     } catch (error) {
-        console.error('❌ Error during bot startup:', error.message);
+        logger.error('❌ Error during bot startup:', { error: error.message });
         process.exit(1);
     }
 }
 
 // Запускаем сервер
 startServer().catch(error => {
-    console.error('❌ Fatal error during startup:', error);
+    logger.error('❌ Fatal error during startup:', { error: error.message });
     process.exit(1);
 });
