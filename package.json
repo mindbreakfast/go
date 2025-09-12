@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node main.js",
     "dev": "nodemon main.js",
-    "test": "echo \"No tests specified\" && exit 0"
+    "test": "echo \"No tests specified\" && exit 0",
+    "logs": "tail -f logs/app.log",
+    "clean-logs": "rm -f logs/*.log"
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.64.0",
