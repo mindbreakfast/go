@@ -3,24 +3,19 @@ const config = require(path.join(__dirname, '..', '..', 'config'));
 const database = require(path.join(__dirname, '..', '..', 'database', 'database'));
 const { isAdmin } = require(path.join(__dirname, '..', '..', 'utils', 'isAdmin'));
 const { casinoEditingState } = require('../state');
-const logger = require('../../utils/logger');
 
 function handleStartCommand(bot, msg) {
-    logger.info('Start command received', { userId: msg.from.id });
     const user = msg.from;
     
     database.trackUserAction(user.id, user, 'start');
 
-    // 🔥 Обработка deep link для конкурсов
     if (msg.text && msg.text.includes('giftme_')) {
         const contestId = msg.text.split(' ')[1];
-        logger.info('Contest deep link detected', { userId: user.id, contestId });
         handleContestJoin(bot, msg, contestId);
         return;
     }
 
     if (msg.text && msg.text.includes('request_approval')) {
-        logger.info('Approval request from start command', { userId: user.id });
         database.requestApproval(user.id, user.username || 'не указан');
         bot.sendMessage(msg.chat.id, '✅ Ваш запрос на доступ отправлен админам! Ожидайте одобрения.');
         return;
@@ -31,7 +26,6 @@ function handleStartCommand(bot, msg) {
         if (referralCode.startsWith('ref')) {
             const referrerId = parseInt(referralCode.substring(3));
             if (!isNaN(referrerId) && referrerId !== user.id) {
-                logger.info('Referral detected via start', { userId: user.id, referrerId });
                 database.handleReferralStart(user.id, referrerId);
             }
         }
@@ -49,12 +43,20 @@ function handleStartCommand(bot, msg) {
     };
 
     bot.sendMessage(msg.chat.id, 'Добро пожаловать! Нажмите кнопку ниже чтобы открыть список казино:', keyboard)
-        .catch(error => logger.error('Error sending welcome message:', { error: error.message }));
+        .catch(error => console.error('Error sending welcome message:', error));
 }
 
 function handleContestJoin(bot, msg, contestId) {
     const user = msg.from;
-    logger.info('Contest join attempt', { userId: user.id, contestId });
+    
+    // Сохраняем состояние конкурса для пользователя
+    database.updateUserSettings(user.id, {
+        contestState: {
+            active: true,
+            contestId: contestId,
+            step: 'email'
+        }
+    });
 
     bot.sendMessage(msg.chat.id,
         `🎁 Вы участвуете в конкурсе!\n\n` +
@@ -66,7 +68,6 @@ function handleContestJoin(bot, msg, contestId) {
 }
 
 function handleHelpCommand(bot, msg) {
-    logger.info('Help command received', { userId: msg.from.id });
     const helpText = `
 Доступные команды:
 
@@ -97,23 +98,17 @@ function handleHelpCommand(bot, msg) {
     `.trim();
 
     bot.sendMessage(msg.chat.id, helpText)
-        .catch(error => logger.error('Error sending help:', { error: error.message }));
+        .catch(error => console.error('Error sending help:', error));
 }
 
 function handleMessage(bot, msg) {
     const text = msg.text;
-    if (!text) {
-        logger.debug('Empty text in handleMessage');
-        return;
-    }
+    if (!text) return;
 
-    logger.debug('Handling message', { userId: msg.from.id, text: text.substring(0, 50) });
-
-    // Регулярные выражения для всех команд
     const statsRegex = /^\/stats($|\s)/;
     const liveRegex = /^\/live($|\s)/;
     const stopRegex = /^\/stop($|\s)/;
-    const textRegex = /^\/text($|\s)/; // ✅ ДОБАВЛЕНО
+    const textRegex = /^\/text($|\s)/;
     const clearTextRegex = /^\/clear_text($|\s)/;
     const listTextRegex = /^\/list_text($|\s)/;
     const removeTextRegex = /^\/remove_text($|\s)/;
@@ -140,49 +135,43 @@ function handleMessage(bot, msg) {
         return;
     }
 
-    // ✅ ОБРАБОТКА TEXT КОМАНДЫ
+    // Обработка конкурсов
+    const userData = database.getUserData(msg.from.id);
+    if (userData.settings?.contestState?.active && !text.startsWith('/')) {
+        handleContestResponse(bot, msg, text, userData.settings.contestState);
+        return;
+    }
+
     if (textRegex.test(text)) {
-        logger.info('Text command received', { userId: msg.from.id });
         const adminCommands = require('./adminCommands');
         const messageText = text.substring(5).trim();
         adminCommands.handleTextCommand(bot, msg, [null, messageText]);
         return;
     }
 
-    if (database.getUserChats().get(msg.from.id)?.waitingForApproval) {
-        handleApprovalRequest(bot, msg);
-        return;
-    }
-
-    // 📊 Новые команды статистики
     if (casinoStatsRegex.test(text)) {
-        logger.info('Casino stats command received', { userId: msg.from.id });
         const adminCommands = require('./adminCommands');
         adminCommands.handleCasinoStatsCommand(bot, msg);
         return;
     }
 
     if (voiceAuditRegex.test(text)) {
-        logger.info('Voice audit command received', { userId: msg.from.id });
         const adminCommands = require('./adminCommands');
         adminCommands.handleVoiceAuditCommand(bot, msg);
         return;
     }
 
     if (refStatsRegex.test(text)) {
-        logger.info('Ref stats command received', { userId: msg.from.id });
         const referralCommands = require('./referralCommands');
         referralCommands.handleRefStatsCommand(bot, msg);
         return;
     }
 
-    // Остальная обработка команд...
+    // Остальные команды...
     if (statsRegex.test(text)) {
-        logger.info('Stats command received', { userId: msg.from.id });
         const adminCommands = require('./adminCommands');
         adminCommands.handleStatsCommand(bot, msg);
     } else if (liveRegex.test(text)) {
-        logger.info('Live command received', { userId: msg.from.id });
         const adminCommands = require('./adminCommands');
         const params = text.substring(6).trim();
         const spaceIndex = params.indexOf(' ');
@@ -194,36 +183,65 @@ function handleMessage(bot, msg) {
             bot.sendMessage(msg.chat.id, '❌ Формат: /live [ссылка] [описание]');
         }
     }
-    // ... остальные команды
+    // ... другие команды
+}
+
+function handleContestResponse(bot, msg, text, contestState) {
+    const user = msg.from;
+
+    if (contestState.step === 'email') {
+        // Сохраняем почту и запрашиваем скриншот
+        database.updateUserSettings(user.id, {
+            contestState: {
+                ...contestState,
+                step: 'screenshot',
+                email: text
+            }
+        });
+
+        bot.sendMessage(msg.chat.id, '✅ Почта сохранена!\n\nТеперь отправьте скриншот депозита:');
+    } else if (contestState.step === 'screenshot') {
+        // Завершаем конкурс
+        database.updateUserSettings(user.id, {
+            contestState: null
+        });
+
+        bot.sendMessage(msg.chat.id, '✅ Заявка на конкурс отправлена!\n\nОжидайте проверки админом.');
+
+        // Уведомляем админов
+        const admins = config.ADMINS;
+        admins.forEach(adminId => {
+            if (isAdmin(adminId)) {
+                bot.sendMessage(adminId,
+                    `🎁 Новая заявка на конкурс!\nID: ${user.id}\nUsername: @${user.username}\nПочта: ${contestState.email}`
+                ).catch(error => console.error('Error notifying admin:', error));
+            }
+        });
+    }
 }
 
 function handleApprovalRequest(bot, msg) {
     const username = msg.text.trim();
     const userId = msg.from.id;
     
-    logger.info('Approval request processing', { userId, username });
-    
     if (!username.startsWith('@') || username.length < 5) {
-        return bot.sendMessage(msg.chat.id, '❌ Пожалуйста, введите корректный username в формате @username')
-            .catch(error => logger.error('Error sending validation message:', { error: error.message }));
+        return bot.sendMessage(msg.chat.id, '❌ Пожалуйста, введите корректный username в формате @username');
     }
 
     const success = database.requestApproval(userId, username);
     if (success) {
-        bot.sendMessage(msg.chat.id, '✅ Ваш запрос на одобрение отправлен админам! Ожидайте.')
-            .catch(error => logger.error('Error sending success message:', { error: error.message }));
+        bot.sendMessage(msg.chat.id, '✅ Ваш запрос на одобрение отправлен админам! Ожидайте.');
         
         const admins = config.ADMINS;
         admins.forEach(adminId => {
             if (isAdmin(adminId)) {
                 bot.sendMessage(adminId,
                     `🆕 Новый запрос на одобрение!\nID: ${userId}\nUsername: ${username}\n/odobri_${userId}`
-                ).catch(error => logger.error(`Error notifying admin ${adminId}:`, { error: error.message }));
+                ).catch(error => console.error('Error notifying admin:', error));
             }
         });
     } else {
-        bot.sendMessage(msg.chat.id, '❌ Ошибка при отправке запроса')
-            .catch(error => logger.error('Error sending error message:', { error: error.message }));
+        bot.sendMessage(msg.chat.id, '❌ Ошибка при отправке запроса');
     }
 }
 
