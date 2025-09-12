@@ -24,9 +24,9 @@
         35
       ],
       "notifications": true,
-      "theme": "light",
+      "theme": "dark",
       "hasLiveAccess": true,
-      "viewMode": "full",
+      "viewMode": "compact",
       "contestState": {
         "active": true,
         "contestId": "giftme_2024_01",
@@ -62,5 +62,5 @@
     }
   ],
   "referralData": {},
-  "lastUpdated": "2025-09-12T13:04:14.504Z"
+  "lastUpdated": "2025-09-12T13:04:17.703Z"
 }
