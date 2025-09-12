@@ -5,6 +5,12 @@
       "text": "паарп",
       "color": "blue",
       "createdAt": "2025-09-12T11:21:58.083Z"
+    },
+    {
+      "id": 1757682323325,
+      "text": "hfgh",
+      "color": "blue",
+      "createdAt": "2025-09-12T13:05:23.325Z"
     }
   ],
   "streamStatus": {
@@ -13,5 +19,5 @@
     "eventDescription": "fg",
     "lastUpdated": "2025-09-12T10:52:28.349Z"
   },
-  "lastUpdated": "2025-09-12T12:59:47.893Z"
+  "lastUpdated": "2025-09-12T13:05:23.326Z"
 }
