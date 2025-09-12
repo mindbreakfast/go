@@ -3,7 +3,6 @@ const path = require('path');
 const axios = require('axios');
 const config = require('../config');
 const githubSync = require('./githubSync');
-const logger = require('../utils/logger');
 
 // Разделяем данные на 3 части
 let casinos = [];
@@ -20,9 +19,9 @@ let userSettings = new Map();
 let giveaways = [];
 let pendingApprovals = [];
 let referralData = new Map();
-let clickStats = new Map(); // 📊 Статистика кликов по казино
-let hiddenStats = new Map(); // 📊 Статистика скрытий казино
-let voiceAccessLogs = []; // 🎤 Лог входов в голосовые комнаты
+let userClickStats = new Map(); // ✅ ДОБАВЛЕНО определение
+let hiddenStats = new Map();
+let voiceAccessLogs = [];
 
 class Database {
     constructor() {
@@ -30,144 +29,26 @@ class Database {
         this.contentFilePath = path.join(__dirname, '..', 'content.json');
         this.userDataFilePath = path.join(__dirname, '..', 'userdata.json');
         this.statsFilePath = path.join(__dirname, '..', 'stats.json');
+        this.backupInterval = null;
     }
 
     async loadData() {
-        logger.info('🔄 Starting COMPLETE data loading from GitHub...');
+        console.log('🔄 Starting data loading...');
         
         try {
-            logger.info('🌐 Loading ALL data from GitHub...');
-            
-            const [mainDataLoaded, contentDataLoaded, userDataLoaded, statsDataLoaded] = await Promise.all([
-                this.#loadFileFromGitHub('data.json', (data) => this.#processMainData(data)),
-                this.#loadFileFromGitHub('content.json', (data) => this.#processContentData(data)),
-                this.#loadFileFromGitHub('userdata.json', (data) => this.#processUserData(data)),
-                this.#loadFileFromGitHub('stats.json', (data) => this.#processStatsData(data))
-            ]);
+            // Пытаемся загрузить из локальных файлов
+            await this.#loadMainDataFromLocal();
+            await this.#loadContentDataFromLocal();
+            await this.#loadUserDataFromLocal();
+            await this.#loadStatsDataFromLocal();
 
-            logger.info('GitHub load results:', {
-                main: mainDataLoaded,
-                content: contentDataLoaded,
-                user: userDataLoaded,
-                stats: statsDataLoaded
-            });
-
-            if (!mainDataLoaded) await this.#loadMainDataFromLocal();
-            if (!contentDataLoaded) await this.#loadContentDataFromLocal();
-            if (!userDataLoaded) await this.#loadUserDataFromLocal();
-            if (!statsDataLoaded) await this.#loadStatsDataFromLocal();
-
-            logger.info('FINAL data loaded:', {
-                casinos: casinos.length,
-                announcements: announcements.length,
-                users: userChats.size,
-                clickStats: clickStats.size,
-                voiceLogs: voiceAccessLogs.length
-            });
+            console.log(`✅ Data loaded: ${casinos.length} casinos, ${userSettings.size} users`);
             return true;
 
         } catch (error) {
-            logger.error('Error loading data:', { error: error.message });
+            console.error('❌ Error loading data:', error.message);
             return await this.initializeData();
         }
-    }
-
-    async #loadFileFromGitHub(fileName, processor) {
-        if (!config.GITHUB_TOKEN) {
-            logger.warn(`GITHUB_TOKEN not set, skipping ${fileName}`);
-            return false;
-        }
-
-        try {
-            logger.info(`Downloading ${fileName} from GitHub...`);
-            const url = `https://api.github.com/repos/${config.GITHUB_REPO_OWNER}/${config.GITHUB_REPO_NAME}/contents/${fileName}`;
-            
-            const response = await axios.get(url, {
-                headers: {
-                    'Authorization': `token ${config.GITHUB_TOKEN}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'User-Agent': 'Ludogolik-Bot-Server'
-                },
-                timeout: 10000
-            });
-
-            if (response.data && response.data.content) {
-                const content = Buffer.from(response.data.content, 'base64').toString('utf8');
-                const parsedData = JSON.parse(content);
-                processor(parsedData);
-                logger.info(`Successfully loaded ${fileName} from GitHub`);
-                return true;
-            }
-            return false;
-            
-        } catch (error) {
-            if (error.response?.status === 404) {
-                logger.warn(`${fileName} not found on GitHub`);
-            } else {
-                logger.error(`Failed to load ${fileName} from GitHub:`, { error: error.message });
-            }
-            return false;
-        }
-    }
-
-    #processMainData(parsedData) {
-        casinos = parsedData.casinos || [];
-        categories = parsedData.categories || config.CATEGORIES;
-        logger.info(`Processed main data: ${casinos.length} casinos`);
-    }
-
-    #processContentData(parsedData) {
-        announcements = parsedData.announcements || [];
-        streamStatus = parsedData.streamStatus || streamStatus;
-        logger.info(`Processed content data: ${announcements.length} announcements`);
-    }
-
-    #processUserData(parsedData) {
-        userChats = new Map();
-        if (parsedData.userChats) {
-            for (const [key, value] of Object.entries(parsedData.userChats)) {
-                userChats.set(Number(key), value);
-            }
-        }
-        
-        userSettings = new Map();
-        if (parsedData.userSettings) {
-            for (const [key, value] of Object.entries(parsedData.userSettings)) {
-                userSettings.set(Number(key), value);
-            }
-        }
-        
-        giveaways = parsedData.giveaways || [];
-        pendingApprovals = parsedData.pendingApprovals || [];
-        referralData = new Map();
-        
-        if (parsedData.referralData) {
-            for (const [key, value] of Object.entries(parsedData.referralData)) {
-                referralData.set(Number(key), value);
-            }
-        }
-        
-        logger.info(`Processed user data: ${userSettings.size} users, ${pendingApprovals.length} pending approvals`);
-    }
-
-    #processStatsData(parsedData) {
-        clickStats = new Map();
-        if (parsedData.clickStats) {
-            for (const [key, value] of Object.entries(parsedData.clickStats)) {
-                clickStats.set(Number(key), value);
-            }
-        }
-        
-        hiddenStats = new Map();
-        if (parsedData.hiddenStats) {
-            for (const [key, value] of Object.entries(parsedData.hiddenStats)) {
-                hiddenStats.set(Number(key), value);
-            }
-        }
-        
-        voiceAccessLogs = parsedData.voiceAccessLogs || [];
-        
-        logger.info(`Processed stats data: ${clickStats.size} click stats, ${hiddenStats.size} hidden stats, ${voiceAccessLogs.length} voice logs`);
     }
 
     async #loadMainDataFromLocal() {
@@ -176,9 +57,8 @@ class Database {
             const parsedData = JSON.parse(data);
             casinos = parsedData.casinos || [];
             categories = parsedData.categories || config.CATEGORIES;
-            logger.info('Loaded from local file:', { casinos: casinos.length });
         } catch (error) {
-            logger.warn('Local data file not found, will initialize empty');
+            console.log('❌ Local data file not found, initializing empty');
             await this.#saveMainDataLocally();
         }
     }
@@ -189,9 +69,8 @@ class Database {
             const parsedContent = JSON.parse(contentData);
             announcements = parsedContent.announcements || [];
             streamStatus = parsedContent.streamStatus || streamStatus;
-            logger.info('Loaded from local file:', { announcements: announcements.length });
         } catch (error) {
-            logger.warn('Local content file not found, will initialize empty');
+            console.log('❌ Local content file not found, initializing empty');
             await this.saveContentData();
         }
     }
@@ -225,9 +104,8 @@ class Database {
                 }
             }
             
-            logger.info('Loaded from local file:', { users: userSettings.size });
         } catch (error) {
-            logger.warn('Local user file not found, will initialize empty');
+            console.log('❌ Local user file not found, initializing empty');
             await this.saveUserData();
         }
     }
@@ -237,10 +115,10 @@ class Database {
             const statsData = await fs.readFile(this.statsFilePath, 'utf8');
             const parsedStats = JSON.parse(statsData);
             
-            clickStats = new Map();
-            if (parsedStats.clickStats) {
-                for (const [key, value] of Object.entries(parsedStats.clickStats)) {
-                    clickStats.set(Number(key), value);
+            userClickStats = new Map();
+            if (parsedStats.userClickStats) {
+                for (const [key, value] of Object.entries(parsedStats.userClickStats)) {
+                    userClickStats.set(Number(key), value);
                 }
             }
             
@@ -253,13 +131,8 @@ class Database {
             
             voiceAccessLogs = parsedStats.voiceAccessLogs || [];
             
-            logger.info('Loaded from local file:', { 
-                clickStats: clickStats.size,
-                hiddenStats: hiddenStats.size,
-                voiceLogs: voiceAccessLogs.length
-            });
         } catch (error) {
-            logger.warn('Local stats file not found, will initialize empty');
+            console.log('❌ Local stats file not found, initializing empty');
             await this.saveStatsData();
         }
     }
@@ -272,15 +145,13 @@ class Database {
                 lastUpdated: new Date().toISOString()
             };
             await fs.writeFile(this.dataFilePath, JSON.stringify(dataToSave, null, 2));
-            logger.info('Main data saved locally');
         } catch (error) {
-            logger.error('Error saving main data locally:', { error: error.message });
+            console.error('❌ Error saving main data:', error.message);
         }
     }
 
     async saveContentData() {
         try {
-            logger.info('Saving content data...');
             const contentToSave = {
                 announcements: announcements,
                 streamStatus: streamStatus,
@@ -288,34 +159,16 @@ class Database {
             };
 
             await fs.writeFile(this.contentFilePath, JSON.stringify(contentToSave, null, 2));
-            logger.info('Content data saved locally');
-
-            if (config.GITHUB_TOKEN) {
-                try {
-                    const githubResult = await githubSync.saveDataToGitHub(
-                        JSON.stringify(contentToSave, null, 2),
-                        'content.json'
-                    );
-                    logger.info('GitHub sync result for content:', { success: githubResult.success });
-                    return githubResult.success;
-                } catch (githubError) {
-                    logger.error('GitHub sync error for content:', { error: githubError.message });
-                    return false;
-                }
-            }
-            
             return true;
 
         } catch (error) {
-            logger.error('Error saving content data:', { error: error.message });
+            console.error('❌ Error saving content data:', error.message);
             return false;
         }
     }
 
     async saveUserData() {
         try {
-            logger.info('Saving user data...');
-            
             const userDataToSave = {
                 userChats: Object.fromEntries(userChats),
                 userSettings: Object.fromEntries(userSettings),
@@ -326,68 +179,34 @@ class Database {
             };
 
             await fs.writeFile(this.userDataFilePath, JSON.stringify(userDataToSave, null, 2));
-            logger.info('User data saved locally');
-
-            if (config.GITHUB_TOKEN) {
-                try {
-                    const githubResult = await githubSync.saveDataToGitHub(
-                        JSON.stringify(userDataToSave, null, 2),
-                        'userdata.json'
-                    );
-                    logger.info('GitHub sync result for userdata:', { success: githubResult.success });
-                    return githubResult.success;
-                } catch (githubError) {
-                    logger.error('GitHub sync error for userdata:', { error: githubError.message });
-                    return false;
-                }
-            }
-            
             return true;
 
         } catch (error) {
-            logger.error('Error saving user data:', { error: error.message });
+            console.error('❌ Error saving user data:', error.message);
             return false;
         }
     }
 
     async saveStatsData() {
         try {
-            logger.info('Saving stats data...');
-            
             const statsToSave = {
-                clickStats: Object.fromEntries(clickStats),
+                userClickStats: Object.fromEntries(userClickStats),
                 hiddenStats: Object.fromEntries(hiddenStats),
                 voiceAccessLogs: voiceAccessLogs,
                 lastUpdated: new Date().toISOString()
             };
 
             await fs.writeFile(this.statsFilePath, JSON.stringify(statsToSave, null, 2));
-            logger.info('Stats data saved locally');
-
-            if (config.GITHUB_TOKEN) {
-                try {
-                    const githubResult = await githubSync.saveDataToGitHub(
-                        JSON.stringify(statsToSave, null, 2),
-                        'stats.json'
-                    );
-                    logger.info('GitHub sync result for stats:', { success: githubResult.success });
-                    return githubResult.success;
-                } catch (githubError) {
-                    logger.error('GitHub sync error for stats:', { error: githubError.message });
-                    return false;
-                }
-            }
-            
             return true;
 
         } catch (error) {
-            logger.error('Error saving stats data:', { error: error.message });
+            console.error('❌ Error saving stats data:', error.message);
             return false;
         }
     }
 
     async initializeData() {
-        logger.info('Initializing data files...');
+        console.log('🔄 Initializing data files...');
         
         const initialData = { casinos: [], categories: categories, lastUpdated: new Date().toISOString() };
         const initialContent = { announcements: [], streamStatus: streamStatus, lastUpdated: new Date().toISOString() };
@@ -400,7 +219,7 @@ class Database {
             lastUpdated: new Date().toISOString()
         };
         const initialStats = {
-            clickStats: {},
+            userClickStats: {},
             hiddenStats: {},
             voiceAccessLogs: [],
             lastUpdated: new Date().toISOString()
@@ -412,19 +231,21 @@ class Database {
             await fs.writeFile(this.userDataFilePath, JSON.stringify(initialUserData, null, 2));
             await fs.writeFile(this.statsFilePath, JSON.stringify(initialStats, null, 2));
             
-            logger.info('All data files created with initial structure');
+            console.log('✅ All data files created');
             return true;
         } catch (error) {
-            logger.error('Error creating initial data files:', { error: error.message });
+            console.error('❌ Error creating initial data files:', error);
             return false;
         }
     }
 
     // 📊 Методы для работы со статистикой
-    trackCasinoClick(casinoId) {
-        const currentClicks = clickStats.get(casinoId) || 0;
-        clickStats.set(casinoId, currentClicks + 1);
-        logger.debug('Casino click tracked:', { casinoId, clicks: currentClicks + 1 });
+    trackCasinoClick(userId, casinoId) {
+        if (!userClickStats.has(userId)) {
+            userClickStats.set(userId, {});
+        }
+        const userStats = userClickStats.get(userId);
+        userStats[casinoId] = (userStats[casinoId] || 0) + 1;
         
         // Автосохранение раз в 30 минут через отдельный механизм
     }
@@ -432,7 +253,6 @@ class Database {
     trackCasinoHide(casinoId) {
         const currentHides = hiddenStats.get(casinoId) || 0;
         hiddenStats.set(casinoId, currentHides + 1);
-        logger.debug('Casino hide tracked:', { casinoId, hides: currentHides + 1 });
     }
 
     trackVoiceAccess(userId, username, roomType, userAgent = '') {
@@ -446,12 +266,10 @@ class Database {
         
         voiceAccessLogs.push(logEntry);
         
-        // Сохраняем только последние 1000 записей
-        if (voiceAccessLogs.length > 1000) {
-            voiceAccessLogs = voiceAccessLogs.slice(-1000);
+        // Сохраняем только последние 100 записей
+        if (voiceAccessLogs.length > 100) {
+            voiceAccessLogs = voiceAccessLogs.slice(-100);
         }
-        
-        logger.info('Voice access tracked:', logEntry);
     }
 
     getCasinoStats() {
@@ -461,7 +279,7 @@ class Database {
                 stats.push({
                     id: casino.id,
                     name: casino.name,
-                    clicks: clickStats.get(casino.id) || 0,
+                    clicks: hiddenStats.get(casino.id) || 0,
                     hides: hiddenStats.get(casino.id) || 0,
                     isPinned: casino.isPinned
                 });
@@ -474,14 +292,12 @@ class Database {
         return voiceAccessLogs.slice(-limit).reverse();
     }
 
-    // ✅ Остальные методы остаются без изменений, но с добавлением логирования...
-    // [Здесь должны быть все предыдущие методы с добавлением logger вместо console.log]
+    getUserClickStats(userId) {
+        return userClickStats.get(userId) || {};
+    }
 
-    // Пример обновленного метода:
+    // ✅ Методы для работы с пользователями
     trackUserAction(userId, userData, actionType) {
-        logger.info(`Tracking user action: ${userId}, ${actionType}`);
-        
-        // Сохраняем информацию о пользователе
         if (!userChats.has(userId)) {
             userChats.set(userId, {
                 id: userId,
@@ -498,7 +314,6 @@ class Database {
             userChats.set(userId, user);
         }
         
-        // Сохраняем настройки по умолчанию если их нет
         if (!userSettings.has(userId)) {
             userSettings.set(userId, {
                 hiddenCasinos: [],
@@ -511,15 +326,9 @@ class Database {
         return true;
     }
 
-    // ... остальные методы
-// ... продолжение database/database.js
-
     requestApproval(userId, username) {
-        logger.info(`Approval request from user ${userId}: ${username}`);
-        
         const existingRequest = pendingApprovals.find(req => req.userId === userId);
         if (existingRequest) {
-            logger.warn(`User ${userId} already has pending approval`);
             return false;
         }
         
@@ -530,20 +339,13 @@ class Database {
             status: 'pending'
         });
         
-        this.saveUserData().catch(err => logger.error('Save approval error:', { error: err.message }));
+        this.saveUserData().catch(err => console.error('Save approval error:', err));
         return true;
     }
 
-    getPendingApprovals() {
-        return pendingApprovals.filter(req => req.status === 'pending');
-    }
-
     approveUserAccess(userId) {
-        logger.info(`Approving user access: ${userId}`);
-        
         const requestIndex = pendingApprovals.findIndex(req => req.userId === userId && req.status === 'pending');
         if (requestIndex === -1) {
-            logger.warn(`No pending approval for user ${userId}`);
             return false;
         }
         
@@ -556,13 +358,11 @@ class Database {
             userSettings.set(userId, settings);
         }
         
-        this.saveUserData().catch(err => logger.error('Save approval error:', { error: err.message }));
+        this.saveUserData().catch(err => console.error('Save approval error:', err));
         return true;
     }
 
     handleReferralStart(userId, referrerId) {
-        logger.info(`Referral start: user ${userId} referred by ${referrerId}`);
-        
         if (!referralData.has(referrerId)) {
             referralData.set(referrerId, { referrals: [], totalEarned: 0 });
         }
@@ -581,7 +381,7 @@ class Database {
         userRefData.referredBy = referrerId;
         referralData.set(userId, userRefData);
         
-        this.saveUserData().catch(err => logger.error('Save referral error:', { error: err.message }));
+        this.saveUserData().catch(err => console.error('Save referral error:', err));
         return true;
     }
 
@@ -601,20 +401,15 @@ class Database {
     }
 
     getUserData(userId) {
-        const userStats = {};
-        // Собираем статистику кликов пользователя по казино
-        if (userClickStats[userId]) {
-            const userCasinoStats = Object.entries(userClickStats[userId])
-                .sort(([,a], [,b]) => b - a)
-                .slice(0, 5)
-                .map(([casinoId, clicks]) => {
-                    const casino = this.getCasino(parseInt(casinoId));
-                    return casino ? { name: casino.name, clicks } : null;
-                })
-                .filter(Boolean);
-            
-            userStats.topCasinos = userCasinoStats;
-        }
+        const userStats = this.getUserClickStats(userId);
+        const topCasinos = Object.entries(userStats)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 5)
+            .map(([casinoId, clicks]) => {
+                const casino = this.getCasino(parseInt(casinoId));
+                return casino ? { name: casino.name, clicks } : null;
+            })
+            .filter(Boolean);
 
         return {
             settings: userSettings.get(userId) || {
@@ -625,27 +420,27 @@ class Database {
             },
             profile: userChats.get(userId) || null,
             referralInfo: this.getReferralInfo(userId),
-            stats: userStats
+            stats: { topCasinos }
         };
     }
 
-updateUserSettings(userId, newSettings) {
-    if (userSettings.has(userId)) {
-        const currentSettings = userSettings.get(userId);
-        userSettings.set(userId, { ...currentSettings, ...newSettings });
-    } else {
-        userSettings.set(userId, {
-            hiddenCasinos: [],
-            notifications: true,
-            theme: 'light',
-            hasLiveAccess: false,
-            ...newSettings
-        });
+    updateUserSettings(userId, newSettings) {
+        if (userSettings.has(userId)) {
+            const currentSettings = userSettings.get(userId);
+            userSettings.set(userId, { ...currentSettings, ...newSettings });
+        } else {
+            userSettings.set(userId, {
+                hiddenCasinos: [],
+                notifications: true,
+                theme: 'light',
+                hasLiveAccess: false,
+                ...newSettings
+            });
+        }
+        
+        this.saveUserData().catch(err => console.error('Save user settings error:', err));
+        return true;
     }
-    
-    this.saveUserData().catch(err => console.error('Save user settings error:', err));
-    return true;
-}
 
     // Геттеры
     getCasinos() { return casinos; }
@@ -656,7 +451,7 @@ updateUserSettings(userId, newSettings) {
     getGiveaways() { return giveaways; }
     getCategories() { return categories; }
     getPendingApprovals() { return pendingApprovals.filter(req => req.status === 'pending'); }
-    getClickStats() { return clickStats; }
+    getClickStats() { return userClickStats; }
     getHiddenStats() { return hiddenStats; }
     getVoiceAccessLogs(limit = 30) { return voiceAccessLogs.slice(-limit).reverse(); }
 
@@ -678,7 +473,6 @@ updateUserSettings(userId, newSettings) {
 
     async saveData() {
         try {
-            logger.info('Saving main data...');
             const dataToSave = {
                 casinos: casinos,
                 categories: categories,
@@ -686,47 +480,113 @@ updateUserSettings(userId, newSettings) {
             };
 
             await fs.writeFile(this.dataFilePath, JSON.stringify(dataToSave, null, 2));
-            logger.info('Main data saved locally');
-            
-            if (config.GITHUB_TOKEN) {
-                try {
-                    const githubResult = await githubSync.saveDataToGitHub(
-                        JSON.stringify(dataToSave, null, 2),
-                        'data.json'
-                    );
-                    logger.info('GitHub sync result:', { success: githubResult.success });
-                    return githubResult.success;
-                } catch (githubError) {
-                    logger.error('GitHub sync error:', { error: githubError.message });
-                    return false;
-                }
-            }
-            
             return true;
 
         } catch (error) {
-            logger.error('Error saving main data:', { error: error.message });
+            console.error('❌ Error saving main data:', error.message);
             return false;
         }
     }
 
-    async saveAllDataToGitHub() {
+    async saveAllData() {
         try {
-            logger.info('Saving ALL data to GitHub...');
-            const results = await Promise.allSettled([
+            await Promise.all([
                 this.saveData(),
                 this.saveContentData(),
                 this.saveUserData(),
                 this.saveStatsData()
             ]);
-
-            const successCount = results.filter(r => r.status === 'fulfilled' && r.value).length;
-            logger.info('GitHub save completed:', { success: successCount, total: results.length });
-            
-            return successCount === results.length;
+            return true;
         } catch (error) {
-            logger.error('Error saving all data to GitHub:', { error: error.message });
+            console.error('❌ Error saving all data:', error.message);
             return false;
+        }
+    }
+
+    // 🔄 Новый метод: Резервное копирование на GitHub (раз в час)
+    startBackupService() {
+        this.backupInterval = setInterval(async () => {
+            try {
+                console.log('🔄 Starting scheduled backup to GitHub...');
+                await this.#backupToGitHub();
+            } catch (error) {
+                console.error('❌ Backup error:', error.message);
+            }
+        }, 60 * 60 * 1000); // Каждый час
+    }
+
+    async #backupToGitHub() {
+        if (!config.GITHUB_TOKEN) return;
+
+        try {
+            const [dataResult, contentResult, userResult, statsResult] = await Promise.all([
+                this.#backupFile('data.json'),
+                this.#backupFile('content.json'),
+                this.#backupFile('userdata.json'),
+                this.#backupFile('stats.json')
+            ]);
+
+            console.log('✅ Backup completed:', {
+                data: dataResult,
+                content: contentResult,
+                user: userResult,
+                stats: statsResult
+            });
+
+        } catch (error) {
+            console.error('❌ Backup failed:', error.message);
+        }
+    }
+
+    async #backupFile(fileName) {
+        try {
+            let content;
+            switch (fileName) {
+                case 'data.json':
+                    content = JSON.stringify({
+                        casinos: casinos,
+                        categories: categories,
+                        lastUpdated: new Date().toISOString()
+                    }, null, 2);
+                    break;
+                case 'content.json':
+                    content = JSON.stringify({
+                        announcements: announcements,
+                        streamStatus: streamStatus,
+                        lastUpdated: new Date().toISOString()
+                    }, null, 2);
+                    break;
+                case 'userdata.json':
+                    content = JSON.stringify({
+                        userChats: Object.fromEntries(userChats),
+                        userSettings: Object.fromEntries(userSettings),
+                        giveaways: giveaways,
+                        pendingApprovals: pendingApprovals,
+                        referralData: Object.fromEntries(referralData),
+                        lastUpdated: new Date().toISOString()
+                    }, null, 2);
+                    break;
+                case 'stats.json':
+                    content = JSON.stringify({
+                        userClickStats: Object.fromEntries(userClickStats),
+                        hiddenStats: Object.fromEntries(hiddenStats),
+                        voiceAccessLogs: voiceAccessLogs,
+                        lastUpdated: new Date().toISOString()
+                    }, null, 2);
+                    break;
+            }
+
+            const result = await githubSync.saveDataToGitHub(content, fileName);
+            return result.success;
+        } catch (error) {
+            console.error(`❌ Backup of ${fileName} failed:`, error.message);
+            return false;
+        }
+    }
+
+    stopBackupService() {
+        if (this.backupInterval) {
+            clearInterval(this.backupInterval);
         }
     }
 }
