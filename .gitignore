@@ -1,5 +1,5 @@
-# Не синхронизируем пользовательские данные с GitHub
-# userdata.json
-# *.log
-# node_modules/
-# .env
+node_modules/
+.env
+logs/*.log
+*.log
+.DS_Store
