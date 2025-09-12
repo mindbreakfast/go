@@ -629,24 +629,23 @@ class Database {
         };
     }
 
-    updateUserSettings(userId, newSettings) {
-        logger.info(`Updating settings for user ${userId}`, { newSettings });
-        
-        if (userSettings.has(userId)) {
-            const currentSettings = userSettings.get(userId);
-            userSettings.set(userId, { ...currentSettings, ...newSettings });
-        } else {
-            userSettings.set(userId, {
-                hiddenCasinos: [],
-                notifications: true,
-                theme: 'light',
-                hasLiveAccess: false,
-                ...newSettings
-            });
-        }
-        
-        return true;
+updateUserSettings(userId, newSettings) {
+    if (userSettings.has(userId)) {
+        const currentSettings = userSettings.get(userId);
+        userSettings.set(userId, { ...currentSettings, ...newSettings });
+    } else {
+        userSettings.set(userId, {
+            hiddenCasinos: [],
+            notifications: true,
+            theme: 'light',
+            hasLiveAccess: false,
+            ...newSettings
+        });
     }
+    
+    this.saveUserData().catch(err => console.error('Save user settings error:', err));
+    return true;
+}
 
     // Геттеры
     getCasinos() { return casinos; }
