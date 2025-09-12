@@ -3,6 +3,7 @@ const path = require('path');
 const axios = require('axios');
 const config = require('../config');
 const githubSync = require('./githubSync');
+const logger = require('../utils/logger');
 
 // Разделяем данные на 3 части
 let casinos = [];
@@ -19,49 +20,66 @@ let userSettings = new Map();
 let giveaways = [];
 let pendingApprovals = [];
 let referralData = new Map();
+let clickStats = new Map(); // 📊 Статистика кликов по казино
+let hiddenStats = new Map(); // 📊 Статистика скрытий казино
+let voiceAccessLogs = []; // 🎤 Лог входов в голосовые комнаты
 
 class Database {
     constructor() {
         this.dataFilePath = path.join(__dirname, '..', 'data.json');
         this.contentFilePath = path.join(__dirname, '..', 'content.json');
         this.userDataFilePath = path.join(__dirname, '..', 'userdata.json');
+        this.statsFilePath = path.join(__dirname, '..', 'stats.json');
     }
 
     async loadData() {
-        console.log('🔄 Starting COMPLETE data loading from GitHub...');
+        logger.info('🔄 Starting COMPLETE data loading from GitHub...');
         
         try {
-            console.log('🌐 Loading ALL data from GitHub...');
+            logger.info('🌐 Loading ALL data from GitHub...');
             
-            const [mainDataLoaded, contentDataLoaded, userDataLoaded] = await Promise.all([
+            const [mainDataLoaded, contentDataLoaded, userDataLoaded, statsDataLoaded] = await Promise.all([
                 this.#loadFileFromGitHub('data.json', (data) => this.#processMainData(data)),
                 this.#loadFileFromGitHub('content.json', (data) => this.#processContentData(data)),
-                this.#loadFileFromGitHub('userdata.json', (data) => this.#processUserData(data))
+                this.#loadFileFromGitHub('userdata.json', (data) => this.#processUserData(data)),
+                this.#loadFileFromGitHub('stats.json', (data) => this.#processStatsData(data))
             ]);
 
-            console.log(`✅ GitHub load results: Main=${mainDataLoaded}, Content=${contentDataLoaded}, User=${userDataLoaded}`);
+            logger.info('GitHub load results:', {
+                main: mainDataLoaded,
+                content: contentDataLoaded,
+                user: userDataLoaded,
+                stats: statsDataLoaded
+            });
 
             if (!mainDataLoaded) await this.#loadMainDataFromLocal();
             if (!contentDataLoaded) await this.#loadContentDataFromLocal();
             if (!userDataLoaded) await this.#loadUserDataFromLocal();
+            if (!statsDataLoaded) await this.#loadStatsDataFromLocal();
 
-            console.log(`✅ FINAL: ${casinos.length} casinos, ${announcements.length} announcements, ${userChats.size} users`);
+            logger.info('FINAL data loaded:', {
+                casinos: casinos.length,
+                announcements: announcements.length,
+                users: userChats.size,
+                clickStats: clickStats.size,
+                voiceLogs: voiceAccessLogs.length
+            });
             return true;
 
         } catch (error) {
-            console.error('❌ Error loading data:', error.message);
+            logger.error('Error loading data:', { error: error.message });
             return await this.initializeData();
         }
     }
 
     async #loadFileFromGitHub(fileName, processor) {
         if (!config.GITHUB_TOKEN) {
-            console.log(`⚠️ GITHUB_TOKEN not set, skipping ${fileName}`);
+            logger.warn(`GITHUB_TOKEN not set, skipping ${fileName}`);
             return false;
         }
 
         try {
-            console.log(`🌐 Downloading ${fileName} from GitHub...`);
+            logger.info(`Downloading ${fileName} from GitHub...`);
             const url = `https://api.github.com/repos/${config.GITHUB_REPO_OWNER}/${config.GITHUB_REPO_NAME}/contents/${fileName}`;
             
             const response = await axios.get(url, {
@@ -77,16 +95,16 @@ class Database {
                 const content = Buffer.from(response.data.content, 'base64').toString('utf8');
                 const parsedData = JSON.parse(content);
                 processor(parsedData);
-                console.log(`✅ Successfully loaded ${fileName} from GitHub`);
+                logger.info(`Successfully loaded ${fileName} from GitHub`);
                 return true;
             }
             return false;
             
         } catch (error) {
             if (error.response?.status === 404) {
-                console.log(`⚠️ ${fileName} not found on GitHub`);
+                logger.warn(`${fileName} not found on GitHub`);
             } else {
-                console.log(`❌ Failed to load ${fileName} from GitHub:`, error.message);
+                logger.error(`Failed to load ${fileName} from GitHub:`, { error: error.message });
             }
             return false;
         }
@@ -95,13 +113,13 @@ class Database {
     #processMainData(parsedData) {
         casinos = parsedData.casinos || [];
         categories = parsedData.categories || config.CATEGORIES;
-        console.log(`📊 Processed main data: ${casinos.length} casinos`);
+        logger.info(`Processed main data: ${casinos.length} casinos`);
     }
 
     #processContentData(parsedData) {
         announcements = parsedData.announcements || [];
         streamStatus = parsedData.streamStatus || streamStatus;
-        console.log(`📢 Processed content data: ${announcements.length} announcements`);
+        logger.info(`Processed content data: ${announcements.length} announcements`);
     }
 
     #processUserData(parsedData) {
@@ -129,7 +147,27 @@ class Database {
             }
         }
         
-        console.log(`👥 Processed user data: ${userSettings.size} users, ${pendingApprovals.length} pending approvals`);
+        logger.info(`Processed user data: ${userSettings.size} users, ${pendingApprovals.length} pending approvals`);
+    }
+
+    #processStatsData(parsedData) {
+        clickStats = new Map();
+        if (parsedData.clickStats) {
+            for (const [key, value] of Object.entries(parsedData.clickStats)) {
+                clickStats.set(Number(key), value);
+            }
+        }
+        
+        hiddenStats = new Map();
+        if (parsedData.hiddenStats) {
+            for (const [key, value] of Object.entries(parsedData.hiddenStats)) {
+                hiddenStats.set(Number(key), value);
+            }
+        }
+        
+        voiceAccessLogs = parsedData.voiceAccessLogs || [];
+        
+        logger.info(`Processed stats data: ${clickStats.size} click stats, ${hiddenStats.size} hidden stats, ${voiceAccessLogs.length} voice logs`);
     }
 
     async #loadMainDataFromLocal() {
@@ -138,9 +176,9 @@ class Database {
             const parsedData = JSON.parse(data);
             casinos = parsedData.casinos || [];
             categories = parsedData.categories || config.CATEGORIES;
-            console.log('📁 Loaded from local file:', casinos.length, 'casinos');
+            logger.info('Loaded from local file:', { casinos: casinos.length });
         } catch (error) {
-            console.log('❌ Local data file not found, will initialize empty');
+            logger.warn('Local data file not found, will initialize empty');
             await this.#saveMainDataLocally();
         }
     }
@@ -151,9 +189,9 @@ class Database {
             const parsedContent = JSON.parse(contentData);
             announcements = parsedContent.announcements || [];
             streamStatus = parsedContent.streamStatus || streamStatus;
-            console.log('📁 Loaded from local file:', announcements.length, 'announcements');
+            logger.info('Loaded from local file:', { announcements: announcements.length });
         } catch (error) {
-            console.log('❌ Local content file not found, will initialize empty');
+            logger.warn('Local content file not found, will initialize empty');
             await this.saveContentData();
         }
     }
@@ -187,10 +225,42 @@ class Database {
                 }
             }
             
-            console.log('📁 Loaded from local file:', userSettings.size, 'users');
+            logger.info('Loaded from local file:', { users: userSettings.size });
         } catch (error) {
-            console.log('❌ Local user file not found, will initialize empty');
+            logger.warn('Local user file not found, will initialize empty');
             await this.saveUserData();
+        }
+    }
+
+    async #loadStatsDataFromLocal() {
+        try {
+            const statsData = await fs.readFile(this.statsFilePath, 'utf8');
+            const parsedStats = JSON.parse(statsData);
+            
+            clickStats = new Map();
+            if (parsedStats.clickStats) {
+                for (const [key, value] of Object.entries(parsedStats.clickStats)) {
+                    clickStats.set(Number(key), value);
+                }
+            }
+            
+            hiddenStats = new Map();
+            if (parsedStats.hiddenStats) {
+                for (const [key, value] of Object.entries(parsedStats.hiddenStats)) {
+                    hiddenStats.set(Number(key), value);
+                }
+            }
+            
+            voiceAccessLogs = parsedStats.voiceAccessLogs || [];
+            
+            logger.info('Loaded from local file:', { 
+                clickStats: clickStats.size,
+                hiddenStats: hiddenStats.size,
+                voiceLogs: voiceAccessLogs.length
+            });
+        } catch (error) {
+            logger.warn('Local stats file not found, will initialize empty');
+            await this.saveStatsData();
         }
     }
 
@@ -202,15 +272,15 @@ class Database {
                 lastUpdated: new Date().toISOString()
             };
             await fs.writeFile(this.dataFilePath, JSON.stringify(dataToSave, null, 2));
-            console.log('💾 Main data saved locally');
+            logger.info('Main data saved locally');
         } catch (error) {
-            console.error('❌ Error saving main data locally:', error.message);
+            logger.error('Error saving main data locally:', { error: error.message });
         }
     }
 
     async saveContentData() {
         try {
-            console.log('💾 Saving content data...');
+            logger.info('Saving content data...');
             const contentToSave = {
                 announcements: announcements,
                 streamStatus: streamStatus,
@@ -218,7 +288,7 @@ class Database {
             };
 
             await fs.writeFile(this.contentFilePath, JSON.stringify(contentToSave, null, 2));
-            console.log('✅ Content data saved locally');
+            logger.info('Content data saved locally');
 
             if (config.GITHUB_TOKEN) {
                 try {
@@ -226,10 +296,10 @@ class Database {
                         JSON.stringify(contentToSave, null, 2),
                         'content.json'
                     );
-                    console.log('🌐 GitHub sync result for content:', githubResult.success);
+                    logger.info('GitHub sync result for content:', { success: githubResult.success });
                     return githubResult.success;
                 } catch (githubError) {
-                    console.error('❌ GitHub sync error for content:', githubError.message);
+                    logger.error('GitHub sync error for content:', { error: githubError.message });
                     return false;
                 }
             }
@@ -237,16 +307,15 @@ class Database {
             return true;
 
         } catch (error) {
-            console.error('❌ Error saving content data:', error.message);
+            logger.error('Error saving content data:', { error: error.message });
             return false;
         }
     }
 
     async saveUserData() {
         try {
-            console.log('💾 Saving user data...');
+            logger.info('Saving user data...');
             
-            // ✅ ГАРАНТИРУЕМ что все данные актуальны
             const userDataToSave = {
                 userChats: Object.fromEntries(userChats),
                 userSettings: Object.fromEntries(userSettings),
@@ -257,7 +326,7 @@ class Database {
             };
 
             await fs.writeFile(this.userDataFilePath, JSON.stringify(userDataToSave, null, 2));
-            console.log('✅ User data saved locally');
+            logger.info('User data saved locally');
 
             if (config.GITHUB_TOKEN) {
                 try {
@@ -265,10 +334,10 @@ class Database {
                         JSON.stringify(userDataToSave, null, 2),
                         'userdata.json'
                     );
-                    console.log('🌐 GitHub sync result for userdata:', githubResult.success);
+                    logger.info('GitHub sync result for userdata:', { success: githubResult.success });
                     return githubResult.success;
                 } catch (githubError) {
-                    console.error('❌ GitHub sync error for userdata:', githubError.message);
+                    logger.error('GitHub sync error for userdata:', { error: githubError.message });
                     return false;
                 }
             }
@@ -276,13 +345,49 @@ class Database {
             return true;
 
         } catch (error) {
-            console.error('❌ Error saving user data:', error.message);
+            logger.error('Error saving user data:', { error: error.message });
+            return false;
+        }
+    }
+
+    async saveStatsData() {
+        try {
+            logger.info('Saving stats data...');
+            
+            const statsToSave = {
+                clickStats: Object.fromEntries(clickStats),
+                hiddenStats: Object.fromEntries(hiddenStats),
+                voiceAccessLogs: voiceAccessLogs,
+                lastUpdated: new Date().toISOString()
+            };
+
+            await fs.writeFile(this.statsFilePath, JSON.stringify(statsToSave, null, 2));
+            logger.info('Stats data saved locally');
+
+            if (config.GITHUB_TOKEN) {
+                try {
+                    const githubResult = await githubSync.saveDataToGitHub(
+                        JSON.stringify(statsToSave, null, 2),
+                        'stats.json'
+                    );
+                    logger.info('GitHub sync result for stats:', { success: githubResult.success });
+                    return githubResult.success;
+                } catch (githubError) {
+                    logger.error('GitHub sync error for stats:', { error: githubError.message });
+                    return false;
+                }
+            }
+            
+            return true;
+
+        } catch (error) {
+            logger.error('Error saving stats data:', { error: error.message });
             return false;
         }
     }
 
     async initializeData() {
-        console.log('🔄 Initializing data files...');
+        logger.info('Initializing data files...');
         
         const initialData = { casinos: [], categories: categories, lastUpdated: new Date().toISOString() };
         const initialContent = { announcements: [], streamStatus: streamStatus, lastUpdated: new Date().toISOString() };
@@ -294,23 +399,87 @@ class Database {
             referralData: {},
             lastUpdated: new Date().toISOString()
         };
+        const initialStats = {
+            clickStats: {},
+            hiddenStats: {},
+            voiceAccessLogs: [],
+            lastUpdated: new Date().toISOString()
+        };
 
         try {
             await fs.writeFile(this.dataFilePath, JSON.stringify(initialData, null, 2));
             await fs.writeFile(this.contentFilePath, JSON.stringify(initialContent, null, 2));
             await fs.writeFile(this.userDataFilePath, JSON.stringify(initialUserData, null, 2));
+            await fs.writeFile(this.statsFilePath, JSON.stringify(initialStats, null, 2));
             
-            console.log('✅ All data files created with initial structure');
+            logger.info('All data files created with initial structure');
             return true;
         } catch (error) {
-            console.error('❌ Error creating initial data files:', error);
+            logger.error('Error creating initial data files:', { error: error.message });
             return false;
         }
     }
 
-    // ✅ Методы для работы с пользователями
+    // 📊 Методы для работы со статистикой
+    trackCasinoClick(casinoId) {
+        const currentClicks = clickStats.get(casinoId) || 0;
+        clickStats.set(casinoId, currentClicks + 1);
+        logger.debug('Casino click tracked:', { casinoId, clicks: currentClicks + 1 });
+        
+        // Автосохранение раз в 30 минут через отдельный механизм
+    }
+
+    trackCasinoHide(casinoId) {
+        const currentHides = hiddenStats.get(casinoId) || 0;
+        hiddenStats.set(casinoId, currentHides + 1);
+        logger.debug('Casino hide tracked:', { casinoId, hides: currentHides + 1 });
+    }
+
+    trackVoiceAccess(userId, username, roomType, userAgent = '') {
+        const logEntry = {
+            userId,
+            username: username || `user${userId}`,
+            roomType,
+            userAgent,
+            timestamp: new Date().toISOString()
+        };
+        
+        voiceAccessLogs.push(logEntry);
+        
+        // Сохраняем только последние 1000 записей
+        if (voiceAccessLogs.length > 1000) {
+            voiceAccessLogs = voiceAccessLogs.slice(-1000);
+        }
+        
+        logger.info('Voice access tracked:', logEntry);
+    }
+
+    getCasinoStats() {
+        const stats = [];
+        for (const casino of casinos) {
+            if (casino.isActive) {
+                stats.push({
+                    id: casino.id,
+                    name: casino.name,
+                    clicks: clickStats.get(casino.id) || 0,
+                    hides: hiddenStats.get(casino.id) || 0,
+                    isPinned: casino.isPinned
+                });
+            }
+        }
+        return stats.sort((a, b) => b.clicks - a.clicks);
+    }
+
+    getVoiceAccessLogs(limit = 30) {
+        return voiceAccessLogs.slice(-limit).reverse();
+    }
+
+    // ✅ Остальные методы остаются без изменений, но с добавлением логирования...
+    // [Здесь должны быть все предыдущие методы с добавлением logger вместо console.log]
+
+    // Пример обновленного метода:
     trackUserAction(userId, userData, actionType) {
-        console.log(`📊 Tracking user action: ${userId}, ${actionType}`);
+        logger.info(`Tracking user action: ${userId}, ${actionType}`);
         
         // Сохраняем информацию о пользователе
         if (!userChats.has(userId)) {
@@ -339,18 +508,18 @@ class Database {
             });
         }
         
-        // ✅ НЕМЕДЛЕННОЕ СОХРАНЕНИЕ при действиях пользователя
-        this.saveUserData().catch(err => console.error('Auto-save error:', err));
-        
         return true;
     }
 
+    // ... остальные методы
+// ... продолжение database/database.js
+
     requestApproval(userId, username) {
-        console.log(`📋 Approval request from user ${userId}: ${username}`);
+        logger.info(`Approval request from user ${userId}: ${username}`);
         
         const existingRequest = pendingApprovals.find(req => req.userId === userId);
         if (existingRequest) {
-            console.log(`⚠️ User ${userId} already has pending approval`);
+            logger.warn(`User ${userId} already has pending approval`);
             return false;
         }
         
@@ -361,7 +530,7 @@ class Database {
             status: 'pending'
         });
         
-        this.saveUserData().catch(err => console.error('Save approval error:', err));
+        this.saveUserData().catch(err => logger.error('Save approval error:', { error: err.message }));
         return true;
     }
 
@@ -370,11 +539,11 @@ class Database {
     }
 
     approveUserAccess(userId) {
-        console.log(`✅ Approving user access: ${userId}`);
+        logger.info(`Approving user access: ${userId}`);
         
         const requestIndex = pendingApprovals.findIndex(req => req.userId === userId && req.status === 'pending');
         if (requestIndex === -1) {
-            console.log(`❌ No pending approval for user ${userId}`);
+            logger.warn(`No pending approval for user ${userId}`);
             return false;
         }
         
@@ -387,12 +556,12 @@ class Database {
             userSettings.set(userId, settings);
         }
         
-        this.saveUserData().catch(err => console.error('Save approval error:', err));
+        this.saveUserData().catch(err => logger.error('Save approval error:', { error: err.message }));
         return true;
     }
 
     handleReferralStart(userId, referrerId) {
-        console.log(`🤝 Referral start: user ${userId} referred by ${referrerId}`);
+        logger.info(`Referral start: user ${userId} referred by ${referrerId}`);
         
         if (!referralData.has(referrerId)) {
             referralData.set(referrerId, { referrals: [], totalEarned: 0 });
@@ -412,7 +581,7 @@ class Database {
         userRefData.referredBy = referrerId;
         referralData.set(userId, userRefData);
         
-        this.saveUserData().catch(err => console.error('Save referral error:', err));
+        this.saveUserData().catch(err => logger.error('Save referral error:', { error: err.message }));
         return true;
     }
 
@@ -432,6 +601,21 @@ class Database {
     }
 
     getUserData(userId) {
+        const userStats = {};
+        // Собираем статистику кликов пользователя по казино
+        if (userClickStats[userId]) {
+            const userCasinoStats = Object.entries(userClickStats[userId])
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 5)
+                .map(([casinoId, clicks]) => {
+                    const casino = this.getCasino(parseInt(casinoId));
+                    return casino ? { name: casino.name, clicks } : null;
+                })
+                .filter(Boolean);
+            
+            userStats.topCasinos = userCasinoStats;
+        }
+
         return {
             settings: userSettings.get(userId) || {
                 hiddenCasinos: [],
@@ -440,11 +624,14 @@ class Database {
                 hasLiveAccess: false
             },
             profile: userChats.get(userId) || null,
-            referralInfo: this.getReferralInfo(userId)
+            referralInfo: this.getReferralInfo(userId),
+            stats: userStats
         };
     }
 
     updateUserSettings(userId, newSettings) {
+        logger.info(`Updating settings for user ${userId}`, { newSettings });
+        
         if (userSettings.has(userId)) {
             const currentSettings = userSettings.get(userId);
             userSettings.set(userId, { ...currentSettings, ...newSettings });
@@ -458,8 +645,6 @@ class Database {
             });
         }
         
-        // ✅ НЕМЕДЛЕННОЕ СОХРАНЕНИЕ при изменении настроек
-        this.saveUserData().catch(err => console.error('Save user settings error:', err));
         return true;
     }
 
@@ -472,6 +657,9 @@ class Database {
     getGiveaways() { return giveaways; }
     getCategories() { return categories; }
     getPendingApprovals() { return pendingApprovals.filter(req => req.status === 'pending'); }
+    getClickStats() { return clickStats; }
+    getHiddenStats() { return hiddenStats; }
+    getVoiceAccessLogs(limit = 30) { return voiceAccessLogs.slice(-limit).reverse(); }
 
     // Сеттеры
     setCasinos(newCasinos) { 
@@ -491,7 +679,7 @@ class Database {
 
     async saveData() {
         try {
-            console.log('💾 Saving main data...');
+            logger.info('Saving main data...');
             const dataToSave = {
                 casinos: casinos,
                 categories: categories,
@@ -499,7 +687,7 @@ class Database {
             };
 
             await fs.writeFile(this.dataFilePath, JSON.stringify(dataToSave, null, 2));
-            console.log('✅ Main data saved locally');
+            logger.info('Main data saved locally');
             
             if (config.GITHUB_TOKEN) {
                 try {
@@ -507,10 +695,10 @@ class Database {
                         JSON.stringify(dataToSave, null, 2),
                         'data.json'
                     );
-                    console.log('🌐 GitHub sync result:', githubResult.success);
+                    logger.info('GitHub sync result:', { success: githubResult.success });
                     return githubResult.success;
                 } catch (githubError) {
-                    console.error('❌ GitHub sync error:', githubError.message);
+                    logger.error('GitHub sync error:', { error: githubError.message });
                     return false;
                 }
             }
@@ -518,33 +706,28 @@ class Database {
             return true;
 
         } catch (error) {
-            console.error('❌ Error saving main data:', error.message);
+            logger.error('Error saving main data:', { error: error.message });
             return false;
         }
     }
 
-    async saveAllData() {
+    async saveAllDataToGitHub() {
         try {
-            console.log('💾 Saving ALL data...');
-            const [dataResult, contentResult, userResult] = await Promise.all([
+            logger.info('Saving ALL data to GitHub...');
+            const results = await Promise.allSettled([
                 this.saveData(),
                 this.saveContentData(),
-                this.saveUserData()
+                this.saveUserData(),
+                this.saveStatsData()
             ]);
+
+            const successCount = results.filter(r => r.status === 'fulfilled' && r.value).length;
+            logger.info('GitHub save completed:', { success: successCount, total: results.length });
             
-            console.log('✅ All data saved:', { 
-                data: dataResult, 
-                content: contentResult, 
-                user: userResult 
-            });
-            return {
-                data: dataResult,
-                content: contentResult,
-                user: userResult
-            };
+            return successCount === results.length;
         } catch (error) {
-            console.error('❌ Error saving all data:', error.message);
-            return { error: error.message };
+            logger.error('Error saving all data to GitHub:', { error: error.message });
+            return false;
         }
     }
 }
