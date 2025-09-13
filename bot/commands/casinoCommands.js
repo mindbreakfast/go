@@ -1,7 +1,8 @@
 const path = require('path');
+const config = require(path.join(__dirname, '..', '..', 'config'));
 const database = require(path.join(__dirname, '..', '..', 'database', 'database'));
 const { isAdmin } = require(path.join(__dirname, '..', '..', 'utils', 'isAdmin'));
-const logger = require('../../utils/logger');
+const logger = require(path.join(__dirname, '..', '..', 'utils', 'logger'));
 
 // Константы внутри функции чтобы избежать утечек памяти
 function getAddCasinoSteps() {
