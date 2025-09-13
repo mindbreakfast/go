@@ -60,19 +60,33 @@
         <div class="room-card">
             <h3>Всякий сброд</h3>
             <p>Гоу знакомиться</p>
-            <button class="btn btn-primary" onclick="openLink(event, 'https://meet.google.com/xes-fsxv-gun')">
+            <button class="btn btn-primary" onclick="openVoiceRoom(event, 'public', 'https://meet.google.com/xes-fsxv-gun')">
                 ПЕРЕЙТИ В КОМНАТУ
             </button>
         </div>
     </div>
 
-    
+    <!-- Реферальный блок -->
+    <div class="referral-section" id="referralSection" style="display: none;">
+        <h2>📊 Реферальная программа</h2>
+        <div class="referral-stats">
+            <div class="stat-item">
+                <span class="stat-label">Приглашено друзей:</span>
+                <span class="stat-value" id="referralCount">0</span>
+            </div>
+        </div>
+        <div class="referral-link-container">
+            <input type="text" id="referralLinkInput" readonly class="referral-link-input">
+            <button class="btn btn-copy" onclick="copyReferralLink()">📋</button>
+        </div>
+        <p class="referral-hint">Приглашайте друзей и получайте бонусы!</p>
+    </div>
+
     
    <div class="footer">
         <div class="footer-links">
             <a href="https://t.me/Ludogolik" class="footer-link">📢 Канал</a>
             <a href="https://t.me/Ludogolik666" class="footer-link">💬 Чат</a>
-          <a href="javascript:void(0)" class="footer-link" onclick="copyReferralLink()">📊 Рефералка</a>
         </div>
         <div class="developer">
             Разработчик <a href="https://t.me/NSDcode" class="developer-link">NSDcode</a>
@@ -85,13 +99,6 @@
   <script src="app.js?v=2"></script>
 </body>
 </html>
-
-
-
-
-
-
-
 
 
 
