@@ -1,10 +1,9 @@
 const express = require('express');
 const path = require('path');
-const database = require('../database/database');
-const logger = require('../utils/logger');
+const database = require(path.join(__dirname, '..', 'database', 'database'));
+const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
 const router = express.Router();
 
-// Убрано избыточное логирование загрузки
 let botInstance = null;
 
 function initializeApiRoutes(bot) {
@@ -16,32 +15,57 @@ function initializeApiRoutes(bot) {
 router.get('/data', async (req, res) => {
     try {
         const data = {
-            casinos: database.getCasinos(),
-            categories: database.getCategories(),
-            announcements: database.getAnnouncements(),
-            streamStatus: database.getStreamStatus()
+            casinos: database.getCasinos() || [],
+            categories: database.getCategories() || [],
+            announcements: database.getAnnouncements() || [],
+            streamStatus: database.getStreamStatus() || {
+                isStreamLive: false,
+                streamUrl: '',
+                eventDescription: '',
+                lastUpdated: new Date().toISOString()
+            }
         };
+        
+        logger.debug('Sending data to client', { 
+            casinos: data.casinos.length,
+            categories: data.categories.length 
+        });
         
         res.json(data);
     } catch (error) {
         logger.error('Error in /data endpoint:', { error: error.message });
-        res.status(500).json({ error: 'Failed to load data' });
+        res.status(500).json({ 
+            error: 'Failed to load data',
+            details: error.message 
+        });
     }
 });
 
 router.get('/all-data', async (req, res) => {
     try {
         const data = {
-            casinos: database.getCasinos(),
-            categories: database.getCategories(),
-            announcements: database.getAnnouncements(),
-            streamStatus: database.getStreamStatus()
+            casinos: database.getCasinos() || [],
+            categories: database.getCategories() || [],
+            announcements: database.getAnnouncements() || [],
+            streamStatus: database.getStreamStatus() || {
+                isStreamLive: false,
+                streamUrl: '',
+                eventDescription: '',
+                lastUpdated: new Date().toISOString()
+            }
         };
+        
+        logger.debug('Sending all data to client', { 
+            casinos: data.casinos.length 
+        });
         
         res.json(data);
     } catch (error) {
         logger.error('Error in /all-data endpoint:', { error: error.message });
-        res.status(500).json({ error: 'Failed to load all data' });
+        res.status(500).json({ 
+            error: 'Failed to load all data',
+            details: error.message 
+        });
     }
 });
 
@@ -57,7 +81,10 @@ router.get('/user-data', async (req, res) => {
         res.json(userData);
     } catch (error) {
         logger.error('Error in /user-data endpoint:', { error: error.message });
-        res.status(500).json({ error: 'Failed to load user data' });
+        res.status(500).json({ 
+            error: 'Failed to load user data',
+            details: error.message 
+        });
     }
 });
 
@@ -83,7 +110,10 @@ router.post('/save-user-settings', async (req, res) => {
         });
     } catch (error) {
         logger.error('Error in /save-user-settings:', { error: error.message });
-        res.status(500).json({ error: 'Failed to save settings' });
+        res.status(500).json({ 
+            error: 'Failed to save settings',
+            details: error.message 
+        });
     }
 });
 
@@ -99,8 +129,8 @@ router.post('/request-approval', async (req, res) => {
         const success = database.requestApproval(userId, username);
         
         if (success && botInstance) {
-            const { isAdmin } = require('../utils/isAdmin');
-            const config = require('../config');
+            const { isAdmin } = require(path.join(__dirname, '..', 'utils', 'isAdmin'));
+            const config = require(path.join(__dirname, '..', 'config'));
             
             // Отправляем уведомления только тем админам, кто есть в config
             const adminNotificationPromises = config.ADMINS.map(adminId => {
@@ -124,7 +154,10 @@ router.post('/request-approval', async (req, res) => {
         }
     } catch (error) {
         logger.error('Error in /request-approval:', { error: error.message });
-        res.status(500).json({ error: 'Approval request error' });
+        res.status(500).json({ 
+            error: 'Approval request error',
+            details: error.message 
+        });
     }
 });
 
@@ -140,7 +173,10 @@ router.post('/track-visit', async (req, res) => {
         res.json({ status: 'ok' });
     } catch (error) {
         logger.error('Error in /track-visit:', { error: error.message });
-        res.status(500).json({ error: 'Tracking error' });
+        res.status(500).json({ 
+            error: 'Tracking error',
+            details: error.message 
+        });
     }
 });
 
@@ -150,13 +186,16 @@ router.post('/track-click', async (req, res) => {
         
         if (userId && casinoId) {
             database.trackUserAction(userId, userInfo, `${action}_${casinoId}`);
-            database.trackCasinoClick(casinoId);
+            database.trackCasinoClick(userId, casinoId);
         }
         
         res.json({ status: 'ok' });
     } catch (error) {
         logger.error('Error in /track-click:', { error: error.message });
-        res.status(500).json({ error: 'Tracking error' });
+        res.status(500).json({ 
+            error: 'Tracking error',
+            details: error.message 
+        });
     }
 });
 
@@ -172,7 +211,10 @@ router.post('/track-voice-access', async (req, res) => {
         res.json({ status: 'ok' });
     } catch (error) {
         logger.error('Error in /track-voice-access:', { error: error.message });
-        res.status(500).json({ error: 'Voice tracking error' });
+        res.status(500).json({ 
+            error: 'Voice tracking error',
+            details: error.message 
+        });
     }
 });
 
@@ -193,22 +235,23 @@ router.get('/admin/stats', async (req, res) => {
         }
 
         const stats = {
-            users: database.getUserChats().size,
-            casinos: database.getCasinos().length,
-            activeCasinos: database.getCasinos().filter(c => c.isActive).length,
-            pendingApprovals: database.getPendingApprovals().length,
-            casinoStats: database.getCasinoStats(),
-            voiceAccessLogs: database.getVoiceAccessLogs(50)
+            users: database.getUserChats() ? database.getUserChats().size : 0,
+            casinos: database.getCasinos() ? database.getCasinos().length : 0,
+            activeCasinos: database.getCasinos() ? database.getCasinos().filter(c => c.isActive).length : 0,
+            pendingApprovals: database.getPendingApprovals() ? database.getPendingApprovals().length : 0,
+            casinoStats: database.getCasinoStats() || [],
+            voiceAccessLogs: database.getVoiceAccessLogs(50) || []
         };
 
         res.json(stats);
     } catch (error) {
         logger.error('Error in /admin/stats:', { error: error.message });
-        res.status(500).json({ error: 'Stats error' });
+        res.status(500).json({ 
+            error: 'Stats error',
+            details: error.message 
+        });
     }
 });
-
-// Убрали /webhook эндпоинт - он не нужен для polling
 
 router.post('/save-all-data', async (req, res) => {
     try {
@@ -216,25 +259,36 @@ router.post('/save-all-data', async (req, res) => {
         res.json(result);
     } catch (error) {
         logger.error('Error saving all data:', { error: error.message });
-        res.status(500).json({ error: 'Save all data error' });
+        res.status(500).json({ 
+            error: 'Save all data error',
+            details: error.message 
+        });
     }
 });
 
 router.get('/debug-data', (req, res) => {
     try {
         const data = {
-            casinos: database.getCasinos().length,
-            announcements: database.getAnnouncements(),
-            streamStatus: database.getStreamStatus(),
-            userSettingsSize: database.getUserSettings().size,
-            userChatsSize: database.getUserChats().size,
-            pendingApprovals: database.getPendingApprovals().length
+            casinos: database.getCasinos() ? database.getCasinos().length : 0,
+            announcements: database.getAnnouncements() || [],
+            streamStatus: database.getStreamStatus() || {
+                isStreamLive: false,
+                streamUrl: '',
+                eventDescription: '',
+                lastUpdated: new Date().toISOString()
+            },
+            userSettingsSize: database.getUserSettings() ? database.getUserSettings().size : 0,
+            userChatsSize: database.getUserChats() ? database.getUserChats().size : 0,
+            pendingApprovals: database.getPendingApprovals() ? database.getPendingApprovals().length : 0
         };
         
         res.json(data);
     } catch (error) {
         logger.error('Error in /debug-data:', { error: error.message });
-        res.status(500).json({ error: 'Debug error' });
+        res.status(500).json({ 
+            error: 'Debug error',
+            details: error.message 
+        });
     }
 });
 
@@ -244,7 +298,10 @@ router.post('/force-reload', async (req, res) => {
         res.json({ status: 'ok', message: 'Data reloaded' });
     } catch (error) {
         logger.error('Error in force reload:', { error: error.message });
-        res.status(500).json({ error: 'Force reload error' });
+        res.status(500).json({ 
+            error: 'Force reload error',
+            details: error.message 
+        });
     }
 });
 
@@ -258,28 +315,44 @@ router.get('/status', (req, res) => {
         
         const status = {
             status: 'ok',
-            users: userChats.size,
-            streamLive: streamStatus.isStreamLive,
-            announcements: announcements.length,
-            casinos: casinos.length,
-            pendingApprovals: pendingApprovals.length,
+            users: userChats ? userChats.size : 0,
+            streamLive: streamStatus ? streamStatus.isStreamLive : false,
+            announcements: announcements ? announcements.length : 0,
+            casinos: casinos ? casinos.length : 0,
+            pendingApprovals: pendingApprovals ? pendingApprovals.length : 0,
             timestamp: new Date().toISOString()
         };
 
         res.json(status);
     } catch (error) {
         logger.error('Error in /status:', { error: error.message });
-        res.status(500).json({ error: 'Status check error' });
+        res.status(500).json({ 
+            status: 'error',
+            error: 'Status check error',
+            timestamp: new Date().toISOString()
+        });
     }
 });
 
 // 🔥 ЭНДПОИНТ: Прогрев сервера
 router.get('/warmup', (req, res) => {
-    res.json({ 
-        status: 'warmup_initiated',
-        message: 'Server warmup process started',
-        timestamp: new Date().toISOString()
-    });
+    try {
+        const warmupService = require(path.join(__dirname, '..', 'utils', 'warmup'));
+        warmupService.manualWarmup();
+        
+        res.json({ 
+            status: 'warmup_initiated',
+            message: 'Server warmup process started',
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        logger.error('Error in warmup endpoint:', { error: error.message });
+        res.status(500).json({ 
+            status: 'error',
+            error: 'Warmup failed',
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 // 🔥 ЭНДПОИНТ: Health check для Render
