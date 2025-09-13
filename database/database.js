@@ -25,12 +25,12 @@ class Database {
         this.hiddenStats = new Map();
         this.voiceAccessLogs = [];
 
-        this.dataFilePath = path.join(__dirname, 'data.json');
-        this.contentFilePath = path.join(__dirname, 'content.json');
-        this.userDataFilePath = path.join(__dirname, 'userdata.json');
-        this.statsFilePath = path.join(__dirname, 'stats.json');
-        this.backupInterval = null;
-        this.writeLocks = {}; // Блокировки для избежания конфликтов записи
+    this.dataFilePath = path.join(__dirname, '..', 'data.json');
+    this.contentFilePath = path.join(__dirname, '..', 'content.json');
+    this.userDataFilePath = path.join(__dirname, '..', 'userdata.json');
+    this.statsFilePath = path.join(__dirname, '..', 'stats.json');
+    this.backupInterval = null;
+    this.writeLocks = {};  // Блокировки для избежания конфликтов записи
     }
 
     async #acquireLock(filePath) {
