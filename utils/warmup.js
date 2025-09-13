@@ -10,19 +10,21 @@ class WarmupService {
     }
 
     start() {
-        // 🔥 УБРАЛИ ЖЕСТКИЙ URL - используем относительные пути
+        // 🔥 ИСПРАВЛЕНИЕ: Используем абсолютный URL сервера
+        const serverUrl = `https://go-5zty.onrender.com`;
+        
         // Запускаем сразу при старте
-        this.warmup();
+        this.warmup(serverUrl);
         
         // Затем каждые 5 минут (оптимально для Render)
         this.warmupInterval = setInterval(() => {
-            this.warmup();
+            this.warmup(serverUrl);
         }, 5 * 60 * 1000); // 5 минут
 
-        logger.info('Warmup service started');
+        logger.info('Warmup service started', { serverUrl });
     }
 
-    async warmup() {
+    async warmup(serverUrl) {
         if (this.isWarming) {
             logger.debug('Warmup already in progress');
             return;
@@ -32,11 +34,7 @@ class WarmupService {
         const startTime = Date.now();
 
         try {
-            logger.info('Starting server warmup');
-            
-            // 🔥 ИСПРАВЛЕНИЕ: Используем относительные пути вместо config.RENDER_URL
-            // Это работает потому что мы "прогреваем" тот же самый сервер
-            const baseURL = 'http://localhost:' + (process.env.PORT || 3000);
+            logger.info('Starting server warmup', { serverUrl });
             
             // Делаем запросы к основным endpoint-ам
             const endpoints = [
@@ -48,8 +46,8 @@ class WarmupService {
 
             const results = await Promise.allSettled(
                 endpoints.map(endpoint => 
-                    axios.get(`${baseURL}${endpoint}`, {
-                        timeout: 15000, // Увеличенный таймаут для "просыпающегося" сервера
+                    axios.get(`${serverUrl}${endpoint}`, {
+                        timeout: 30000, // Увеличенный таймаут для "просыпающегося" сервера
                         headers: {
                             'User-Agent': 'Ludogolik-Warmup/1.0'
                         }
@@ -76,15 +74,14 @@ class WarmupService {
                 successful,
                 failed,
                 duration: Date.now() - startTime + 'ms',
-                details: results.map(r => 
-                    r.status === 'fulfilled' ? 
-                    `${r.value.endpoint}: ${r.value.success ? 'OK' : 'FAIL'}` : 
-                    'PROMISE_REJECTED'
-                )
+                serverUrl
             });
 
         } catch (error) {
-            logger.error('Warmup process error', { error: error.message });
+            logger.error('Warmup process error', { 
+                error: error.message,
+                serverUrl 
+            });
         } finally {
             this.isWarming = false;
         }
@@ -104,7 +101,8 @@ class WarmupService {
             return { status: 'already_running' };
         }
         
-        await this.warmup();
+        const serverUrl = `https://go-5zty.onrender.com`;
+        await this.warmup(serverUrl);
         return { status: 'completed' };
     }
 }
