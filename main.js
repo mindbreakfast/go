@@ -1,18 +1,16 @@
 const path = require('path');
-// Настройка путей для Render (проект в /src/)
+
+// 🔥 Настройка путей для Render (проект в /src/)
 process.env.NODE_PATH = path.join(__dirname);
 require('module').Module._initPaths();
+
 const express = require('express');
-const database = require(path.join(__dirname, 'database', 'database'));
-process.env.NODE_PATH = path.join(__dirname);
-require('module').Module._initPaths();
-const express = require('express');
-const database = require(path.join(__dirname, 'database', 'database'));
-const { router: apiRoutes, initializeApiRoutes } = require(path.join(__dirname, 'api', 'routes'));
-const { startBot } = require(path.join(__dirname, 'bot', 'bot'));
-const config = require(path.join(__dirname, 'config'));
-const logger = require(path.join(__dirname, 'utils', 'logger'));
-const warmupService = require(path.join(__dirname, 'utils', 'warmup'));
+const database = require('./database/database');
+const { router: apiRoutes, initializeApiRoutes } = require('./api/routes');
+const { startBot } = require('./bot/bot');
+const config = require('./config');
+const logger = require('./utils/logger');
+const warmupService = require('./utils/warmup');
 
 const app = express();
 
@@ -102,7 +100,7 @@ async function startServer() {
         logger.info('Step 5: Bot started successfully');
         
         // Инициализируем API routes с экземпляром бота
-        const { bot } = require(path.join(__dirname, 'bot', 'bot'));
+        const { bot } = require('./bot/bot');
         initializeApiRoutes(bot);
         logger.info('Step 6: API routes initialized');
 
