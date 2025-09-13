@@ -1,37 +1,52 @@
-console.log('✅ Commands index loaded');
+const logger = require('../utils/logger');
 
-module.exports = {
-    // Admin commands
-    isAdmin: require('./adminCommands').isAdmin,
-    handleStatsCommand: require('./adminCommands').handleStatsCommand,
-    handleLiveCommand: require('./adminCommands').handleLiveCommand,
-    handleStopCommand: require('./adminCommands').handleStopCommand,
-    handleTextCommand: require('./adminCommands').handleTextCommand,
-    handleClearTextCommand: require('./adminCommands').handleClearTextCommand,
-    handleListTextCommand: require('./adminCommands').handleListTextCommand,
-    handleRemoveTextCommand: require('./adminCommands').handleRemoveTextCommand,
-    handleBroadcastCommand: require('./adminCommands').handleBroadcastCommand,
-    handleApproveCommand: require('./adminCommands').handleApproveCommand,
-    handleApprovalsCommand: require('./adminCommands').handleApprovalsCommand,
-    handleCasinoStatsCommand: require('./adminCommands').handleCasinoStatsCommand,
-    handleVoiceAuditCommand: require('./adminCommands').handleVoiceAuditCommand,
-
-    // Casino commands
-    handleAddCasinoCommand: require('./casinoCommands').handleAddCasinoCommand,
-    handleListCasinosCommand: require('./casinoCommands').handleListCasinosCommand,
-    handleEditCasinoCommand: require('./casinoCommands').handleEditCasinoCommand,
-    handleCallbackQuery: require('./casinoCommands').handleCallbackQuery,
-    handleCasinoEditResponse: require('./casinoCommands').handleCasinoEditResponse,
-    handleCasinoCreationStep: require('./casinoCommands').handleCasinoCreationStep,
-
-    // User commands
-    handleStartCommand: require('./userCommands').handleStartCommand,
-    handleHelpCommand: require('./userCommands').handleHelpCommand,
-    handleMessage: require('./userCommands').handleMessage,
-    handleApprovalRequest: require('./userCommands').handleApprovalRequest,
-    handleContestJoin: require('./userCommands').handleContestJoin,
-
-    // Referral commands
-    handleReferralCommand: require('./referralCommands').handleReferralCommand,
-    handleRefStatsCommand: require('./referralCommands').handleRefStatsCommand
+// Динамическая загрузка команд с обработкой ошибок
+const commandModules = {
+    adminCommands: [
+        'handleStatsCommand', 'handleLiveCommand', 'handleStopCommand', 
+        'handleTextCommand', 'handleClearTextCommand', 'handleListTextCommand',
+        'handleRemoveTextCommand', 'handleBroadcastCommand', 'handleApproveCommand',
+        'handleApprovalsCommand', 'handleCasinoStatsCommand', 'handleVoiceAuditCommand'
+    ],
+    casinoCommands: [
+        'handleAddCasinoCommand', 'handleListCasinosCommand', 'handleEditCasinoCommand',
+        'handleCallbackQuery', 'handleCasinoEditResponse', 'handleCasinoCreationStep'
+    ],
+    userCommands: [
+        'handleStartCommand', 'handleHelpCommand', 'handleMessage',
+        'handleApprovalRequest', 'handleContestJoin'
+    ],
+    referralCommands: [
+        'handleReferralCommand', 'handleRefStatsCommand'
+    ]
 };
+
+const commands = {};
+
+// Добавляем isAdmin отдельно, так как она используется в других модулях
+try {
+    const { isAdmin } = require('../../utils/isAdmin');
+    commands.isAdmin = isAdmin;
+} catch (error) {
+    logger.error('Failed to load isAdmin:', error);
+    // Создаем заглушку чтобы не ломать другие модули
+    commands.isAdmin = () => false;
+}
+
+// Загружаем остальные команды
+for (const [moduleName, functions] of Object.entries(commandModules)) {
+    try {
+        const module = require(`./${moduleName}`);
+        for (const funcName of functions) {
+            if (module[funcName]) {
+                commands[funcName] = module[funcName];
+            } else {
+                logger.warn(`Function ${funcName} not found in ${moduleName}`);
+            }
+        }
+    } catch (error) {
+        logger.error(`Failed to load module ${moduleName}:`, error);
+    }
+}
+
+module.exports = commands;
