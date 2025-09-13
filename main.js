@@ -1,9 +1,11 @@
+const path = require('path');
 const express = require('express');
-const database = require('./database/database');
-const { router: apiRoutes, initializeApiRoutes } = require('./api/routes');
-const { startBot } = require('./bot/bot');
-const config = require('./config');
-const logger = require('./utils/logger');
+const database = require(path.join(__dirname, 'database', 'database'));
+const { router: apiRoutes, initializeApiRoutes } = require(path.join(__dirname, 'api', 'routes'));
+const { startBot } = require(path.join(__dirname, 'bot', 'bot'));
+const config = require(path.join(__dirname, 'config'));
+const logger = require(path.join(__dirname, 'utils', 'logger'));
+const warmupService = require(path.join(__dirname, 'utils', 'warmup'));
 
 const app = express();
 
@@ -36,6 +38,9 @@ app.get('/health', (req, res) => {
 // Graceful shutdown
 function gracefulShutdown() {
     logger.info('Received shutdown signal. Saving data...');
+    
+    // Останавливаем сервис прогрева
+    warmupService.stop();
     database.stopBackupService();
     
     // Даем время на сохранение данных, но не блокируем надолго
@@ -90,7 +95,7 @@ async function startServer() {
         logger.info('Step 5: Bot started successfully');
         
         // Инициализируем API routes с экземпляром бота
-        const { bot } = require('./bot/bot');
+        const { bot } = require(path.join(__dirname, 'bot', 'bot'));
         initializeApiRoutes(bot);
         logger.info('Step 6: API routes initialized');
 
@@ -102,6 +107,9 @@ async function startServer() {
         const server = app.listen(config.PORT, () => {
             logger.info('Server started on port', config.PORT);
             logger.info('Server is fully operational!');
+            
+            // Запускаем сервис прогрева после запуска сервера
+            warmupService.start();
         });
 
         // Обработчик ошибок сервера
