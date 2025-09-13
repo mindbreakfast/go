@@ -1,10 +1,10 @@
 const fs = require('fs').promises;
 const path = require('path');
-const config = require('../config');
 
 class Logger {
     constructor() {
         this.logFile = path.join(__dirname, '..', 'logs', 'app.log');
+        this.logLevel = process.env.LOG_LEVEL || 'info'; // Читаем из process.env напрямую
         this.init();
     }
 
@@ -24,12 +24,12 @@ class Logger {
             debug: 3
         };
         
-        const currentLevel = levels[config.LOG_LEVEL] || levels['info'];
+        const currentLevel = levels[this.logLevel] || levels['info'];
         return levels[level] <= currentLevel;
     }
 
     async log(level, message, metadata = {}) {
-        // Проверяем уровень логирования из конфига
+        // Проверяем уровень логирования
         if (!this.shouldLog(level)) {
             return;
         }
@@ -39,7 +39,6 @@ class Logger {
         // 🔒 Безопасное логирование: убираем чувствительные данные
         let safeMetadata = { ...metadata };
         if (safeMetadata.error && safeMetadata.error.message) {
-            // Оставляем только message у ошибок, остальное может содержать敏感 данные
             safeMetadata.error = { message: safeMetadata.error.message };
         }
         
@@ -53,16 +52,15 @@ class Logger {
 
         const logEntry = `[${timestamp}] [${level.toUpperCase()}] ${message} ${Object.keys(safeMetadata).length ? JSON.stringify(safeMetadata) : ''}\n`;
         
-        // Вывод в консоль только для error и warn в продакшене
-        if (level === 'error' || level === 'warn' || config.LOG_LEVEL === 'debug') {
-            console.log(logEntry.trim());
-        }
+        // Вывод в консоль
+        console.log(logEntry.trim());
         
-        // Запись в файл (асинхронно, без ожидания)
-        if (config.LOG_LEVEL !== 'silent') {
-            fs.appendFile(this.logFile, logEntry).catch(err => {
-                console.error('Log file write error:', err);
-            });
+        // Запись в файл (с обработкой ошибок)
+        try {
+            await fs.appendFile(this.logFile, logEntry);
+        } catch (error) {
+            // Если ошибка записи в файл, пишем только в консоль
+            console.error('Log file write error:', error.message);
         }
     }
 
