@@ -1,8 +1,8 @@
 const path = require('path');
-const config = require(path.join(__dirname, '..', '..', 'config'));
-const database = require(path.join(__dirname, '..', '..', 'database', 'database'));
-const { isAdmin } = require(path.join(__dirname, '..', '..', 'utils', 'isAdmin'));
-const { casinoEditingState } = require('../state');
+const config = require(path.join(__dirname, '..', 'config'));
+const database = require(path.join(__dirname, '..', 'database', 'database'));
+const { isAdmin } = require(path.join(__dirname, '..', 'utils', 'isAdmin'));
+const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
 
 function handleStartCommand(bot, msg) {
     const user = msg.from;
@@ -75,7 +75,7 @@ function handleHelpCommand(bot, msg) {
 Команды для админов:
 /live [ссылка] [описание] - Начать стрим
 /stop - Остановить стрим
-/text [сообщение] - Добавить анонс
+/text [сообщение] [цвет] - Добавить анонс
 /clear_text - Очистить анонсы
 /list_text - Показать анонсы
 /remove_text [ID] - Удалить анонс
@@ -150,7 +150,8 @@ function processCommand(bot, msg, text) {
             if (isAdmin(msg.from.id)) {
                 const adminCommands = require('./adminCommands');
                 const messageText = text.substring(5).trim();
-                adminCommands.handleTextCommand(bot, msg, [null, messageText]);
+                const match = messageText.match(/^(.+?)(?:\s+(blue|green|red|yellow|purple))?$/);
+                adminCommands.handleTextCommand(bot, msg, match ? [null, match[1], match[2]] : [null, messageText]);
             } else {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
