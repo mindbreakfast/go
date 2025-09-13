@@ -1,7 +1,7 @@
 const path = require('path');
-const database = require(path.join(__dirname, '..', '..', 'database', 'database'));
-const { isAdmin } = require(path.join(__dirname, '..', '..', 'utils', 'isAdmin'));
-const logger = require(path.join(__dirname, '..', '..', 'utils', 'logger'));
+const database = require(path.join(__dirname, '..', 'database', 'database'));
+const { isAdmin } = require(path.join(__dirname, '..', 'utils', 'isAdmin'));
+const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
 
 function handleStatsCommand(bot, msg) {
     if (!isAdmin(msg.from.id)) {
@@ -74,32 +74,95 @@ function handleStopCommand(bot, msg) {
     }
 }
 
-function handleTextCommand(bot, msg) {
+function handleTextCommand(bot, msg, match) {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
-    bot.sendMessage(msg.chat.id, '📝 Функция работы с текстами в разработке');
+
+    try {
+        const text = match[1];
+        const color = match[2] || 'blue';
+
+        if (!text) {
+            return bot.sendMessage(msg.chat.id, '❌ Формат: /text [сообщение] [цвет]\nЦвета: blue, green, red, yellow, purple');
+        }
+
+        const announcements = database.getAnnouncements();
+        const newAnnouncement = {
+            id: announcements.length + 1,
+            text: text,
+            color: color,
+            createdAt: new Date().toISOString()
+        };
+
+        announcements.push(newAnnouncement);
+        database.setAnnouncements(announcements);
+
+        bot.sendMessage(msg.chat.id, `✅ Анонс добавлен!\nID: ${newAnnouncement.id}\nЦвет: ${color}`);
+    } catch (error) {
+        logger.error('Error in text command:', error);
+        bot.sendMessage(msg.chat.id, '❌ Ошибка при добавлении анонса');
+    }
 }
 
 function handleClearTextCommand(bot, msg) {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
-    bot.sendMessage(msg.chat.id, '🧹 Функция очистки текстов в разработке');
+
+    try {
+        database.setAnnouncements([]);
+        bot.sendMessage(msg.chat.id, '✅ Все анонсы очищены!');
+    } catch (error) {
+        logger.error('Error in clear text command:', error);
+        bot.sendMessage(msg.chat.id, '❌ Ошибка при очистке анонсов');
+    }
 }
 
 function handleListTextCommand(bot, msg) {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
-    bot.sendMessage(msg.chat.id, '📋 Функция списка текстов в разработке');
+
+    try {
+        const announcements = database.getAnnouncements();
+        if (announcements.length === 0) {
+            return bot.sendMessage(msg.chat.id, '📝 Список анонсов пуст');
+        }
+
+        const message = announcements.map(ann => 
+            `ID: ${ann.id}\nТекст: ${ann.text}\nЦвет: ${ann.color}\nДата: ${new Date(ann.createdAt).toLocaleString()}\n──────────────────`
+        ).join('\n\n');
+
+        bot.sendMessage(msg.chat.id, `📝 Список анонсов (${announcements.length}):\n\n${message}`);
+    } catch (error) {
+        logger.error('Error in list text command:', error);
+        bot.sendMessage(msg.chat.id, '❌ Ошибка при получении списка анонсов');
+    }
 }
 
-function handleRemoveTextCommand(bot, msg) {
+function handleRemoveTextCommand(bot, msg, match) {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
-    bot.sendMessage(msg.chat.id, '🗑️ Функция удаления текстов в разработке');
+
+    try {
+        const id = parseInt(match[1]);
+        const announcements = database.getAnnouncements();
+        const index = announcements.findIndex(a => a.id === id);
+
+        if (index === -1) {
+            return bot.sendMessage(msg.chat.id, `❌ Анонс с ID ${id} не найден`);
+        }
+
+        const removed = announcements.splice(index, 1)[0];
+        database.setAnnouncements(announcements);
+
+        bot.sendMessage(msg.chat.id, `✅ Анонс удален!\nID: ${removed.id}\nТекст: ${removed.text}`);
+    } catch (error) {
+        logger.error('Error in remove text command:', error);
+        bot.sendMessage(msg.chat.id, '❌ Ошибка при удалении анонса');
+    }
 }
 
 function handleBroadcastCommand(bot, msg) {
