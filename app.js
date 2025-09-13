@@ -49,11 +49,20 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===== ТЕМНАЯ ТЕМА =====
 function initTheme() {
     const savedTheme = localStorage.getItem('theme');
-    const isDark = savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    // 🔥 ПО УМОЛЧАНИЮ ТЕМНАЯ ТЕМА
+    const isDark = savedTheme === 'dark' || 
+                  (savedTheme === null && true) || // Всегда темная если нет сохраненной
+                  (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     
     currentTheme = isDark ? 'dark' : 'light';
     document.body.classList.toggle('theme-dark', isDark);
     document.getElementById('themeSwitcher').textContent = isDark ? '☀️ Светлая тема' : '🌙 Тёмная тема';
+    
+    // Сохраняем настройку
+    if (savedTheme === null) {
+        localStorage.setItem('theme', 'dark');
+    }
 }
 
 function toggleTheme() {
