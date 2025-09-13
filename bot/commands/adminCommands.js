@@ -74,11 +74,136 @@ function handleStopCommand(bot, msg) {
     }
 }
 
-// ... (остальные функции adminCommands с аналогичными исправлениями)
+function handleTextCommand(bot, msg) {
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+    }
+    bot.sendMessage(msg.chat.id, '📝 Функция работы с текстами в разработке');
+}
+
+function handleClearTextCommand(bot, msg) {
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+    }
+    bot.sendMessage(msg.chat.id, '🧹 Функция очистки текстов в разработке');
+}
+
+function handleListTextCommand(bot, msg) {
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+    }
+    bot.sendMessage(msg.chat.id, '📋 Функция списка текстов в разработке');
+}
+
+function handleRemoveTextCommand(bot, msg) {
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+    }
+    bot.sendMessage(msg.chat.id, '🗑️ Функция удаления текстов в разработке');
+}
+
+function handleBroadcastCommand(bot, msg) {
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+    }
+    bot.sendMessage(msg.chat.id, '📢 Функция рассылки в разработке');
+}
+
+function handleApproveCommand(bot, msg, match) {
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+    }
+
+    try {
+        const userId = parseInt(match[1]);
+        if (database.approveUserAccess(userId)) {
+            bot.sendMessage(msg.chat.id, `✅ Пользователь ${userId} одобрен!`);
+        } else {
+            bot.sendMessage(msg.chat.id, '❌ Пользователь не найден или уже одобрен');
+        }
+    } catch (error) {
+        logger.error('Error in approve command:', error);
+        bot.sendMessage(msg.chat.id, '❌ Ошибка при одобрении пользователя');
+    }
+}
+
+function handleApprovalsCommand(bot, msg) {
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+    }
+
+    try {
+        const pendingApprovals = database.getPendingApprovals();
+        if (pendingApprovals.length === 0) {
+            return bot.sendMessage(msg.chat.id, '✅ Нет ожидающих одобрения заявок');
+        }
+
+        const message = pendingApprovals.map((req, index) => 
+            `${index + 1}. ID: ${req.userId} - @${req.requestedUsername || 'unknown'}\n   📅 ${new Date(req.requestedAt).toLocaleString()}`
+        ).join('\n\n');
+
+        bot.sendMessage(msg.chat.id, `⏳ Ожидающие одобрения (${pendingApprovals.length}):\n\n${message}`);
+    } catch (error) {
+        logger.error('Error in approvals command:', error);
+        bot.sendMessage(msg.chat.id, '❌ Ошибка при получении списка заявок');
+    }
+}
+
+function handleCasinoStatsCommand(bot, msg) {
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+    }
+
+    try {
+        const stats = database.getCasinoStats();
+        if (stats.length === 0) {
+            return bot.sendMessage(msg.chat.id, '📊 Нет данных по статистике казино');
+        }
+
+        const message = stats.slice(0, 10).map((casino, index) => 
+            `${index + 1}. ${casino.name}\n   👆 ${casino.clicks} кликов | 👻 ${casino.hides} скрытий ${casino.isPinned ? '📌' : ''}`
+        ).join('\n\n');
+
+        bot.sendMessage(msg.chat.id, `📊 Топ казино по кликам:\n\n${message}`);
+    } catch (error) {
+        logger.error('Error in casino stats command:', error);
+        bot.sendMessage(msg.chat.id, '❌ Ошибка при получении статистики казино');
+    }
+}
+
+function handleVoiceAuditCommand(bot, msg) {
+    if (!isAdmin(msg.from.id)) {
+        return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+    }
+
+    try {
+        const logs = database.getVoiceAccessLogs(20);
+        if (logs.length === 0) {
+            return bot.sendMessage(msg.chat.id, '🎙️ Нет данных о доступах к голосовым комнатам');
+        }
+
+        const message = logs.map((log, index) => 
+            `${index + 1}. User#${log.userId} (${log.username})\n   🎚️ ${log.roomType} | 📅 ${new Date(log.timestamp).toLocaleString()}`
+        ).join('\n\n');
+
+        bot.sendMessage(msg.chat.id, `🎙️ Последние доступы к голосовым:\n\n${message}`);
+    } catch (error) {
+        logger.error('Error in voice audit command:', error);
+        bot.sendMessage(msg.chat.id, '❌ Ошибка при получении логов голосовых комнат');
+    }
+}
 
 module.exports = {
     handleStatsCommand,
     handleLiveCommand,
     handleStopCommand,
-    // ... остальные экспорты
+    handleTextCommand,
+    handleClearTextCommand,
+    handleListTextCommand,
+    handleRemoveTextCommand,
+    handleBroadcastCommand,
+    handleApproveCommand,
+    handleApprovalsCommand,
+    handleCasinoStatsCommand,
+    handleVoiceAuditCommand
 };
