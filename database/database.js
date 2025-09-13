@@ -1,7 +1,8 @@
 const fs = require('fs').promises;
 const path = require('path');
-const githubSync = require('./githubSync');
-const logger = require('../utils/logger');
+const config = require(path.join(__dirname, '..', 'config'));
+const githubSync = require(path.join(__dirname, 'githubSync'));
+const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
 
 class Database {
     constructor() {
