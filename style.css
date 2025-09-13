@@ -491,3 +491,69 @@ body {
     padding: 8px 12px;
     font-size: 13px;
 }
+
+.referral-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.referral-stats {
+    display: flex;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 10px 20px;
+    border-radius: 25px;
+    backdrop-filter: blur(10px);
+}
+
+.stat-label {
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.stat-value {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.referral-link-container {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0;
+    justify-content: center;
+}
+
+.referral-link-input {
+    flex: 1;
+    max-width: 300px;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    font-size: 14px;
+}
+
+.btn-copy {
+    padding: 12px 20px;
+    background: #fff;
+    color: #667eea;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.referral-hint {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-top: 10px;
+}
