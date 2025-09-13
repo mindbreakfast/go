@@ -11,8 +11,11 @@ function escapeHtml(unsafe) {
 }
 
 // ===== СТАБИЛЬНОСТЬ RENDER: Динамическое определение URL API =====
-const API_BASE = window.location.origin; // Автоматически работает на любом домене Render
+const API_BASE = window.location.hostname.includes('vercel.app') 
+    ? 'https://go-5zty.onrender.com'  // Бэкенд на Render
+    : window.location.origin;          // Локальная разработка
 
+console.log('🚀 API Base URL:', API_BASE);
 // ===== ПЕРЕМЕННЫЕ =====
 let allCasinos = [];
 let activeFilters = new Set();
