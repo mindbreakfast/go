@@ -1,3 +1,5 @@
+process.env.NODE_PATH = path.join(__dirname);
+require('module').Module._initPaths();
 const path = require('path');
 const express = require('express');
 const database = require(path.join(__dirname, 'database', 'database'));
