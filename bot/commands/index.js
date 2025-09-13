@@ -1,5 +1,5 @@
 const path = require('path');
-const logger = require(path.join(__dirname, '..', '..', 'utils', 'logger'));
+const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
 
 // Динамическая загрузка команд с обработкой ошибок
 const commandModules = {
@@ -26,7 +26,7 @@ const commands = {};
 
 // Добавляем isAdmin отдельно, так как она используется в других модулях
 try {
-    const { isAdmin } = require(path.join(__dirname, '..', '..', 'utils', 'isAdmin'));
+    const { isAdmin } = require(path.join(__dirname, '..', 'utils', 'isAdmin'));
     commands.isAdmin = isAdmin;
 } catch (error) {
     logger.error('Failed to load isAdmin:', error);
