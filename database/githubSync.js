@@ -1,6 +1,7 @@
+const path = require('path');
 const axios = require('axios');
-const config = require('../config');
-const logger = require('../utils/logger'); // Используем логгер
+const config = require(path.join(__dirname, '..', 'config'));
+const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
 
 class GitHubSync {
     constructor() {
