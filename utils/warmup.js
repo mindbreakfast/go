@@ -1,5 +1,7 @@
 const axios = require('axios');
-const logger = require('./logger');
+const path = require('path');
+const config = require(path.join(__dirname, '..', 'config'));
+const logger = require(path.join(__dirname, 'logger'));
 
 class WarmupService {
     constructor() {
