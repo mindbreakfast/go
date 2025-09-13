@@ -1,26 +1,25 @@
 {
-  "name": "casinohub-bot",
-  "version": "1.1.0",
+  "name": "ludogolik-bot",
+  "version": "1.2.0",
   "description": "Telegram bot for casino links from Ludogolik",
   "main": "main.js",
   "scripts": {
-    "start": "node main.js",
+    "start": "node --optimize_for_size --max_old_space_size=256 main.js",
     "dev": "nodemon main.js",
-    "test": "echo \"No tests specified\" && exit 0",
-    "logs": "tail -f logs/app.log",
-    "clean-logs": "rm -f logs/*.log"
+    "render-start": "node --optimize_for_size --max_old_space_size=256 main.js",
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
-    "node-telegram-bot-api": "^0.64.0",
-    "express": "^4.18.2",
-    "axios": "^1.6.0",
-    "dotenv": "^16.3.1"
+    "node-telegram-bot-api": "^0.68.0",
+    "express": "^4.19.2",
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.1"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.1.7"
   },
   "engines": {
-    "node": "22.x"
+    "node": ">=18.0.0"
   },
   "keywords": [
     "telegram",
@@ -37,5 +36,3 @@
     "url": "https://github.com/mindbreakfast/go.git"
   }
 }
-
-
