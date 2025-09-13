@@ -1,6 +1,4 @@
 const axios = require('axios');
-const path = require('path');
-const config = require(path.join(__dirname, '..', 'config')); // Исправленный путь
 const logger = require('./logger');
 
 class WarmupService {
@@ -10,13 +8,14 @@ class WarmupService {
     }
 
     start() {
+        // 🔥 УБРАЛИ ЖЕСТКИЙ URL - используем относительные пути
         // Запускаем сразу при старте
         this.warmup();
         
-        // Затем каждые 10 минут
+        // Затем каждые 5 минут (оптимально для Render)
         this.warmupInterval = setInterval(() => {
             this.warmup();
-        }, 10 * 60 * 1000);
+        }, 5 * 60 * 1000); // 5 минут
 
         logger.info('Warmup service started');
     }
@@ -33,36 +32,57 @@ class WarmupService {
         try {
             logger.info('Starting server warmup');
             
+            // 🔥 ИСПРАВЛЕНИЕ: Используем относительные пути вместо config.RENDER_URL
+            // Это работает потому что мы "прогреваем" тот же самый сервер
+            const baseURL = 'http://localhost:' + (process.env.PORT || 3000);
+            
             // Делаем запросы к основным endpoint-ам
             const endpoints = [
                 '/health',
-                '/data',
                 '/api/health',
-                '/api/data'
+                '/api/data',
+                '/status'
             ];
 
             const results = await Promise.allSettled(
                 endpoints.map(endpoint => 
-                    axios.get(`${config.RENDER_URL}${endpoint}`, {
-                        timeout: 10000
-                    }).catch(error => ({
-                        error: true,
-                        message: error.message
+                    axios.get(`${baseURL}${endpoint}`, {
+                        timeout: 15000, // Увеличенный таймаут для "просыпающегося" сервера
+                        headers: {
+                            'User-Agent': 'Ludogolik-Warmup/1.0'
+                        }
+                    }).then(response => ({
+                        success: true,
+                        status: response.status,
+                        endpoint: endpoint
+                    })).catch(error => ({
+                        success: false,
+                        error: error.message,
+                        endpoint: endpoint,
+                        status: error.response?.status
                     }))
                 )
             );
 
-            const successful = results.filter(r => r.status === 'fulfilled' && !r.value.error).length;
+            const successful = results.filter(r => 
+                r.status === 'fulfilled' && r.value.success
+            ).length;
+            
             const failed = results.length - successful;
 
             logger.info('Warmup completed', {
                 successful,
                 failed,
-                duration: Date.now() - startTime
+                duration: Date.now() - startTime + 'ms',
+                details: results.map(r => 
+                    r.status === 'fulfilled' ? 
+                    `${r.value.endpoint}: ${r.value.success ? 'OK' : 'FAIL'}` : 
+                    'PROMISE_REJECTED'
+                )
             });
 
         } catch (error) {
-            logger.error('Warmup error', { error: error.message });
+            logger.error('Warmup process error', { error: error.message });
         } finally {
             this.isWarming = false;
         }
@@ -71,8 +91,19 @@ class WarmupService {
     stop() {
         if (this.warmupInterval) {
             clearInterval(this.warmupInterval);
+            this.warmupInterval = null;
             logger.info('Warmup service stopped');
         }
+    }
+
+    // 🔥 НОВАЯ ФУНКЦИЯ: Ручной запуск прогрева через API
+    async manualWarmup() {
+        if (this.isWarming) {
+            return { status: 'already_running' };
+        }
+        
+        await this.warmup();
+        return { status: 'completed' };
     }
 }
 
