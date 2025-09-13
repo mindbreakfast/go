@@ -1,12 +1,4 @@
-// ===== ПЕРЕМЕННЫЕ =====
-let allCasinos = [];
-let activeFilters = new Set();
-let currentSearchQuery = '';
-let userClickStats = {};
-let userHiddenCasinos = [];
-let userViewMode = 'full';
-let userId = null;
-let isApproved = false;// ===== БЕЗОПАСНОСТЬ: Функция для экранирования HTML (Защита от XSS) =====
+// ===== БЕЗОПАСНОСТЬ: Функция для экранирования HTML (Защита от XSS) =====
 function escapeHtml(unsafe) {
     if (!unsafe) return '';
     return unsafe
@@ -121,7 +113,7 @@ function incrementClickCount(casinoId) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 userId: user.id,
-                userInfo: { id: user.id, username: user.username }, // Отправляем только нужные данные
+                userInfo: { id: user.id, username: user.username },
                 casinoId: casinoId,
                 action: 'click'
             })
@@ -161,13 +153,23 @@ async function loadInitialData() {
         const tg = window.Telegram?.WebApp;
         const currentUserId = tg?.initDataUnsafe?.user?.id || 'anonymous';
         
-        const [casinosData, userData] = await Promise.allSettled([
-            fetch(`${API_BASE}/api/all-data`).then(r => {
+        console.log('🔄 Starting data loading...');
+        console.log('📡 Fetching from:', `${API_BASE}/api/all-data`);
+        
+        const [casinosData, userData] = await Promise.all([
+            fetch(`${API_BASE}/api/all-data`).then(async r => {
+                console.log('🎰 Casino response status:', r.status);
+                const data = await r.json();
+                console.log('🎰 Casinos loaded:', data.casinos?.length);
                 if (!r.ok) throw new Error('Ошибка загрузки данных');
-                return r.json();
+                return data;
             }),
             fetch(`${API_BASE}/api/user-data?userId=${currentUserId}`)
-                .then(r => r.ok ? r.json() : Promise.reject('User data error'))
+                .then(async r => {
+                    console.log('👤 User response status:', r.status);
+                    const data = await r.json();
+                    return r.ok ? data : Promise.reject('User data error');
+                })
                 .catch(e => ({ 
                     settings: { 
                         hiddenCasinos: [], 
@@ -178,32 +180,33 @@ async function loadInitialData() {
                 }))
         ]);
 
-        // Обработка результатов запросов
-        if (casinosData.status === 'fulfilled') {
-            allCasinos = casinosData.value.casinos || [];
-            renderFilters(casinosData.value.categories || []);
-            showAnnouncements(casinosData.value.announcements || []);
-            updateStreamStatus(casinosData.value.streamStatus);
-        } else {
-            throw new Error('Не удалось загрузить данные казино');
-        }
-
-        const userSettings = (userData.status === 'fulfilled') ? 
-            (userData.value.settings || {}) : 
-            { hiddenCasinos: [], viewMode: 'full', theme: 'light', hasLiveAccess: false };
+        // 🔥 ПРАВИЛЬНОЕ ПРИСВАИВАНИЕ (без let - переменная уже объявлена)
+        allCasinos = casinosData.casinos || [];
+        renderFilters(casinosData.categories || []);
+        
+        showAnnouncements(casinosData.announcements || []);
+        updateStreamStatus(casinosData.streamStatus);
         
         // ЕДИНЫЙ ИСТОЧНИК НАСТРОЕК
+        const userSettings = userData.settings || {};
         userHiddenCasinos = userSettings.hiddenCasinos || [];
         userViewMode = userSettings.viewMode || 'full';
         currentTheme = userSettings.theme || 'light';
         userId = currentUserId;
         isApproved = userSettings.hasLiveAccess || false;
         
+        console.log('🎨 Theme:', currentTheme);
+        console.log('👁️ View mode:', userViewMode);
+        console.log('🙈 Hidden casinos:', userHiddenCasinos.length);
+        console.log('🎰 Total casinos:', allCasinos.length);
+        
         document.body.classList.toggle('theme-dark', currentTheme === 'dark');
         document.getElementById('themeSwitcher').textContent = currentTheme === 'dark' ? '☀️ Светлая тема' : '🌙 Тёмная тема';
         localStorage.setItem('theme', currentTheme);
         
         document.getElementById('userIdDisplay').textContent = `ID: ${userId}`;
+        
+        console.log('🖼️ Rendering casinos...');
         renderCasinos();
         updateLiveRooms();
 
@@ -214,14 +217,14 @@ async function loadInitialData() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     userId: user.id,
-                    userInfo: { id: user.id, username: user.username }, // Только необходимые данные
+                    userInfo: { id: user.id, username: user.username },
                     action: 'visit'
                 })
             }).catch(error => console.log('Ошибка отправки статистики:', error));
         }
 
     } catch (error) {
-        console.error('Ошибка загрузки:', error);
+        console.error('❌ Load error:', error);
         showError('Ошибка при загрузке данных. Попробуйте обновить страницу.');
     } finally {
         hideLoadingState();
@@ -236,7 +239,6 @@ function showLoadingState() {
 }
 
 function hideLoadingState() {
-    // Убираем лоадер, если он есть
     const loader = document.querySelector('.loader');
     if (loader) loader.style.display = 'none';
 }
@@ -249,7 +251,6 @@ function showAnnouncements(announcements) {
         return;
     }
 
-    // 🔒 БЕЗОПАСНОСТЬ: Используем escapeHtml для защиты от XSS
     container.innerHTML = announcements.map(announcement => `
         <div class="announcement-banner announcement-${announcement.color || 'blue'}">
             ${escapeHtml(announcement.text)}
@@ -333,12 +334,21 @@ function renderFilters(categories) {
 
 function renderCasinos() {
     const container = document.getElementById('casinoList');
-    if (!container) return;
+    if (!container) {
+        console.error('❌ Casino list container not found!');
+        return;
+    }
 
     const filteredCasinos = filterCasinos();
     const sortedCasinos = sortCasinos(filteredCasinos);
 
+    console.log('🃏 Filtered casinos:', filteredCasinos.length);
+    console.log('🃏 Sorted casinos:', sortedCasinos.length);
+    console.log('🙈 User hidden casinos:', userHiddenCasinos.length);
+    console.log('🔍 Active filters:', Array.from(activeFilters));
+
     if (sortedCasinos.length === 0) {
+        console.log('📭 No casinos to display');
         container.innerHTML = `
             <div class="no-results">
                 Ничего не найдено
@@ -351,6 +361,7 @@ function renderCasinos() {
         return;
     }
 
+    console.log('🎨 Rendering', sortedCasinos.length, 'casinos');
     container.innerHTML = sortedCasinos.map(casino => `
         <div class="casino-card ${userViewMode === 'compact' ? 'compact' : ''}" 
              data-id="${casino.id}"
