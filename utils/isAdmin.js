@@ -1,4 +1,5 @@
-const config = require('../config');
+const path = require('path');
+const config = require(path.join(__dirname, '..', 'config'));
 
 // Простое кэширование для частых вызовов
 const adminCache = new Map();
