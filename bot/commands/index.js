@@ -1,5 +1,5 @@
 const path = require('path');
-const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
+const logger = require(path.join(__dirname, '..', '..', 'utils', 'logger'));
 
 // Динамическая загрузка команд с обработкой ошибок
 const commandModules = {
