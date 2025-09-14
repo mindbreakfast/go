@@ -212,6 +212,9 @@ async function loadInitialData() {
         console.log('🖼️ Rendering casinos...');
         renderCasinos();
         updateLiveRooms();
+        
+        // 🔥 ДОБАВЛЕНО: Обновление реферального блока
+        updateReferralSection();
 
         if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
             const user = tg.initDataUnsafe.user;
@@ -566,8 +569,36 @@ function requestApproval() {
 }
 
 // ===== РЕФЕРАЛЬНАЯ СИСТЕМА =====
-function copyReferralLink() {
+function updateReferralSection() {
+    const referralSection = document.getElementById('referralSection');
+    const referralCount = document.getElementById('referralCount');
+    const referralLinkInput = document.getElementById('referralLinkInput');
+    
     if (userId && userId !== 'anonymous') {
+        // Временно используем заглушку, пока не подключим API
+        const referralInfo = {
+            referrals: [],
+            referralLink: `https://t.me/Ludogol_bot?start=ref${userId}`
+        };
+        
+        referralCount.textContent = referralInfo.referrals.length;
+        referralLinkInput.value = referralInfo.referralLink;
+        referralSection.style.display = 'block';
+    } else {
+        referralSection.style.display = 'none';
+    }
+}
+
+function copyReferralLink() {
+    const referralLinkInput = document.getElementById('referralLinkInput');
+    if (referralLinkInput && referralLinkInput.value) {
+        navigator.clipboard.writeText(referralLinkInput.value).then(() => {
+            alert('✅ Реферальная ссылка скопирована!\n\nКиньте ссылку другу!');
+        }).catch(err => {
+            console.error('Error copying referral link:', err);
+            alert('❌ Ошибка при копировании ссылки');
+        });
+    } else if (userId && userId !== 'anonymous') {
         const referralLink = `https://t.me/Ludogol_bot?start=ref${userId}`;
         navigator.clipboard.writeText(referralLink).then(() => {
             alert('✅ Реферальная ссылка скопирована!\n\nКиньте ссылку другу!');
