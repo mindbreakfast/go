@@ -1,5 +1,20 @@
 {
   "userChats": {
+    "737016949": {
+      "id": 737016949,
+      "username": "Informator_one",
+      "joined_at": "2025-09-14T11:06:54.086Z",
+      "last_activity": "2025-09-14T11:06:54.086Z"
+    },
+    "1097210873": {
+      "id": 1097210873,
+      "username": "chupachypik",
+      "first_name": "🍭̶Ч̶У̶П̶А̶ ̶",
+      "last_name": "Ч̶У̶П̶И̶К🍭",
+      "language_code": "ru",
+      "joined_at": "2025-09-14T11:11:22.228Z",
+      "last_activity": "2025-09-14T11:11:22.228Z"
+    },
     "1777213824": {
       "id": 1777213824,
       "username": "NSDcode",
@@ -7,7 +22,7 @@
       "last_name": "NSD",
       "language_code": "ru",
       "joined_at": "2025-09-10T17:10:33.867Z",
-      "last_activity": "2025-09-14T05:24:57.604Z"
+      "last_activity": "2025-09-14T11:21:07.513Z"
     },
     "6770360650": {
       "id": 6770360650,
@@ -16,9 +31,29 @@
       "language_code": "ru",
       "joined_at": "2025-09-10T17:39:57.669Z",
       "last_activity": "2025-09-10T17:48:50.251Z"
+    },
+    "6155299325": {
+      "id": 6155299325,
+      "username": "Grib999666",
+      "first_name": "🍄МухоморЧик🍄",
+      "language_code": "ru",
+      "joined_at": "2025-09-14T11:14:20.329Z",
+      "last_activity": "2025-09-14T11:14:20.329Z"
     }
   },
   "userSettings": {
+    "737016949": {
+      "hiddenCasinos": [],
+      "notifications": true,
+      "theme": "light",
+      "hasLiveAccess": false
+    },
+    "1097210873": {
+      "hiddenCasinos": [],
+      "notifications": true,
+      "theme": "light",
+      "hasLiveAccess": false
+    },
     "1777213824": {
       "hiddenCasinos": [
         35
@@ -26,7 +61,7 @@
       "notifications": true,
       "theme": "dark",
       "hasLiveAccess": true,
-      "viewMode": "compact",
+      "viewMode": "full",
       "contestState": {
         "active": true,
         "contestId": "giftme_2024_01",
@@ -42,6 +77,12 @@
       "theme": "dark",
       "hasLiveAccess": true,
       "viewMode": "compact"
+    },
+    "6155299325": {
+      "hiddenCasinos": [],
+      "notifications": true,
+      "theme": "light",
+      "hasLiveAccess": false
     }
   },
   "giveaways": [],
@@ -59,8 +100,32 @@
       "requestedAt": "2025-09-10T17:40:42.931Z",
       "status": "approved",
       "approvedAt": "2025-09-10T17:41:05.657Z"
+    },
+    {
+      "userId": 737016949,
+      "requestedUsername": "@user737016949",
+      "requestedAt": "2025-09-14T11:07:14.317Z",
+      "status": "pending"
     }
   ],
-  "referralData": {},
-  "lastUpdated": "2025-09-14T10:10:07.179Z"
+  "referralData": {
+    "1097210873": {
+      "referredBy": 1777213824,
+      "referrals": [],
+      "totalEarned": 0
+    },
+    "1777213824": {
+      "referrals": [
+        1097210873,
+        6155299325
+      ],
+      "totalEarned": 0
+    },
+    "6155299325": {
+      "referredBy": 1777213824,
+      "referrals": [],
+      "totalEarned": 0
+    }
+  },
+  "lastUpdated": "2025-09-14T12:06:26.216Z"
 }
