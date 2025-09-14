@@ -1,9 +1,9 @@
 const TelegramBot = require('node-telegram-bot-api');
 const path = require('path');
-const config = require(path.join(__dirname, '..', 'config'));
+const config = require(path.join(__dirname, '..', '..', 'config'));
 const { casinoEditingState, clearUserState } = require(path.join(__dirname, 'state'));
 const commandHandlers = require(path.join(__dirname, 'commands'));
-const logger = require(path.join(__dirname, '..', '..', 'utils', 'logger'));
+const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
 
 // СОЗДАЕМ бота БЕЗ автоматического запуска
 const bot = new TelegramBot(config.BOT_TOKEN, { 
