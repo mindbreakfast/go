@@ -3,7 +3,7 @@ const path = require('path');
 const config = require(path.join(__dirname, '..', 'config'));
 const { casinoEditingState, clearUserState } = require(path.join(__dirname, 'state'));
 const commandHandlers = require(path.join(__dirname, 'commands'));
-const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
+const logger = require(path.join(__dirname, '..', '..', 'utils', 'logger'));
 
 // СОЗДАЕМ бота БЕЗ автоматического запуска
 const bot = new TelegramBot(config.BOT_TOKEN, { 
@@ -23,7 +23,7 @@ bot.on('message', (msg) => {
     logger.debug('Message received', {
         userId: msg.from.id,
         chatId: msg.chat.id,
-        textLength: msg.text.length
+        text: msg.text.substring(0, 50) + (msg.text.length > 50 ? '...' : '')
     });
 
     // Обновляем время последней активности для состояния
@@ -33,16 +33,24 @@ bot.on('message', (msg) => {
 
     // Проверяем состояние редактирования казино
     if (casinoEditingState.has(msg.from.id) && casinoEditingState.get(msg.from.id).step) {
+        logger.debug('Processing casino creation step', { userId: msg.from.id });
         commandHandlers.handleCasinoCreationStep(bot, msg, casinoEditingState);
         return;
     }
 
     if (casinoEditingState.has(msg.from.id) && casinoEditingState.get(msg.from.id).editingCasinoId) {
+        logger.debug('Processing casino edit response', { userId: msg.from.id });
         commandHandlers.handleCasinoEditResponse(bot, msg, casinoEditingState);
         return;
     }
 
-    commandHandlers.handleMessage(bot, msg);
+    logger.debug('Processing regular message', { userId: msg.from.id });
+    if (typeof commandHandlers.handleMessage === 'function') {
+        commandHandlers.handleMessage(bot, msg);
+    } else {
+        logger.error('handleMessage function is not available!');
+        bot.sendMessage(msg.chat.id, '❌ Системная ошибка. Попробуйте позже.');
+    }
 });
 
 bot.on('callback_query', (query) => {
@@ -50,13 +58,24 @@ bot.on('callback_query', (query) => {
         userId: query.from.id,
         data: query.data
     });
-    commandHandlers.handleCallbackQuery(bot, query, casinoEditingState);
+    
+    if (typeof commandHandlers.handleCallbackQuery === 'function') {
+        commandHandlers.handleCallbackQuery(bot, query, casinoEditingState);
+    } else {
+        logger.error('handleCallbackQuery function is not available!');
+        bot.answerCallbackQuery(query.id, { text: '❌ Системная ошибка' });
+    }
 });
 
 // Обработчик ошибок polling
 bot.on('polling_error', (error) => {
     if (error.code === 409) {
         logger.warn('Polling conflict error (409) - old session detected');
+        // 🔥 Автоматическая перезагрузка через 5 секунд
+        setTimeout(() => {
+            logger.info('Restarting bot after 409 error...');
+            startBot().catch(err => logger.error('Failed to restart bot:', err));
+        }, 5000);
     } else {
         logger.error('Polling error:', { 
             code: error.code, 
@@ -97,9 +116,14 @@ async function startBot() {
             await bot.stopPolling();
         }
 
-        // 🔥 Простая очистка через drop_pending_updates
+        // 🔥 Принудительная очистка старых сессий
         await bot.deleteWebHook({ drop_pending_updates: true });
         logger.info('Webhook deleted with pending updates drop');
+
+        // 🔥 Проверяем токен бота
+        logger.debug('Checking bot token...');
+        const me = await bot.getMe();
+        logger.debug('Bot token is valid', { username: me.username });
 
         // 🔥 Запускаем polling с правильными параметрами
         await bot.startPolling({
@@ -109,7 +133,6 @@ async function startBot() {
             drop_pending_updates: true
         });
         
-        const me = await bot.getMe();
         logger.info('Telegram Bot is running in POLLING mode', {
             username: me.username
         });
@@ -124,6 +147,11 @@ async function startBot() {
             await bot.stopPolling();
         } catch (stopError) {
             logger.warn('Error stopping bot after failure:', { error: stopError.message });
+        }
+        
+        // 🔥 Если ошибка авторизации (неверный токен)
+        if (error.response?.statusCode === 401) {
+            logger.error('INVALID BOT TOKEN! Please check BOT_TOKEN environment variable');
         }
         
         throw error;
