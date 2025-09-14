@@ -1,7 +1,7 @@
 const path = require('path');
-const database = require(path.join(__dirname, '..', 'database', 'database'));
-const { isAdmin } = require(path.join(__dirname, '..', 'utils', 'isAdmin'));
-const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
+const database = require(path.join(__dirname, '..', '..', 'database', 'database'));
+const { isAdmin } = require(path.join(__dirname, '..', '..', 'utils', 'isAdmin'));
+const logger = require(path.join(__dirname, '..', '..', 'utils', 'logger'));
 
 function handleStatsCommand(bot, msg) {
     if (!isAdmin(msg.from.id)) {
