@@ -1,9 +1,18 @@
 {
-  "clickStats": {
-    "4": 1,
-    "25": 1
+  "userClickStats": {
+    "1777213824": {
+      "5": 1
+    }
   },
   "hiddenStats": {},
-  "voiceAccessLogs": [],
-  "lastUpdated": "2025-09-12T14:17:46.914Z"
+  "voiceAccessLogs": [
+    {
+      "userId": 1777213824,
+      "username": "user1777213824",
+      "roomType": "public",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0",
+      "timestamp": "2025-09-14T05:24:20.675Z"
+    }
+  ],
+  "lastUpdated": "2025-09-14T05:54:02.938Z"
 }
