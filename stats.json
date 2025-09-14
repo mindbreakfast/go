@@ -12,7 +12,14 @@
       "roomType": "public",
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0",
       "timestamp": "2025-09-14T05:24:20.675Z"
+    },
+    {
+      "userId": 737016949,
+      "username": "user737016949",
+      "roomType": "public",
+      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+      "timestamp": "2025-09-14T11:07:03.858Z"
     }
   ],
-  "lastUpdated": "2025-09-14T05:54:02.938Z"
+  "lastUpdated": "2025-09-14T12:06:26.216Z"
 }
