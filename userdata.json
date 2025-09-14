@@ -39,6 +39,14 @@
       "language_code": "ru",
       "joined_at": "2025-09-14T11:14:20.329Z",
       "last_activity": "2025-09-14T11:14:20.329Z"
+    },
+    "5693822110": {
+      "id": 5693822110,
+      "username": "Denio2",
+      "first_name": "Denio",
+      "language_code": "ru",
+      "joined_at": "2025-09-14T14:59:41.665Z",
+      "last_activity": "2025-09-14T14:59:52.563Z"
     }
   },
   "userSettings": {
@@ -83,6 +91,12 @@
       "notifications": true,
       "theme": "light",
       "hasLiveAccess": false
+    },
+    "5693822110": {
+      "hiddenCasinos": [],
+      "notifications": true,
+      "theme": "light",
+      "hasLiveAccess": false
     }
   },
   "giveaways": [],
@@ -117,7 +131,8 @@
     "1777213824": {
       "referrals": [
         1097210873,
-        6155299325
+        6155299325,
+        5693822110
       ],
       "totalEarned": 0
     },
@@ -125,7 +140,12 @@
       "referredBy": 1777213824,
       "referrals": [],
       "totalEarned": 0
+    },
+    "5693822110": {
+      "referredBy": 1777213824,
+      "referrals": [],
+      "totalEarned": 0
     }
   },
-  "lastUpdated": "2025-09-14T14:06:26.215Z"
+  "lastUpdated": "2025-09-14T15:06:26.214Z"
 }
