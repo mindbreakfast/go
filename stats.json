@@ -1,15 +1,7 @@
 {
   "userClickStats": {
     "1777213824": {
-      "3": 2,
-      "5": 1,
-      "7": 1,
-      "17": 1,
-      "23": 1,
-      "32": 1,
-      "34": 1,
-      "36": 1,
-      "37": 1
+      "5": 1
     }
   },
   "hiddenStats": {},
@@ -20,14 +12,7 @@
       "roomType": "public",
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0",
       "timestamp": "2025-09-14T05:24:20.675Z"
-    },
-    {
-      "userId": 737016949,
-      "username": "user737016949",
-      "roomType": "public",
-      "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
-      "timestamp": "2025-09-14T11:07:03.858Z"
     }
   ],
-  "lastUpdated": "2025-09-16T10:06:26.222Z"
+  "lastUpdated": "2025-09-16T14:37:20.972Z"
 }
