@@ -664,3 +664,76 @@ window.copyPromoCode = copyPromoCode;
 window.openCasino = openCasino;
 window.requestApproval = requestApproval;
 window.copyReferralLink = copyReferralLink;
+
+
+// ==================== КНОПКА "НАВЕРХ" ====================
+
+// Создаем кнопку
+const scrollToTopButton = document.createElement('div');
+scrollToTopButton.innerHTML = '↑';
+scrollToTopButton.style.cssText = `
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(100px);
+    transition: all 0.3s ease;
+    border: none;
+`;
+document.body.appendChild(scrollToTopButton);
+
+// Функция для прокрутки наверх
+function scrollToTop() {
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+}
+
+// Обработчик клика
+scrollToTopButton.addEventListener('click', scrollToTop);
+
+// Показываем/скрываем кнопку при прокрутке
+window.addEventListener('scroll', function() {
+    const scrollPosition = window.scrollY || document.documentElement.scrollTop;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+    
+    // Показываем кнопку когда прокрутили больше 2 экранов
+    if (scrollPosition > windowHeight * 2) {
+        scrollToTopButton.style.opacity = '1';
+        scrollToTopButton.style.transform = 'translateY(0)';
+    } else {
+        scrollToTopButton.style.opacity = '0';
+        scrollToTopButton.style.transform = 'translateY(100px)';
+    }
+    
+    // Дополнительно: скрываем кнопку когда接近 верха
+    if (scrollPosition < 100) {
+        scrollToTopButton.style.opacity = '0';
+        scrollToTopButton.style.transform = 'translateY(100px)';
+    }
+});
+
+// Плавное появление через 2 секунды после загрузки
+setTimeout(() => {
+    if (window.scrollY > window.innerHeight * 2) {
+        scrollToTopButton.style.opacity = '1';
+        scrollToTopButton.style.transform = 'translateY(0)';
+    }
+}, 2000);
+
+// ==================== КОНЕЦ КНОПКИ "НАВЕРХ" ====================
