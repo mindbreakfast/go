@@ -7,7 +7,7 @@
       "last_name": "NSD",
       "language_code": "ru",
       "joined_at": "2025-09-10T17:10:33.867Z",
-      "last_activity": "2025-09-16T15:33:17.843Z"
+      "last_activity": "2025-09-16T15:44:24.722Z"
     },
     "6770360650": {
       "id": 6770360650,
@@ -26,7 +26,7 @@
       "notifications": true,
       "theme": "dark",
       "hasLiveAccess": true,
-      "viewMode": "compact",
+      "viewMode": "full",
       "contestState": {
         "active": true,
         "contestId": "giftme_2024_01",
@@ -62,5 +62,5 @@
     }
   ],
   "referralData": {},
-  "lastUpdated": "2025-09-16T15:37:20.973Z"
+  "lastUpdated": "2025-09-16T16:37:20.967Z"
 }
