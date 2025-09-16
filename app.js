@@ -721,10 +721,10 @@ window.addEventListener('scroll', function() {
         scrollToTopButton.style.transform = 'translateY(100px)';
     }
     
-    // Дополнительно: скрываем кнопку когда接近 верха
-    if (scrollPosition < 100) {
+    // Дополнительно: скрываем кнопку когда верха
+    if (scrollPosition < 50) {
         scrollToTopButton.style.opacity = '0';
-        scrollToTopButton.style.transform = 'translateY(100px)';
+        scrollToTopButton.style.transform = 'translateY(50px)';
     }
 });
 
