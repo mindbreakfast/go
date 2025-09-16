@@ -7,7 +7,7 @@
       "last_name": "NSD",
       "language_code": "ru",
       "joined_at": "2025-09-10T17:10:33.867Z",
-      "last_activity": "2025-09-16T21:31:55.446Z"
+      "last_activity": "2025-09-16T22:01:46.268Z"
     },
     "6770360650": {
       "id": 6770360650,
@@ -21,12 +21,12 @@
   "userSettings": {
     "1777213824": {
       "hiddenCasinos": [
-        35
+        30
       ],
       "notifications": true,
       "theme": "dark",
       "hasLiveAccess": true,
-      "viewMode": "compact",
+      "viewMode": "full",
       "contestState": {
         "active": true,
         "contestId": "giftme_2024_01",
@@ -62,5 +62,5 @@
     }
   ],
   "referralData": {},
-  "lastUpdated": "2025-09-16T21:37:20.966Z"
+  "lastUpdated": "2025-09-16T22:38:01.554Z"
 }
