@@ -5,6 +5,12 @@ const { casinoEditingState, clearUserState } = require(path.join(__dirname, 'sta
 const commandHandlers = require(path.join(__dirname, 'commands'));
 const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
 
+// 🔥 ПРОВЕРЯЕМ ЧТО BOT_TOKEN ЕСТЬ
+if (!config.BOT_TOKEN) {
+    logger.error('FATAL: BOT_TOKEN is not defined in config!');
+    process.exit(1);
+}
+
 // СОЗДАЕМ бота БЕЗ автоматического запуска
 const bot = new TelegramBot(config.BOT_TOKEN, { 
     polling: false,
@@ -16,6 +22,12 @@ const bot = new TelegramBot(config.BOT_TOKEN, {
 
 logger.info('Bot instance created');
 
+// 🔥 ПРОВЕРЯЕМ ЧТО commandHandlers ЗАГРУЖЕНЫ
+if (!commandHandlers || typeof commandHandlers.handleMessage !== 'function') {
+    logger.error('FATAL: Command handlers not loaded properly!');
+    process.exit(1);
+}
+
 // ОБРАБОТЧИКИ СООБЩЕНИЙ
 bot.on('message', (msg) => {
     if (!msg.text) return;
@@ -26,19 +38,19 @@ bot.on('message', (msg) => {
         text: msg.text.substring(0, 50) + (msg.text.length > 50 ? '...' : '')
     });
 
-    // Обновляем время последней активности для состояния
-    if (casinoEditingState.has(msg.from.id)) {
+    // 🔥 ПРОВЕРЯЕМ ЧТО casinoEditingState СУЩЕСТВУЕТ
+    if (casinoEditingState && casinoEditingState.has && casinoEditingState.has(msg.from.id)) {
         casinoEditingState.get(msg.from.id).lastActivity = Date.now();
     }
 
     // Проверяем состояние редактирования казино
-    if (casinoEditingState.has(msg.from.id) && casinoEditingState.get(msg.from.id).step) {
+    if (casinoEditingState && casinoEditingState.has(msg.from.id) && casinoEditingState.get(msg.from.id).step) {
         logger.debug('Processing casino creation step', { userId: msg.from.id });
         commandHandlers.handleCasinoCreationStep(bot, msg, casinoEditingState);
         return;
     }
 
-    if (casinoEditingState.has(msg.from.id) && casinoEditingState.get(msg.from.id).editingCasinoId) {
+    if (casinoEditingState && casinoEditingState.has(msg.from.id) && casinoEditingState.get(msg.from.id).editingCasinoId) {
         logger.debug('Processing casino edit response', { userId: msg.from.id });
         commandHandlers.handleCasinoEditResponse(bot, msg, casinoEditingState);
         return;
@@ -69,23 +81,29 @@ bot.on('callback_query', (query) => {
 
 // Обработчик ошибок polling
 bot.on('polling_error', (error) => {
-    if (error.code === 409) {
+    // 🔥 ДОБАВЛЯЕМ ПРОВЕРКУ НА undefined
+    if (error && error.code === 409) {
         logger.warn('Polling conflict error (409) - old session detected');
-        // 🔥 Автоматическая перезагрузка через 5 секунд
         setTimeout(() => {
             logger.info('Restarting bot after 409 error...');
             startBot().catch(err => logger.error('Failed to restart bot:', err));
         }, 5000);
-    } else {
+    } else if (error) {
         logger.error('Polling error:', { 
             code: error.code, 
             message: error.message 
         });
+    } else {
+        logger.error('Unknown polling error occurred');
     }
 });
 
 bot.on('error', (error) => {
-    logger.error('General bot error:', { error: error.message });
+    if (error) {
+        logger.error('General bot error:', { error: error.message });
+    } else {
+        logger.error('Unknown bot error occurred');
+    }
 });
 
 async function safeSendMessage(chatId, text, options = {}) {
