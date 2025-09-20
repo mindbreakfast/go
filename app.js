@@ -16,6 +16,7 @@ const API_BASE = window.location.hostname.includes('vercel.app')
     : window.location.origin;          // Локальная разработка
 
 console.log('🚀 API Base URL:', API_BASE);
+
 // ===== ПЕРЕМЕННЫЕ =====
 let allCasinos = [];
 let activeFilters = new Set();
@@ -183,7 +184,6 @@ async function loadInitialData() {
                 }))
         ]);
 
-        // 🔥 ПРАВИЛЬНОЕ ПРИСВАИВАНИЕ (без let - переменная уже объявлена)
         allCasinos = casinosData.casinos || [];
         renderFilters(casinosData.categories || []);
         
@@ -214,20 +214,7 @@ async function loadInitialData() {
         updateLiveRooms();
         
         // 🔥 ДОБАВЛЕНО: Обновление реферального блока
-        updateReferralSection();
-
-        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            const user = tg.initDataUnsafe.user;
-            fetch(`${API_BASE}/api/track-visit`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: user.id,
-                    userInfo: { id: user.id, username: user.username },
-                    action: 'visit'
-                })
-            }).catch(error => console.log('Ошибка отправки статистики:', error));
-        }
+        updateReferralSection(userData.referralInfo);
 
     } catch (error) {
         console.error('❌ Load error:', error);
@@ -268,13 +255,19 @@ function updateStreamStatus(streamStatus) {
     const streamBanner = document.getElementById('streamBanner');
     const streamLink = document.getElementById('streamLink');
     const streamDescription = document.getElementById('streamDescription');
+    const header = document.querySelector('.header');
     
     if (streamStatus && streamStatus.isStreamLive && streamStatus.streamUrl) {
         streamBanner.style.display = 'block';
         streamLink.href = streamStatus.streamUrl;
         streamDescription.textContent = streamStatus.eventDescription || 'Идет прямой эфир!';
+        
+        // 🔥 СКРЫВАЕМ ЗАГОЛОВОК ЕСЛИ ИДЕТ СТРИМ
+        if (header) header.style.display = 'none';
     } else {
         streamBanner.style.display = 'none';
+        // 🔥 ПОКАЗЫВАЕМ ЗАГОЛОВОК ЕСЛИ СТРИМ ЗАКОНЧИЛСЯ
+        if (header) header.style.display = 'block';
     }
 }
 
@@ -348,13 +341,7 @@ function renderCasinos() {
     const filteredCasinos = filterCasinos();
     const sortedCasinos = sortCasinos(filteredCasinos);
 
-    console.log('🃏 Filtered casinos:', filteredCasinos.length);
-    console.log('🃏 Sorted casinos:', sortedCasinos.length);
-    console.log('🙈 User hidden casinos:', userHiddenCasinos.length);
-    console.log('🔍 Active filters:', Array.from(activeFilters));
-
     if (sortedCasinos.length === 0) {
-        console.log('📭 No casinos to display');
         container.innerHTML = `
             <div class="no-results">
                 Ничего не найдено
@@ -367,7 +354,6 @@ function renderCasinos() {
         return;
     }
 
-    console.log('🎨 Rendering', sortedCasinos.length, 'casinos');
     container.innerHTML = sortedCasinos.map(casino => `
         <div class="casino-card ${userViewMode === 'compact' ? 'compact' : ''}" 
              data-id="${casino.id}"
@@ -517,7 +503,13 @@ function openCasino(casinoId, viewMode) {
     const casino = allCasinos.find(c => c.id === casinoId);
     if (casino && casino.url) {
         incrementClickCount(casinoId);
-        openLink(event, casino.url);
+        
+        // 🔥 ЗАКРЫВАЕМ WEBAPP В КОМПАКТНОМ РЕЖИМЕ
+        if (viewMode === 'compact' && window.Telegram?.WebApp) {
+            window.Telegram.WebApp.close();
+        } else {
+            openLink(event, casino.url);
+        }
     }
 }
 
@@ -569,20 +561,19 @@ function requestApproval() {
 }
 
 // ===== РЕФЕРАЛЬНАЯ СИСТЕМА =====
-function updateReferralSection() {
+function updateReferralSection(referralInfo = {}) {
     const referralSection = document.getElementById('referralSection');
     const referralCount = document.getElementById('referralCount');
     const referralLinkInput = document.getElementById('referralLinkInput');
     
     if (userId && userId !== 'anonymous') {
-        // Временно используем заглушку, пока не подключим API
-        const referralInfo = {
+        const refInfo = referralInfo || {
             referrals: [],
             referralLink: `https://t.me/Ludogol_bot?start=ref${userId}`
         };
         
-        referralCount.textContent = referralInfo.referrals.length;
-        referralLinkInput.value = referralInfo.referralLink;
+        referralCount.textContent = refInfo.referrals?.length || 0;
+        referralLinkInput.value = refInfo.referralLink || `https://t.me/Ludogol_bot?start=ref${userId}`;
         referralSection.style.display = 'block';
     } else {
         referralSection.style.display = 'none';
@@ -591,23 +582,40 @@ function updateReferralSection() {
 
 function copyReferralLink() {
     const referralLinkInput = document.getElementById('referralLinkInput');
+    const copyButton = document.querySelector('.btn-copy');
+    
     if (referralLinkInput && referralLinkInput.value) {
         navigator.clipboard.writeText(referralLinkInput.value).then(() => {
-            alert('✅ Реферальная ссылка скопирована!\n\nКиньте ссылку другу!');
+            // 🔥 КАК У ПРОМОКОДОВ - БЕЗ ALERT
+            copyButton.textContent = '✅';
+            copyButton.classList.add('copied');
+            setTimeout(() => {
+                copyButton.textContent = '📋';
+                copyButton.classList.remove('copied');
+            }, 2000);
         }).catch(err => {
             console.error('Error copying referral link:', err);
-            alert('❌ Ошибка при копировании ссылки');
+            copyButton.textContent = '❌';
+            setTimeout(() => {
+                copyButton.textContent = '📋';
+            }, 2000);
         });
     } else if (userId && userId !== 'anonymous') {
         const referralLink = `https://t.me/Ludogol_bot?start=ref${userId}`;
         navigator.clipboard.writeText(referralLink).then(() => {
-            alert('✅ Реферальная ссылка скопирована!\n\nКиньте ссылку другу!');
+            copyButton.textContent = '✅';
+            copyButton.classList.add('copied');
+            setTimeout(() => {
+                copyButton.textContent = '📋';
+                copyButton.classList.remove('copied');
+            }, 2000);
         }).catch(err => {
             console.error('Error copying referral link:', err);
-            alert('❌ Ошибка при копировании ссылки');
+            copyButton.textContent = '❌';
+            setTimeout(() => {
+                copyButton.textContent = '📋';
+            }, 2000);
         });
-    } else {
-        alert('⚠️ Войдите в аккаунт чтобы получить реферальную ссылку');
     }
 }
 
@@ -665,10 +673,7 @@ window.openCasino = openCasino;
 window.requestApproval = requestApproval;
 window.copyReferralLink = copyReferralLink;
 
-
 // ==================== КНОПКА "НАВЕРХ" ====================
-
-// Создаем кнопку
 const scrollToTopButton = document.createElement('div');
 scrollToTopButton.innerHTML = '↑';
 scrollToTopButton.style.cssText = `
@@ -695,7 +700,6 @@ scrollToTopButton.style.cssText = `
 `;
 document.body.appendChild(scrollToTopButton);
 
-// Функция для прокрутки наверх
 function scrollToTop() {
     window.scrollTo({
         top: 0,
@@ -703,16 +707,13 @@ function scrollToTop() {
     });
 }
 
-// Обработчик клика
 scrollToTopButton.addEventListener('click', scrollToTop);
 
-// Показываем/скрываем кнопку при прокрутке
 window.addEventListener('scroll', function() {
     const scrollPosition = window.scrollY || document.documentElement.scrollTop;
     const windowHeight = window.innerHeight;
     const documentHeight = document.documentElement.scrollHeight;
     
-    // Показываем кнопку когда прокрутили больше 2 экранов
     if (scrollPosition > windowHeight * 2) {
         scrollToTopButton.style.opacity = '1';
         scrollToTopButton.style.transform = 'translateY(0)';
@@ -721,19 +722,15 @@ window.addEventListener('scroll', function() {
         scrollToTopButton.style.transform = 'translateY(100px)';
     }
     
-    // Дополнительно: скрываем кнопку когда верха
     if (scrollPosition < 50) {
         scrollToTopButton.style.opacity = '0';
         scrollToTopButton.style.transform = 'translateY(50px)';
     }
 });
 
-// Плавное появление через 2 секунды после загрузки
 setTimeout(() => {
     if (window.scrollY > window.innerHeight * 2) {
         scrollToTopButton.style.opacity = '1';
         scrollToTopButton.style.transform = 'translateY(0)';
     }
 }, 2000);
-
-// ==================== КОНЕЦ КНОПКИ "НАВЕРХ" ====================
