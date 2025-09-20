@@ -557,3 +557,59 @@ body {
     opacity: 0.9;
     margin-top: 10px;
 }
+
+/* Добавляем в конец файла */
+
+/* Стили для копирования реферальной ссылки */
+.btn-copy {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 16px;
+}
+
+.btn-copy:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-copy.copied {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+}
+
+.referral-link-container {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.referral-link-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: var(--input-bg);
+    color: var(--text-color);
+}
+
+.referral-hint {
+    font-size: 14px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 10px;
+}
+
+/* Адаптивность для реферального блока */
+@media (max-width: 768px) {
+    .referral-link-container {
+        flex-direction: column;
+    }
+    
+    .btn-copy {
+        width: 100%;
+    }
+}
