@@ -3,6 +3,9 @@ const database = require(path.join(__dirname, '..', '..', 'database', 'database'
 const { isAdmin } = require(path.join(__dirname, '..', '..', 'utils', 'isAdmin'));
 const logger = require(path.join(__dirname, '..', '..', 'utils', 'logger'));
 
+// 🔥 ДОБАВЛЯЕМ config
+const config = require(path.join(__dirname, '..', '..', 'config'));
+
 // 🔥 Импортируем команды через глобальный commandHandlers чтобы избежать циклических зависимостей
 let commandHandlers = null;
 
@@ -45,7 +48,7 @@ function handleStartCommand(bot, msg) {
             inline_keyboard: [[
                 {
                     text: '🎰 ОТКРЫТЬ СПИСОК КАЗИНО',
-                    web_app: { url: config.WEB_APP_URL }
+                    web_app: { url: config.WEB_APP_URL } // 🔥 Теперь config определен
                 }
             ]]
         }
