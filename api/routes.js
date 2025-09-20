@@ -2,6 +2,9 @@ const express = require('express');
 const path = require('path');
 const database = require(path.join(__dirname, '..', 'database', 'database'));
 const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
+const { isAdmin } = require(path.join(__dirname, '..', 'utils', 'isAdmin'));
+const config = require(path.join(__dirname, '..', 'config'));
+
 const router = express.Router();
 
 let botInstance = null;
@@ -129,9 +132,6 @@ router.post('/request-approval', async (req, res) => {
         const success = database.requestApproval(userId, username);
         
         if (success && botInstance) {
-            const { isAdmin } = require(path.join(__dirname, '..', 'utils', 'isAdmin'));
-            const config = require(path.join(__dirname, '..', 'config'));
-            
             // Отправляем уведомления только тем админам, кто есть в config
             const adminNotificationPromises = config.ADMINS.map(adminId => {
                 if (isAdmin(adminId)) {
