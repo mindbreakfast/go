@@ -24,13 +24,15 @@ class Database {
         this.userClickStats = new Map();
         this.hiddenStats = new Map();
         this.voiceAccessLogs = [];
+        this.clickQueue = new Map(); // 🔥 Очередь кликов для пакетной обработки
 
-    this.dataFilePath = path.join(__dirname, '..', 'data.json');
-    this.contentFilePath = path.join(__dirname, '..', 'content.json');
-    this.userDataFilePath = path.join(__dirname, '..', 'userdata.json');
-    this.statsFilePath = path.join(__dirname, '..', 'stats.json');
-    this.backupInterval = null;
-    this.writeLocks = {};  // Блокировки для избежания конфликтов записи
+        this.dataFilePath = path.join(__dirname, '..', 'data.json');
+        this.contentFilePath = path.join(__dirname, '..', 'content.json');
+        this.userDataFilePath = path.join(__dirname, '..', 'userdata.json');
+        this.statsFilePath = path.join(__dirname, '..', 'stats.json');
+        this.backupInterval = null;
+        this.clickSyncInterval = null;
+        this.writeLocks = {};
     }
 
     async #acquireLock(filePath) {
@@ -55,6 +57,9 @@ class Database {
                 this.#loadStatsDataFromLocal()
             ]);
 
+            // 🔥 Запускаем синхронизацию кликов
+            this.startClickSyncService();
+
             logger.info(`Data loaded: ${this.casinos.length} casinos, ${this.userSettings.size} users`);
             return true;
 
@@ -64,6 +69,125 @@ class Database {
         }
     }
 
+    // 🔥 СИНХРОНИЗАЦИЯ КЛИКОВ (раз в час)
+    startClickSyncService() {
+        if (this.clickSyncInterval) {
+            clearInterval(this.clickSyncInterval);
+        }
+
+        this.clickSyncInterval = setInterval(async () => {
+            try {
+                await this.#processClickQueue();
+            } catch (error) {
+                logger.error('Click sync error:', error.message);
+            }
+        }, 60 * 60 * 1000); // 1 час
+    }
+
+    async #processClickQueue() {
+        if (this.clickQueue.size === 0) return;
+
+        logger.info(`Processing click queue: ${this.clickQueue.size} items`);
+
+        for (const [casinoId, count] of this.clickQueue.entries()) {
+            const currentHides = this.hiddenStats.get(casinoId) || 0;
+            this.hiddenStats.set(casinoId, currentHides + count);
+        }
+
+        this.clickQueue.clear();
+        await this.saveStatsData();
+        logger.info('Click queue processed and saved');
+    }
+
+    // 🔥 ОБНОВЛЕННЫЙ ТРЕКИНГ КЛИКОВ
+    trackCasinoClick(userId, casinoId) {
+        try {
+            // Локальное обновление
+            if (!this.userClickStats.has(userId)) {
+                this.userClickStats.set(userId, {});
+            }
+            const userStats = this.userClickStats.get(userId);
+            userStats[casinoId] = (userStats[casinoId] || 0) + 1;
+
+            // Добавляем в очередь для пакетного сохранения
+            this.clickQueue.set(casinoId, (this.clickQueue.get(casinoId) || 0) + 1);
+
+            // Сохраняем локально сразу
+            this.saveStatsData().catch(err => logger.error('Save stats error:', err));
+
+        } catch (error) {
+            logger.error('Error tracking casino click:', error);
+        }
+    }
+
+    // 🔥 УЛУЧШЕННАЯ РЕФЕРАЛЬНАЯ СИСТЕМА
+    handleReferralStart(userId, referrerId) {
+        try {
+            if (userId === referrerId) {
+                logger.warn('User tried to refer themselves', { userId, referrerId });
+                return false;
+            }
+
+            // Проверяем существующую связь
+            const userRefData = this.referralData.get(userId) || { referredBy: null, referrals: [], totalEarned: 0 };
+            if (userRefData.referredBy && userRefData.referredBy !== referrerId) {
+                logger.warn('User already referred by someone else', { userId, existingReferrer: userRefData.referredBy, newReferrer: referrerId });
+                return false;
+            }
+
+            // Обновляем данные реферера
+            if (!this.referralData.has(referrerId)) {
+                this.referralData.set(referrerId, { referrals: [], totalEarned: 0 });
+            }
+
+            const referrerData = this.referralData.get(referrerId);
+            if (!referrerData.referrals.includes(userId)) {
+                referrerData.referrals.push(userId);
+                referrerData.totalEarned += 10; // 🔥 Бонус за приглашение
+                this.referralData.set(referrerId, referrerData);
+            }
+
+            // Обновляем данные приглашенного
+            userRefData.referredBy = referrerId;
+            this.referralData.set(userId, userRefData);
+
+            logger.info('Referral registered', { userId, referrerId, referrals: referrerData.referrals.length });
+
+            this.saveUserData().catch(err => logger.error('Save referral error:', err));
+            return true;
+
+        } catch (error) {
+            logger.error('Error handling referral start:', error);
+            return false;
+        }
+    }
+
+    getReferralInfo(userId) {
+        try {
+            const refData = this.referralData.get(userId) || {
+                referredBy: null,
+                referrals: [],
+                totalEarned: 0
+            };
+            
+            return {
+                referredBy: refData.referredBy,
+                referrals: refData.referrals || [],
+                referralLink: `https://t.me/${process.env.BOT_TOKEN?.split(':')[0]}?start=ref${userId}`,
+                totalEarned: refData.totalEarned || 0
+            };
+        } catch (error) {
+            logger.error('Error getting referral info:', error);
+            return {
+                referredBy: null,
+                referrals: [],
+                referralLink: '',
+                totalEarned: 0
+            };
+        }
+    }
+
+    // 🔥 ОСТАЛЬНЫЕ МЕТОДЫ БЕЗ ИЗМЕНЕНИЙ (сохранены для краткости)
     async #loadMainDataFromLocal() {
         try {
             const data = await fs.readFile(this.dataFilePath, 'utf8');
@@ -267,19 +391,6 @@ class Database {
         }
     }
 
-    // 📊 Методы для работы со статистикой
-    trackCasinoClick(userId, casinoId) {
-        try {
-            if (!this.userClickStats.has(userId)) {
-                this.userClickStats.set(userId, {});
-            }
-            const userStats = this.userClickStats.get(userId);
-            userStats[casinoId] = (userStats[casinoId] || 0) + 1;
-        } catch (error) {
-            logger.error('Error tracking casino click:', error);
-        }
-    }
-
     trackCasinoHide(casinoId) {
         try {
             const currentHides = this.hiddenStats.get(casinoId) || 0;
@@ -295,13 +406,12 @@ class Database {
                 userId,
                 username: username || `user${userId}`,
                 roomType,
-                userAgent: userAgent.substring(0, 200), // Ограничиваем длину
+                userAgent: userAgent.substring(0, 200),
                 timestamp: new Date().toISOString()
             };
             
             this.voiceAccessLogs.push(logEntry);
             
-            // Сохраняем только последние 100 записей
             if (this.voiceAccessLogs.length > 100) {
                 this.voiceAccessLogs = this.voiceAccessLogs.slice(-100);
             }
@@ -349,7 +459,6 @@ class Database {
         }
     }
 
-    // ✅ Методы для работы с пользователями
     trackUserAction(userId, userData, actionType) {
         try {
             if (!this.userChats.has(userId)) {
@@ -430,59 +539,6 @@ class Database {
         }
     }
 
-    handleReferralStart(userId, referrerId) {
-        try {
-            if (!this.referralData.has(referrerId)) {
-                this.referralData.set(referrerId, { referrals: [], totalEarned: 0 });
-            }
-            
-            if (!this.referralData.has(userId)) {
-                this.referralData.set(userId, { referredBy: referrerId, referrals: [], totalEarned: 0 });
-            }
-            
-            const referrerData = this.referralData.get(referrerId);
-            if (!referrerData.referrals.includes(userId)) {
-                referrerData.referrals.push(userId);
-                this.referralData.set(referrerId, referrerData);
-            }
-            
-            const userRefData = this.referralData.get(userId);
-            userRefData.referredBy = referrerId;
-            this.referralData.set(userId, userRefData);
-            
-            this.saveUserData().catch(err => logger.error('Save referral error:', err));
-            return true;
-        } catch (error) {
-            logger.error('Error handling referral start:', error);
-            return false;
-        }
-    }
-
-    getReferralInfo(userId) {
-        try {
-            const refData = this.referralData.get(userId) || {
-                referredBy: null,
-                referrals: [],
-                totalEarned: 0
-            };
-            
-            return {
-                referredBy: refData.referredBy,
-                referrals: refData.referrals || [],
-                referralLink: `https://t.me/${process.env.BOT_TOKEN?.split(':')[0]}?start=ref${userId}`,
-                totalEarned: refData.totalEarned || 0
-            };
-        } catch (error) {
-            logger.error('Error getting referral info:', error);
-            return {
-                referredBy: null,
-                referrals: [],
-                referralLink: '',
-                totalEarned: 0
-            };
-        }
-    }
-
     getUserData(userId) {
         try {
             const userStats = this.getUserClickStats(userId);
@@ -556,8 +612,6 @@ class Database {
     getPendingApprovals() { return this.pendingApprovals.filter(req => req.status === 'pending'); }
     getClickStats() { return this.userClickStats; }
     getHiddenStats() { return this.hiddenStats; }
-    getVoiceAccessLogs(limit = 30) { return this.voiceAccessLogs.slice(-limit).reverse(); }
-
     getReferralData() { return this.referralData; }
 
     getCasino(id) {
@@ -694,8 +748,11 @@ class Database {
             clearInterval(this.backupInterval);
             this.backupInterval = null;
         }
+        if (this.clickSyncInterval) {
+            clearInterval(this.clickSyncInterval);
+            this.clickSyncInterval = null;
+        }
     }
 }
 
-// Создаем и экспортируем единственный экземпляр
 module.exports = new Database();
