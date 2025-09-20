@@ -45,11 +45,28 @@ function handleAddCasinoCommand(bot, msg, casinoEditingState) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
 
-    const response = startCasinoCreation(msg.from.id, casinoEditingState);
-    bot.sendMessage(msg.chat.id, response);
+    try {
+        // 🔥 ПРОВЕРЯЕМ ЧТО casinoEditingState ПЕРЕДАН
+        if (!casinoEditingState || typeof casinoEditingState.set !== 'function') {
+            logger.error('casinoEditingState is not properly passed to handleAddCasinoCommand');
+            return bot.sendMessage(msg.chat.id, '❌ Ошибка системы. Попробуйте позже.');
+        }
+
+        const response = startCasinoCreation(msg.from.id, casinoEditingState);
+        bot.sendMessage(msg.chat.id, response);
+    } catch (error) {
+        logger.error('Error in add casino command:', error);
+        bot.sendMessage(msg.chat.id, '❌ Ошибка при создании казино');
+    }
 }
 
 function startCasinoCreation(userId, casinoEditingState) {
+    // 🔥 ПРОВЕРКА НАЛИЧИЯ casinoEditingState
+    if (!casinoEditingState || typeof casinoEditingState.set !== 'function') {
+        logger.error('casinoEditingState is not available in startCasinoCreation');
+        return '❌ Ошибка системы. Попробуйте позже.';
+    }
+
     casinoEditingState.set(userId, {
         step: getAddCasinoSteps().NAME,
         data: {}
@@ -58,6 +75,12 @@ function startCasinoCreation(userId, casinoEditingState) {
 }
 
 async function handleCasinoCreationStep(bot, msg, casinoEditingState) {
+    // 🔥 ПРОВЕРКА НАЛИЧИЯ casinoEditingState
+    if (!casinoEditingState || typeof casinoEditingState.get !== 'function') {
+        logger.error('casinoEditingState is not available in handleCasinoCreationStep');
+        return bot.sendMessage(msg.chat.id, '❌ Ошибка системы. Попробуйте позже.');
+    }
+
     const state = casinoEditingState.get(msg.from.id);
     if (!state) return;
 
@@ -153,9 +176,14 @@ async function handleCasinoCreationStep(bot, msg, casinoEditingState) {
     } catch (error) {
         logger.error('Error in casino creation:', error);
         await bot.sendMessage(msg.chat.id, '❌ Произошла ошибка при создании казино');
-        casinoEditingState.delete(msg.from.id);
+        // 🔥 БЕЗОПАСНОЕ УДАЛЕНИЕ СОСТОЯНИЯ
+        if (casinoEditingState && typeof casinoEditingState.delete === 'function') {
+            casinoEditingState.delete(msg.from.id);
+        }
     }
 }
+
+// ... ...
 
 async function handleListCasinosCommand(bot, msg) {
     if (!isAdmin(msg.from.id)) {
