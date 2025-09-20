@@ -6,7 +6,6 @@ const logger = require(path.join(__dirname, '..', 'utils', 'logger'));
 
 class Database {
     constructor() {
-        // Все данные теперь внутри экземпляра
         this.casinos = [];
         this.categories = [];
         this.announcements = [];
@@ -24,7 +23,7 @@ class Database {
         this.userClickStats = new Map();
         this.hiddenStats = new Map();
         this.voiceAccessLogs = [];
-        this.clickQueue = new Map(); // 🔥 Очередь кликов для пакетной обработки
+        this.clickQueue = new Map();
 
         this.dataFilePath = path.join(__dirname, '..', 'data.json');
         this.contentFilePath = path.join(__dirname, '..', 'content.json');
@@ -69,125 +68,6 @@ class Database {
         }
     }
 
-    // 🔥 СИНХРОНИЗАЦИЯ КЛИКОВ (раз в час)
-    startClickSyncService() {
-        if (this.clickSyncInterval) {
-            clearInterval(this.clickSyncInterval);
-        }
-
-        this.clickSyncInterval = setInterval(async () => {
-            try {
-                await this.#processClickQueue();
-            } catch (error) {
-                logger.error('Click sync error:', error.message);
-            }
-        }, 60 * 60 * 1000); // 1 час
-    }
-
-    async #processClickQueue() {
-        if (this.clickQueue.size === 0) return;
-
-        logger.info(`Processing click queue: ${this.clickQueue.size} items`);
-
-        for (const [casinoId, count] of this.clickQueue.entries()) {
-            const currentHides = this.hiddenStats.get(casinoId) || 0;
-            this.hiddenStats.set(casinoId, currentHides + count);
-        }
-
-        this.clickQueue.clear();
-        await this.saveStatsData();
-        logger.info('Click queue processed and saved');
-    }
-
-    // 🔥 ОБНОВЛЕННЫЙ ТРЕКИНГ КЛИКОВ
-    trackCasinoClick(userId, casinoId) {
-        try {
-            // Локальное обновление
-            if (!this.userClickStats.has(userId)) {
-                this.userClickStats.set(userId, {});
-            }
-            const userStats = this.userClickStats.get(userId);
-            userStats[casinoId] = (userStats[casinoId] || 0) + 1;
-
-            // Добавляем в очередь для пакетного сохранения
-            this.clickQueue.set(casinoId, (this.clickQueue.get(casinoId) || 0) + 1);
-
-            // Сохраняем локально сразу
-            this.saveStatsData().catch(err => logger.error('Save stats error:', err));
-
-        } catch (error) {
-            logger.error('Error tracking casino click:', error);
-        }
-    }
-
-    // 🔥 УЛУЧШЕННАЯ РЕФЕРАЛЬНАЯ СИСТЕМА
-    handleReferralStart(userId, referrerId) {
-        try {
-            if (userId === referrerId) {
-                logger.warn('User tried to refer themselves', { userId, referrerId });
-                return false;
-            }
-
-            // Проверяем существующую связь
-            const userRefData = this.referralData.get(userId) || { referredBy: null, referrals: [], totalEarned: 0 };
-            if (userRefData.referredBy && userRefData.referredBy !== referrerId) {
-                logger.warn('User already referred by someone else', { userId, existingReferrer: userRefData.referredBy, newReferrer: referrerId });
-                return false;
-            }
-
-            // Обновляем данные реферера
-            if (!this.referralData.has(referrerId)) {
-                this.referralData.set(referrerId, { referrals: [], totalEarned: 0 });
-            }
-
-            const referrerData = this.referralData.get(referrerId);
-            if (!referrerData.referrals.includes(userId)) {
-                referrerData.referrals.push(userId);
-                referrerData.totalEarned += 10; // 🔥 Бонус за приглашение
-                this.referralData.set(referrerId, referrerData);
-            }
-
-            // Обновляем данные приглашенного
-            userRefData.referredBy = referrerId;
-            this.referralData.set(userId, userRefData);
-
-            logger.info('Referral registered', { userId, referrerId, referrals: referrerData.referrals.length });
-
-            this.saveUserData().catch(err => logger.error('Save referral error:', err));
-            return true;
-
-        } catch (error) {
-            logger.error('Error handling referral start:', error);
-            return false;
-        }
-    }
-
-    getReferralInfo(userId) {
-        try {
-            const refData = this.referralData.get(userId) || {
-                referredBy: null,
-                referrals: [],
-                totalEarned: 0
-            };
-            
-            return {
-                referredBy: refData.referredBy,
-                referrals: refData.referrals || [],
-                referralLink: `https://t.me/${process.env.BOT_TOKEN?.split(':')[0]}?start=ref${userId}`,
-                totalEarned: refData.totalEarned || 0
-            };
-        } catch (error) {
-            logger.error('Error getting referral info:', error);
-            return {
-                referredBy: null,
-                referrals: [],
-                referralLink: '',
-                totalEarned: 0
-            };
-        }
-    }
-
-    // 🔥 ОСТАЛЬНЫЕ МЕТОДЫ БЕЗ ИЗМЕНЕНИЙ (сохранены для краткости)
     async #loadMainDataFromLocal() {
         try {
             const data = await fs.readFile(this.dataFilePath, 'utf8');
@@ -391,6 +271,73 @@ class Database {
         }
     }
 
+    // 🔥 СИНХРОНИЗАЦИЯ КЛИКОВ (раз в час)
+    startClickSyncService() {
+        if (this.clickSyncInterval) {
+            clearInterval(this.clickSyncInterval);
+        }
+
+        this.clickSyncInterval = setInterval(async () => {
+            try {
+                await this.#processClickQueue();
+            } catch (error) {
+                logger.error('Click sync error:', error.message);
+            }
+        }, 60 * 60 * 1000); // 1 час
+    }
+
+    async #processClickQueue() {
+        if (this.clickQueue.size === 0) return;
+
+        logger.info(`Processing click queue: ${this.clickQueue.size} items`);
+
+        for (const [casinoId, count] of this.clickQueue.entries()) {
+            const currentHides = this.hiddenStats.get(casinoId) || 0;
+            this.hiddenStats.set(casinoId, currentHides + count);
+        }
+
+        this.clickQueue.clear();
+        await this.saveStatsData();
+        logger.info('Click queue processed and saved');
+    }
+
+    // 🔥 УЛУЧШЕННЫЙ ТРЕКИНГ КЛИКОВ
+    trackCasinoClick(userId, casinoId) {
+        try {
+            console.log('🎯 Tracking click:', { userId, casinoId });
+
+            // 1. Обновляем статистику пользователя
+            if (!this.userClickStats.has(userId)) {
+                this.userClickStats.set(userId, {});
+            }
+            const userStats = this.userClickStats.get(userId);
+            userStats[casinoId] = (userStats[casinoId] || 0) + 1;
+
+            // 2. Обновляем общую статистику казино
+            const currentClicks = this.hiddenStats.get(casinoId) || 0;
+            this.hiddenStats.set(casinoId, currentClicks + 1);
+
+            // 3. Добавляем в очередь для пакетного сохранения
+            this.clickQueue.set(casinoId, (this.clickQueue.get(casinoId) || 0) + 1);
+
+            console.log('📊 Click stats updated:', { 
+                userClicks: userStats[casinoId], 
+                totalClicks: currentClicks + 1 
+            });
+
+            // 4. Немедленно сохраняем статистику
+            this.saveStatsData().catch(err => 
+                logger.error('Save stats error:', err)
+            );
+
+            return true;
+
+        } catch (error) {
+            logger.error('Error tracking casino click:', error);
+            return false;
+        }
+    }
+
     trackCasinoHide(casinoId) {
         try {
             const currentHides = this.hiddenStats.get(casinoId) || 0;
@@ -420,21 +367,29 @@ class Database {
         }
     }
 
+    // 🔥 ПОЛУЧЕНИЕ СТАТИСТИКИ КАЗИНО С АГРЕГАЦИЕЙ
     getCasinoStats() {
         try {
             const stats = [];
+            
             for (const casino of this.casinos) {
                 if (casino.isActive) {
+                    const clicks = this.hiddenStats.get(casino.id) || 0;
+                    const hides = this.hiddenStats.get(casino.id) || 0;
+                    
                     stats.push({
                         id: casino.id,
                         name: casino.name,
-                        clicks: this.hiddenStats.get(casino.id) || 0,
-                        hides: this.hiddenStats.get(casino.id) || 0,
-                        isPinned: casino.isPinned
+                        clicks: clicks,
+                        hides: hides,
+                        isPinned: casino.isPinned,
+                        clickThroughRate: clicks > 0 ? ((clicks - hides) / clicks * 100).toFixed(1) : 0
                     });
                 }
             }
+            
             return stats.sort((a, b) => b.clicks - a.clicks);
+            
         } catch (error) {
             logger.error('Error getting casino stats:', error);
             return [];
@@ -459,6 +414,76 @@ class Database {
         }
     }
 
+    // 🔥 УЛУЧШЕННАЯ РЕФЕРАЛЬНАЯ СИСТЕМА
+    handleReferralStart(userId, referrerId) {
+        try {
+            if (userId === referrerId) {
+                logger.warn('User tried to refer themselves', { userId, referrerId });
+                return false;
+            }
+
+            // Проверяем существующую связь
+            const userRefData = this.referralData.get(userId) || { referredBy: null, referrals: [], totalEarned: 0 };
+            if (userRefData.referredBy && userRefData.referredBy !== referrerId) {
+                logger.warn('User already referred by someone else', { userId, existingReferrer: userRefData.referredBy, newReferrer: referrerId });
+                return false;
+            }
+
+            // Обновляем данные реферера
+            if (!this.referralData.has(referrerId)) {
+                this.referralData.set(referrerId, { referrals: [], totalEarned: 0 });
+            }
+
+            const referrerData = this.referralData.get(referrerId);
+            if (!referrerData.referrals.includes(userId)) {
+                referrerData.referrals.push(userId);
+                referrerData.totalEarned += 10;
+                this.referralData.set(referrerId, referrerData);
+                
+                console.log('🎉 New referral:', { referrerId, userId, totalReferrals: referrerData.referrals.length });
+            }
+
+            // Обновляем данные приглашенного
+            userRefData.referredBy = referrerId;
+            this.referralData.set(userId, userRefData);
+
+            logger.info('Referral registered', { userId, referrerId, referrals: referrerData.referrals.length });
+
+            this.saveUserData().catch(err => logger.error('Save referral error:', err));
+            return true;
+
+        } catch (error) {
+            logger.error('Error handling referral start:', error);
+            return false;
+        }
+    }
+
+    getReferralInfo(userId) {
+        try {
+            const refData = this.referralData.get(userId) || {
+                referredBy: null,
+                referrals: [],
+                totalEarned: 0
+            };
+            
+            return {
+                referredBy: refData.referredBy,
+                referrals: refData.referrals || [],
+                referralLink: `https://t.me/${process.env.BOT_TOKEN?.split(':')[0]}?start=ref${userId}`,
+                totalEarned: refData.totalEarned || 0
+            };
+        } catch (error) {
+            logger.error('Error getting referral info:', error);
+            return {
+                referredBy: null,
+                referrals: [],
+                referralLink: '',
+                totalEarned: 0
+            };
+        }
+    }
+
+    // ✅ Методы для работы с пользователями
     trackUserAction(userId, userData, actionType) {
         try {
             if (!this.userChats.has(userId)) {
@@ -612,6 +637,7 @@ class Database {
     getPendingApprovals() { return this.pendingApprovals.filter(req => req.status === 'pending'); }
     getClickStats() { return this.userClickStats; }
     getHiddenStats() { return this.hiddenStats; }
+    getVoiceAccessLogs(limit = 30) { return this.voiceAccessLogs.slice(-limit).reverse(); }
     getReferralData() { return this.referralData; }
 
     getCasino(id) {
