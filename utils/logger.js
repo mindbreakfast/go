@@ -1,6 +1,5 @@
 const fs = require('fs').promises;
 const path = require('path');
-const config = require(path.join(__dirname, '..', 'config'));
 
 class Logger {
     constructor() {
