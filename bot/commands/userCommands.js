@@ -1,8 +1,17 @@
 const path = require('path');
-const config = require(path.join(__dirname, '..', '..', 'config'));
 const database = require(path.join(__dirname, '..', '..', 'database', 'database'));
 const { isAdmin } = require(path.join(__dirname, '..', '..', 'utils', 'isAdmin'));
 const logger = require(path.join(__dirname, '..', '..', 'utils', 'logger'));
+
+// 🔥 Импортируем команды через глобальный commandHandlers чтобы избежать циклических зависимостей
+let commandHandlers = null;
+
+function getCommandHandlers() {
+    if (!commandHandlers) {
+        commandHandlers = require(path.join(__dirname, '..', 'commands'));
+    }
+    return commandHandlers;
+}
 
 function handleStartCommand(bot, msg) {
     const user = msg.from;
@@ -114,6 +123,7 @@ function handleMessage(bot, msg) {
 
 function processCommand(bot, msg, text) {
     const command = text.split(' ')[0].toLowerCase();
+    const handlers = getCommandHandlers();
 
     switch (command) {
         case '/start':
@@ -124,70 +134,84 @@ function processCommand(bot, msg, text) {
             break;
         case '/stats':
             if (isAdmin(msg.from.id)) {
-                const adminCommands = require('./adminCommands');
-                adminCommands.handleStatsCommand(bot, msg);
+                handlers.handleStatsCommand(bot, msg);
             } else {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
             break;
         case '/casino_stats':
             if (isAdmin(msg.from.id)) {
-                const adminCommands = require('./adminCommands');
-                adminCommands.handleCasinoStatsCommand(bot, msg);
+                handlers.handleCasinoStatsCommand(bot, msg);
             } else {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
             break;
         case '/voice_audit':
             if (isAdmin(msg.from.id)) {
-                const adminCommands = require('./adminCommands');
-                adminCommands.handleVoiceAuditCommand(bot, msg);
+                handlers.handleVoiceAuditCommand(bot, msg);
             } else {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
             break;
         case '/text':
             if (isAdmin(msg.from.id)) {
-                const adminCommands = require('./adminCommands');
-                const messageText = text.substring(5).trim();
+                const messageText = text.substring(text.includes('@') ? text.indexOf(' ') + 1 : 5).trim();
                 const match = messageText.match(/^(.+?)(?:\s+(blue|green|red|yellow|purple))?$/);
-                adminCommands.handleTextCommand(bot, msg, match ? [null, match[1], match[2]] : [null, messageText]);
+                handlers.handleTextCommand(bot, msg, match ? [null, match[1], match[2]] : [null, messageText]);
             } else {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
             break;
         case '/live':
             if (isAdmin(msg.from.id)) {
-                const adminCommands = require('./adminCommands');
-                const params = text.substring(6).trim();
+                const params = text.substring(text.includes('@') ? text.indexOf(' ') + 1 : 6).trim();
                 const spaceIndex = params.indexOf(' ');
                 if (spaceIndex > 0) {
                     const streamUrl = params.substring(0, spaceIndex);
                     const eventDescription = params.substring(spaceIndex + 1);
-                    adminCommands.handleLiveCommand(bot, msg, [null, streamUrl, eventDescription]);
+                    handlers.handleLiveCommand(bot, msg, [null, streamUrl, eventDescription]);
                 } else {
                     bot.sendMessage(msg.chat.id, '❌ Формат: /live [ссылка] [описание]');
                 }
             } else {
-                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команда!');
             }
             break;
         case '/stop':
             if (isAdmin(msg.from.id)) {
-                const adminCommands = require('./adminCommands');
-                adminCommands.handleStopCommand(bot, msg);
+                handlers.handleStopCommand(bot, msg);
             } else {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
             break;
         case '/referral':
-            const referralCommands = require('./referralCommands');
-            referralCommands.handleReferralCommand(bot, msg);
+            handlers.handleReferralCommand(bot, msg);
             break;
         case '/ref_stats':
             if (isAdmin(msg.from.id)) {
-                const referralCommands = require('./referralCommands');
-                referralCommands.handleRefStatsCommand(bot, msg);
+                handlers.handleRefStatsCommand(bot, msg);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        case '/add_casino':
+            if (isAdmin(msg.from.id)) {
+                handlers.handleAddCasinoCommand(bot, msg);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        case '/list_casinos':
+            if (isAdmin(msg.from.id)) {
+                handlers.handleListCasinosCommand(bot, msg);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        case '/edit_casino':
+            if (isAdmin(msg.from.id)) {
+                const casinoId = text.substring(text.includes('@') ? text.indexOf(' ') + 1 : 12).trim();
+                handlers.handleEditCasinoCommand(bot, msg, [null, casinoId]);
             } else {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
