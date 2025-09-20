@@ -98,7 +98,6 @@ async function handleCasinoCreationStep(bot, msg, casinoEditingState) {
                 }
                 state.data.url = msg.text;
                 state.step = STEPS.CATEGORY;
-                const config = require('../../config');
                 const categoriesList = config.CATEGORIES.map(c => `${c.id} - ${c.name}`).join('\n');
                 response = `Выберите категорию:\n${categoriesList}`;
                 break;
@@ -241,8 +240,7 @@ function handleEditCasinoCommand(bot, msg, match) {
 }
 
 async function handleCallbackQuery(bot, query, casinoEditingState) {
-    const chatId = query.message.chat.id;
-    const userId = query.from.id;
+    const userId = query.from.id; // 🔥 ИСПРАВЛЕНО: используем userId вместо chatId
     const data = query.data;
 
     try {
@@ -256,7 +254,7 @@ async function handleCallbackQuery(bot, query, casinoEditingState) {
             const [action, id] = data.split('_').slice(1);
             const casinoId = parseInt(id);
 
-            casinoEditingState.set(chatId, {
+            casinoEditingState.set(userId, { // 🔥 ИСПРАВЛЕНО: userId вместо chatId
                 editingCasinoId: casinoId,
                 editingField: action
             });
@@ -269,7 +267,7 @@ async function handleCallbackQuery(bot, query, casinoEditingState) {
                 category: 'категорию'
             };
 
-            await bot.sendMessage(chatId, `Введите новое значение для ${fieldNames[action]}:`);
+            await bot.sendMessage(query.message.chat.id, `Введите новое значение для ${fieldNames[action]}:`);
         }
         else if (data.startsWith('delete_')) {
             const casinoId = parseInt(data.split('_')[1]);
@@ -280,9 +278,9 @@ async function handleCallbackQuery(bot, query, casinoEditingState) {
                 const deleted = casinos.splice(index, 1)[0];
                 database.setCasinos(casinos);
                 await database.saveData();
-                await bot.sendMessage(chatId, `✅ Казино "${deleted.name}" удалено!`);
+                await bot.sendMessage(query.message.chat.id, `✅ Казино "${deleted.name}" удалено!`);
             } else {
-                await bot.sendMessage(chatId, '❌ Казино не найдено');
+                await bot.sendMessage(query.message.chat.id, '❌ Казино не найдено');
             }
         }
         else if (data.startsWith('pin_')) {
@@ -294,7 +292,7 @@ async function handleCallbackQuery(bot, query, casinoEditingState) {
                 casinos[index].isPinned = !casinos[index].isPinned;
                 database.setCasinos(casinos);
                 await database.saveData();
-                await bot.sendMessage(chatId,
+                await bot.sendMessage(query.message.chat.id,
                     `✅ Казино "${casinos[index].name}" ${casinos[index].isPinned ? 'закреплено' : 'откреплено'}!`
                 );
             }
@@ -308,7 +306,7 @@ async function handleCallbackQuery(bot, query, casinoEditingState) {
                 casinos[index].isActive = false;
                 database.setCasinos(casinos);
                 await database.saveData();
-                await bot.sendMessage(chatId, `✅ Казино "${casinos[index].name}" скрыто!`);
+                await bot.sendMessage(query.message.chat.id, `✅ Казино "${casinos[index].name}" скрыто!`);
             }
         }
 
