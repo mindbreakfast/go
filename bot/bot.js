@@ -125,6 +125,27 @@ async function startBot() {
         const me = await bot.getMe();
         logger.debug('Bot token is valid', { username: me.username });
 
+        // 🔥 РЕГИСТРАЦИЯ КОМАНД БОТА
+        await bot.setMyCommands([
+            { command: 'start', description: 'Запустить бота' },
+            { command: 'help', description: 'Помощь' },
+            { command: 'stats', description: 'Статистика (админы)' },
+            { command: 'casino_stats', description: 'Статистика казино (админы)' },
+            { command: 'voice_audit', description: 'Аудит голосовых (админы)' },
+            { command: 'text', description: 'Добавить анонс (админы)' },
+            { command: 'clear_text', description: 'Очистить анонсы (админы)' },
+            { command: 'list_text', description: 'Список анонсов (админы)' },
+            { command: 'remove_text', description: 'Удалить анонс (админы)' },
+            { command: 'live', description: 'Начать стрим (админы)' },
+            { command: 'stop', description: 'Остановить стрим (админы)' },
+            { command: 'add_casino', description: 'Добавить казино (админы)' },
+            { command: 'list_casinos', description: 'Список казино (админы)' },
+            { command: 'edit_casino', description: 'Редактировать казино (админы)' },
+            { command: 'ref_stats', description: 'Топ рефереров (админы)' },
+            { command: 'referral', description: 'Реферальная система' }
+        ]);
+        logger.info('Bot commands registered successfully');
+
         // 🔥 Запускаем polling с правильными параметрами
         await bot.startPolling({
             timeout: 10,
@@ -206,17 +227,6 @@ async function checkChannelSubscription(userId, channelUsernames = ['@LUDOGOLIK'
         return false;
     }
 }
-
-// После запуска бота добавьте:
-bot.setMyCommands([
-    { command: 'start', description: 'Запустить бота' },
-    { command: 'help', description: 'Помощь' },
-    { command: 'stats', description: 'Статистика (админы)' },
-    { command: 'add_casino', description: 'Добавить казино (админы)' },
-    { command: 'list_casinos', description: 'Список казино (админы)' },
-    { command: 'edit_casino', description: 'Редактировать казино (админы)' },
-    { command: 'referral', description: 'Реферальная система' }
-]);
 
 module.exports = {
     bot,
