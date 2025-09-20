@@ -112,8 +112,16 @@ function handleClearTextCommand(bot, msg) {
     }
 
     try {
-        database.setAnnouncements([]);
-        bot.sendMessage(msg.chat.id, '✅ Все анонсы очищены!');
+        // 🔥 ПРЯМОЙ ВЫЗОВ БАЗЫ ДАННЫХ - УБЕДИТЕСЬ ЧТО ФУНКЦИЯ СУЩЕСТВУЕТ
+        const success = database.setAnnouncements([]);
+        
+        if (success) {
+            logger.info('Announcements cleared by admin', { userId: msg.from.id });
+            bot.sendMessage(msg.chat.id, '✅ Все анонсы очищены!');
+        } else {
+            logger.error('Failed to clear announcements');
+            bot.sendMessage(msg.chat.id, '❌ Ошибка при очистке анонсов');
+        }
     } catch (error) {
         logger.error('Error in clear text command:', error);
         bot.sendMessage(msg.chat.id, '❌ Ошибка при очистке анонсов');
@@ -157,9 +165,15 @@ function handleRemoveTextCommand(bot, msg, match) {
         }
 
         const removed = announcements.splice(index, 1)[0];
-        database.setAnnouncements(announcements);
-
-        bot.sendMessage(msg.chat.id, `✅ Анонс удален!\nID: ${removed.id}\nТекст: ${removed.text}`);
+        
+        // 🔥 СОХРАНЯЕМ ИЗМЕНЕННЫЙ МАССИВ
+        const success = database.setAnnouncements(announcements);
+        
+        if (success) {
+            bot.sendMessage(msg.chat.id, `✅ Анонс удален!\nID: ${removed.id}\nТекст: ${removed.text}`);
+        } else {
+            bot.sendMessage(msg.chat.id, '❌ Ошибка при удалении анонса');
+        }
     } catch (error) {
         logger.error('Error in remove text command:', error);
         bot.sendMessage(msg.chat.id, '❌ Ошибка при удалении анонса');
