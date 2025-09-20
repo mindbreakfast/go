@@ -46,16 +46,14 @@ document.addEventListener('DOMContentLoaded', () => {
 function initTheme() {
     const savedTheme = localStorage.getItem('theme');
     
-    // 🔥 ПО УМОЛЧАНИЮ ТЕМНАЯ ТЕМА
     const isDark = savedTheme === 'dark' || 
-                  (savedTheme === null && true) || // Всегда темная если нет сохраненной
+                  (savedTheme === null && true) ||
                   (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     
     currentTheme = isDark ? 'dark' : 'light';
     document.body.classList.toggle('theme-dark', isDark);
     document.getElementById('themeSwitcher').textContent = isDark ? '☀️ Светлая тема' : '🌙 Тёмная тема';
     
-    // Сохраняем настройку
     if (savedTheme === null) {
         localStorage.setItem('theme', 'dark');
     }
@@ -72,8 +70,17 @@ function toggleTheme() {
 // ===== ОТКРЫТИЕ ССЫЛОК =====
 function openLink(event, url) {
     event.preventDefault();
+    
+    // 🔥 СНАЧАЛА ОТКРЫВАЕМ ССЫЛКУ, ПОТОМ ЗАКРЫВАЕМ WEBAPP
     if (window.Telegram?.WebApp) {
         window.Telegram.WebApp.openLink(url);
+        
+        // 🔥 ЗАКРЫВАЕМ ТОЛЬКО В КОМПАКТНОМ РЕЖИМЕ ПОСЛЕ ОТКРЫТИЯ ССЫЛКИ
+        if (userViewMode === 'compact') {
+            setTimeout(() => {
+                window.Telegram.WebApp.close();
+            }, 1000); // Даем время на открытие ссылки
+        }
     } else {
         window.open(url, '_blank');
     }
@@ -99,29 +106,55 @@ function openVoiceRoom(event, roomType, roomUrl) {
 
 // ===== СТАТИСТИКА КЛИКОВ =====
 function loadUserStats() {
-    userClickStats = JSON.parse(localStorage.getItem('userClickStats') || '{}');
+    const savedStats = localStorage.getItem('userClickStats');
+    userClickStats = savedStats ? JSON.parse(savedStats) : {};
+    console.log('📊 Loaded user stats:', Object.keys(userClickStats).length, 'casinos');
 }
 
 function saveUserStats() {
     localStorage.setItem('userClickStats', JSON.stringify(userClickStats));
+    console.log('💾 Saved user stats');
 }
 
 function incrementClickCount(casinoId) {
-    userClickStats[casinoId] = (userClickStats[casinoId] || 0) + 1;
-    saveUserStats();
-    
-    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-        const user = window.Telegram.WebApp.initDataUnsafe.user;
-        fetch(`${API_BASE}/api/track-click`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: user.id,
-                userInfo: { id: user.id, username: user.username },
-                casinoId: casinoId,
-                action: 'click'
+    try {
+        userClickStats[casinoId] = (userClickStats[casinoId] || 0) + 1;
+        saveUserStats();
+        
+        console.log('🖱️ Click tracked:', { casinoId, count: userClickStats[casinoId] });
+
+        // 🔥 ОТПРАВЛЯЕМ СТАТИСТИКУ НА СЕРВЕР
+        if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+            const user = window.Telegram.WebApp.initDataUnsafe.user;
+            
+            fetch(`${API_BASE}/api/track-click`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: user.id,
+                    userInfo: { 
+                        id: user.id, 
+                        username: user.username,
+                        first_name: user.first_name 
+                    },
+                    casinoId: casinoId,
+                    action: 'click'
+                })
             })
-        }).catch(error => console.log('Ошибка отправки статистики:', error));
+            .then(response => {
+                if (!response.ok) throw new Error('Network error');
+                console.log('📡 Click sent to server');
+            })
+            .catch(error => {
+                console.log('❌ Error sending click:', error);
+                // Сохраняем в очередь для повторной отправки
+                const failedClicks = JSON.parse(localStorage.getItem('failedClicks') || '[]');
+                failedClicks.push({ casinoId, userId, timestamp: Date.now() });
+                localStorage.setItem('failedClicks', JSON.stringify(failedClicks));
+            });
+        }
+    } catch (error) {
+        console.error('Error in incrementClickCount:', error);
     }
 }
 
@@ -157,31 +190,16 @@ async function loadInitialData() {
         const tg = window.Telegram?.WebApp;
         const currentUserId = tg?.initDataUnsafe?.user?.id || 'anonymous';
         
-        console.log('🔄 Starting data loading...');
-        console.log('📡 Fetching from:', `${API_BASE}/api/all-data`);
+        console.log('🔄 Starting data loading for user:', currentUserId);
         
         const [casinosData, userData] = await Promise.all([
             fetch(`${API_BASE}/api/all-data`).then(async r => {
-                console.log('🎰 Casino response status:', r.status);
-                const data = await r.json();
-                console.log('🎰 Casinos loaded:', data.casinos?.length);
-                if (!r.ok) throw new Error('Ошибка загрузки данных');
-                return data;
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                return r.json();
             }),
             fetch(`${API_BASE}/api/user-data?userId=${currentUserId}`)
-                .then(async r => {
-                    console.log('👤 User response status:', r.status);
-                    const data = await r.json();
-                    return r.ok ? data : Promise.reject('User data error');
-                })
-                .catch(e => ({ 
-                    settings: { 
-                        hiddenCasinos: [], 
-                        viewMode: 'full', 
-                        theme: 'light',
-                        hasLiveAccess: false 
-                    } 
-                }))
+                .then(async r => r.ok ? r.json() : { settings: {} })
+                .catch(e => ({ settings: {} }))
         ]);
 
         allCasinos = casinosData.casinos || [];
@@ -190,7 +208,6 @@ async function loadInitialData() {
         showAnnouncements(casinosData.announcements || []);
         updateStreamStatus(casinosData.streamStatus);
         
-        // ЕДИНЫЙ ИСТОЧНИК НАСТРОЕК
         const userSettings = userData.settings || {};
         userHiddenCasinos = userSettings.hiddenCasinos || [];
         userViewMode = userSettings.viewMode || 'full';
@@ -198,23 +215,34 @@ async function loadInitialData() {
         userId = currentUserId;
         isApproved = userSettings.hasLiveAccess || false;
         
-        console.log('🎨 Theme:', currentTheme);
-        console.log('👁️ View mode:', userViewMode);
-        console.log('🙈 Hidden casinos:', userHiddenCasinos.length);
-        console.log('🎰 Total casinos:', allCasinos.length);
-        
         document.body.classList.toggle('theme-dark', currentTheme === 'dark');
         document.getElementById('themeSwitcher').textContent = currentTheme === 'dark' ? '☀️ Светлая тема' : '🌙 Тёмная тема';
         localStorage.setItem('theme', currentTheme);
         
         document.getElementById('userIdDisplay').textContent = `ID: ${userId}`;
         
-        console.log('🖼️ Rendering casinos...');
         renderCasinos();
         updateLiveRooms();
-        
-        // 🔥 ДОБАВЛЕНО: Обновление реферального блока
         updateReferralSection(userData.referralInfo);
+
+        // Трекинг визита
+        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            const user = tg.initDataUnsafe.user;
+            fetch(`${API_BASE}/api/track-visit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: user.id,
+                    userInfo: { 
+                        id: user.id, 
+                        username: user.username,
+                        first_name: user.first_name,
+                        last_name: user.last_name 
+                    },
+                    action: 'visit'
+                })
+            }).catch(error => console.log('Ошибка отправки статистики:', error));
+        }
 
     } catch (error) {
         console.error('❌ Load error:', error);
@@ -503,13 +531,7 @@ function openCasino(casinoId, viewMode) {
     const casino = allCasinos.find(c => c.id === casinoId);
     if (casino && casino.url) {
         incrementClickCount(casinoId);
-        
-        // 🔥 ЗАКРЫВАЕМ WEBAPP В КОМПАКТНОМ РЕЖИМЕ
-        if (viewMode === 'compact' && window.Telegram?.WebApp) {
-            window.Telegram.WebApp.close();
-        } else {
-            openLink(event, casino.url);
-        }
+        openLink(event, casino.url); // 🔥 openLink сам решит когда закрывать WebApp
     }
 }
 
