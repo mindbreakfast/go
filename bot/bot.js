@@ -207,6 +207,17 @@ async function checkChannelSubscription(userId, channelUsernames = ['@LUDOGOLIK'
     }
 }
 
+// После запуска бота добавьте:
+bot.setMyCommands([
+    { command: 'start', description: 'Запустить бота' },
+    { command: 'help', description: 'Помощь' },
+    { command: 'stats', description: 'Статистика (админы)' },
+    { command: 'add_casino', description: 'Добавить казино (админы)' },
+    { command: 'list_casinos', description: 'Список казино (админы)' },
+    { command: 'edit_casino', description: 'Редактировать казино (админы)' },
+    { command: 'referral', description: 'Реферальная система' }
+]);
+
 module.exports = {
     bot,
     startBot,
