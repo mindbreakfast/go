@@ -606,12 +606,26 @@ function updateReferralSection(referralInfo = {}) {
     if (userId && userId !== 'anonymous') {
         const refInfo = referralInfo || {
             referrals: [],
-            referralLink: `https://t.me/Ludogol_bot?start=ref${userId}`
+            // 🔥 ИСПРАВЛЕНИЕ: Используем правильную ссылку
+            referralLink: `https://t.me/ludogol_bot?start=ref${userId}`
         };
         
         referralCount.textContent = refInfo.referrals?.length || 0;
-        referralLinkInput.value = refInfo.referralLink || `https://t.me/Ludogol_bot?start=ref${userId}`;
+        
+        // 🔥 ПРИОРИТЕТ: ссылка из базы данных, иначе генерируем правильную
+        const finalReferralLink = refInfo.referralLink && !refInfo.referralLink.includes('8368808338') 
+            ? refInfo.referralLink 
+            : `https://t.me/ludogol_bot?start=ref${userId}`;
+            
+        referralLinkInput.value = finalReferralLink;
         referralSection.style.display = 'block';
+        
+        // 🔥 ЛОГ ДЛЯ ПРОВЕРКИ
+        console.log('🔗 Реферальная ссылка:', {
+            userId: userId,
+            referralLink: finalReferralLink,
+            fromDatabase: refInfo.referralLink
+        });
     } else {
         referralSection.style.display = 'none';
     }
