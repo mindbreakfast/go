@@ -34,145 +34,6 @@ class Database {
         this.writeLocks = {};
     }
 
-
-
-async #loadDataFromGit() {
-    if (!process.env.GITHUB_TOKEN) {
-        logger.warn('GITHUB_TOKEN not available, skipping Git load');
-        return false;
-    }
-
-    try {
-        logger.info('Attempting to load data from GitHub...');
-        
-        const githubSync = require(path.join(__dirname, 'githubSync'));
-        const filesToLoad = ['data.json', 'content.json', 'userdata.json', 'stats.json'];
-        
-        let loadedCount = 0;
-
-        for (const fileName of filesToLoad) {
-            try {
-                const fileContent = await this.#loadFileFromGitHub(fileName);
-                if (fileContent) {
-                    await this.#parseAndSetData(fileName, fileContent);
-                    loadedCount++;
-                    logger.debug(`Loaded ${fileName} from Git`);
-                }
-            } catch (error) {
-                logger.warn(`Failed to load ${fileName} from Git:`, error.message);
-            }
-        }
-
-        const success = loadedCount === filesToLoad.length;
-        logger.info(`GitHub load result: ${loadedCount}/${filesToLoad.length} files`, { success });
-        
-        return success;
-
-    } catch (error) {
-        logger.error('Error loading data from Git:', error.message);
-        return false;
-    }
-}
-
-async #loadFileFromGitHub(fileName) {
-    try {
-        const axios = require('axios');
-        const config = require(path.join(__dirname, '..', 'config'));
-        
-        const url = `https://api.github.com/repos/${config.GITHUB_REPO_OWNER}/${config.GITHUB_REPO_NAME}/contents/${fileName}`;
-        
-        const response = await axios.get(url, {
-            headers: {
-                'Authorization': `token ${config.GITHUB_TOKEN}`,
-                'User-Agent': 'Ludogolik-Bot-Server'
-            },
-            timeout: 10000
-        });
-
-        if (response.data && response.data.content) {
-            return Buffer.from(response.data.content, 'base64').toString('utf8');
-        }
-        
-        return null;
-    } catch (error) {
-        if (error.response?.status === 404) {
-            logger.warn(`File not found on GitHub: ${fileName}`);
-        } else {
-            logger.error(`Error loading ${fileName} from GitHub:`, error.message);
-        }
-        return null;
-    }
-}
-
-async #parseAndSetData(fileName, content) {
-    try {
-        const data = JSON.parse(content);
-        
-        switch (fileName) {
-            case 'data.json':
-                this.casinos = data.casinos || [];
-                this.categories = data.categories || [];
-                break;
-                
-            case 'content.json':
-                this.announcements = data.announcements || [];
-                this.streamStatus = data.streamStatus || this.streamStatus;
-                break;
-                
-            case 'userdata.json':
-                this.userChats = new Map();
-                if (data.userChats) {
-                    for (const [key, value] of Object.entries(data.userChats)) {
-                        this.userChats.set(Number(key), value);
-                    }
-                }
-                
-                this.userSettings = new Map();
-                if (data.userSettings) {
-                    for (const [key, value] of Object.entries(data.userSettings)) {
-                        this.userSettings.set(Number(key), value);
-                    }
-                }
-                
-                this.giveaways = data.giveaways || [];
-                this.pendingApprovals = data.pendingApprovals || [];
-                this.referralData = new Map();
-                
-                if (data.referralData) {
-                    for (const [key, value] of Object.entries(data.referralData)) {
-                        this.referralData.set(Number(key), value);
-                    }
-                }
-                break;
-                
-            case 'stats.json':
-                this.userClickStats = new Map();
-                if (data.userClickStats) {
-                    for (const [key, value] of Object.entries(data.userClickStats)) {
-                        this.userClickStats.set(Number(key), value);
-                    }
-                }
-                
-                this.hiddenStats = new Map();
-                if (data.hiddenStats) {
-                    for (const [key, value] of Object.entries(data.hiddenStats)) {
-                        this.hiddenStats.set(Number(key), value);
-                    }
-                }
-                
-                this.voiceAccessLogs = data.voiceAccessLogs || [];
-                break;
-        }
-        
-        return true;
-    } catch (error) {
-        logger.error(`Error parsing ${fileName}:`, error.message);
-        return false;
-    }
-}
-    
-// конец новой фичи
-    
     async #acquireLock(filePath) {
         while (this.writeLocks[filePath]) {
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -184,41 +45,174 @@ async #parseAndSetData(fileName, content) {
         this.writeLocks[filePath] = false;
     }
 
-async function loadData() {
-    logger.info('Starting data loading...');
-    
-    try {
-        // 🔥 ПЕРВОЕ: ПЫТАЕМСЯ ЗАГРУЗИТЬ ИЗ GIT (ПРИОРИТЕТ)
-        const gitDataLoaded = await this.#loadDataFromGit();
+    async loadData() {
+        logger.info('Starting data loading...');
         
-        if (gitDataLoaded) {
-            logger.info('Data loaded successfully from Git');
+        try {
+            // 🔥 ПЕРВОЕ: ПЫТАЕМСЯ ЗАГРУЗИТЬ ИЗ GIT (ПРИОРИТЕТ)
+            const gitDataLoaded = await this.#loadDataFromGit();
+            
+            if (gitDataLoaded) {
+                logger.info('Data loaded successfully from Git');
+                // 🔥 ЗАПУСКАЕМ СИНХРОНИЗАЦИЮ КЛИКОВ
+                this.startClickSyncService();
+                return true;
+            }
+            
+            logger.info('Git data not available, loading from local files');
+            
+            // 🔥 ВТОРОЕ: ЕСЛИ GIT НЕ ДОСТУПЕН - ЗАГРУЖАЕМ ИЗ ЛОКАЛЬНЫХ ФАЙЛОВ
+            await Promise.all([
+                this.#loadMainDataFromLocal(),
+                this.#loadContentDataFromLocal(),
+                this.#loadUserDataFromLocal(),
+                this.#loadStatsDataFromLocal()
+            ]);
+
             // 🔥 ЗАПУСКАЕМ СИНХРОНИЗАЦИЮ КЛИКОВ
             this.startClickSyncService();
+
+            logger.info(`Data loaded from local files: ${this.casinos.length} casinos, ${this.userSettings.size} users`);
             return true;
+
+        } catch (error) {
+            logger.error('Error loading data:', error.message);
+            return await this.initializeData();
         }
-        
-        logger.info('Git data not available, loading from local files');
-        
-        // 🔥 ВТОРОЕ: ЕСЛИ GIT НЕ ДОСТУПЕН - ЗАГРУЖАЕМ ИЗ ЛОКАЛЬНЫХ ФАЙЛОВ
-        await Promise.all([
-            this.#loadMainDataFromLocal(),
-            this.#loadContentDataFromLocal(),
-            this.#loadUserDataFromLocal(),
-            this.#loadStatsDataFromLocal()
-        ]);
-
-        // 🔥 ЗАПУСКАЕМ СИНХРОНИЗАЦИЮ КЛИКОВ
-        this.startClickSyncService();
-
-        logger.info(`Data loaded from local files: ${this.casinos.length} casinos, ${this.userSettings.size} users`);
-        return true;
-
-    } catch (error) {
-        logger.error('Error loading data:', error.message);
-        return await this.initializeData();
     }
-}
+
+    async #loadDataFromGit() {
+        if (!process.env.GITHUB_TOKEN) {
+            logger.warn('GITHUB_TOKEN not available, skipping Git load');
+            return false;
+        }
+
+        try {
+            logger.info('Attempting to load data from GitHub...');
+            
+            const filesToLoad = ['data.json', 'content.json', 'userdata.json', 'stats.json'];
+            
+            let loadedCount = 0;
+
+            for (const fileName of filesToLoad) {
+                try {
+                    const fileContent = await this.#loadFileFromGitHub(fileName);
+                    if (fileContent) {
+                        await this.#parseAndSetData(fileName, fileContent);
+                        loadedCount++;
+                        logger.debug(`Loaded ${fileName} from Git`);
+                    }
+                } catch (error) {
+                    logger.warn(`Failed to load ${fileName} from Git:`, error.message);
+                }
+            }
+
+            const success = loadedCount === filesToLoad.length;
+            logger.info(`GitHub load result: ${loadedCount}/${filesToLoad.length} files`, { success });
+            
+            return success;
+
+        } catch (error) {
+            logger.error('Error loading data from Git:', error.message);
+            return false;
+        }
+    }
+
+    async #loadFileFromGitHub(fileName) {
+        try {
+            const axios = require('axios');
+            
+            const url = `https://api.github.com/repos/${config.GITHUB_REPO_OWNER}/${config.GITHUB_REPO_NAME}/contents/${fileName}`;
+            
+            const response = await axios.get(url, {
+                headers: {
+                    'Authorization': `token ${config.GITHUB_TOKEN}`,
+                    'User-Agent': 'Ludogolik-Bot-Server'
+                },
+                timeout: 10000
+            });
+
+            if (response.data && response.data.content) {
+                return Buffer.from(response.data.content, 'base64').toString('utf8');
+            }
+            
+            return null;
+        } catch (error) {
+            if (error.response?.status === 404) {
+                logger.warn(`File not found on GitHub: ${fileName}`);
+            } else {
+                logger.error(`Error loading ${fileName} from GitHub:`, error.message);
+            }
+            return null;
+        }
+    }
+
+    async #parseAndSetData(fileName, content) {
+        try {
+            const data = JSON.parse(content);
+            
+            switch (fileName) {
+                case 'data.json':
+                    this.casinos = data.casinos || [];
+                    this.categories = data.categories || [];
+                    break;
+                    
+                case 'content.json':
+                    this.announcements = data.announcements || [];
+                    this.streamStatus = data.streamStatus || this.streamStatus;
+                    break;
+                    
+                case 'userdata.json':
+                    this.userChats = new Map();
+                    if (data.userChats) {
+                        for (const [key, value] of Object.entries(data.userChats)) {
+                            this.userChats.set(Number(key), value);
+                        }
+                    }
+                    
+                    this.userSettings = new Map();
+                    if (data.userSettings) {
+                        for (const [key, value] of Object.entries(data.userSettings)) {
+                            this.userSettings.set(Number(key), value);
+                        }
+                    }
+                    
+                    this.giveaways = data.giveaways || [];
+                    this.pendingApprovals = data.pendingApprovals || [];
+                    this.referralData = new Map();
+                    
+                    if (data.referralData) {
+                        for (const [key, value] of Object.entries(data.referralData)) {
+                            this.referralData.set(Number(key), value);
+                        }
+                    }
+                    break;
+                    
+                case 'stats.json':
+                    this.userClickStats = new Map();
+                    if (data.userClickStats) {
+                        for (const [key, value] of Object.entries(data.userClickStats)) {
+                            this.userClickStats.set(Number(key), value);
+                        }
+                    }
+                    
+                    this.hiddenStats = new Map();
+                    if (data.hiddenStats) {
+                        for (const [key, value] of Object.entries(data.hiddenStats)) {
+                            this.hiddenStats.set(Number(key), value);
+                        }
+                    }
+                    
+                    this.voiceAccessLogs = data.voiceAccessLogs || [];
+                    break;
+            }
+            
+            return true;
+        } catch (error) {
+            logger.error(`Error parsing ${fileName}:`, error.message);
+            return false;
+        }
+    }
 
     async #loadMainDataFromLocal() {
         try {
@@ -567,69 +561,69 @@ async function loadData() {
     }
 
     // 🔥 УЛУЧШЕННАЯ РЕФЕРАЛЬНАЯ СИСТЕМА
-handleReferralStart(userId, referrerId) {
-    try {
-        console.log('🔗 Referral start processing:', { userId, referrerId }); // 🔥 ЛОГ
-        
-        if (userId === referrerId) {
-            logger.warn('User tried to refer themselves', { userId, referrerId });
-            return false;
-        }
-
-        // Проверяем существующую связь
-        const userRefData = this.referralData.get(userId) || { referredBy: null, referrals: [], totalEarned: 0 };
-        if (userRefData.referredBy && userRefData.referredBy !== referrerId) {
-            logger.warn('User already referred by someone else', { userId, existingReferrer: userRefData.referredBy, newReferrer: referrerId });
-            return false;
-        }
-
-        // 🔥 ЛОГ: Проверяем данные реферера
-        console.log('📊 Referrer data before:', { 
-            referrerId, 
-            hasData: this.referralData.has(referrerId),
-            existingReferrals: this.referralData.get(referrerId)?.referrals?.length || 0 
-        });
-
-        // Обновляем данные реферера
-        if (!this.referralData.has(referrerId)) {
-            this.referralData.set(referrerId, { referrals: [], totalEarned: 0 });
-        }
-
-        const referrerData = this.referralData.get(referrerId);
-        if (!referrerData.referrals.includes(userId)) {
-            referrerData.referrals.push(userId);
-            referrerData.totalEarned += 10;
-            this.referralData.set(referrerId, referrerData);
+    handleReferralStart(userId, referrerId) {
+        try {
+            console.log('🔗 Referral start processing:', { userId, referrerId });
             
-            console.log('🎉 New referral added:', { 
+            if (userId === referrerId) {
+                logger.warn('User tried to refer themselves', { userId, referrerId });
+                return false;
+            }
+
+            // Проверяем существующую связь
+            const userRefData = this.referralData.get(userId) || { referredBy: null, referrals: [], totalEarned: 0 };
+            if (userRefData.referredBy && userRefData.referredBy !== referrerId) {
+                logger.warn('User already referred by someone else', { userId, existingReferrer: userRefData.referredBy, newReferrer: referrerId });
+                return false;
+            }
+
+            // 🔥 ЛОГ: Проверяем данные реферера
+            console.log('📊 Referrer data before:', { 
                 referrerId, 
-                userId, 
-                totalReferrals: referrerData.referrals.length 
+                hasData: this.referralData.has(referrerId),
+                existingReferrals: this.referralData.get(referrerId)?.referrals?.length || 0 
             });
-        } else {
-            console.log('⚠️ Referral already exists:', { referrerId, userId });
+
+            // Обновляем данные реферера
+            if (!this.referralData.has(referrerId)) {
+                this.referralData.set(referrerId, { referrals: [], totalEarned: 0 });
+            }
+
+            const referrerData = this.referralData.get(referrerId);
+            if (!referrerData.referrals.includes(userId)) {
+                referrerData.referrals.push(userId);
+                referrerData.totalEarned += 10;
+                this.referralData.set(referrerId, referrerData);
+                
+                console.log('🎉 New referral added:', { 
+                    referrerId, 
+                    userId, 
+                    totalReferrals: referrerData.referrals.length 
+                });
+            } else {
+                console.log('⚠️ Referral already exists:', { referrerId, userId });
+            }
+
+            // Обновляем данные приглашенного
+            userRefData.referredBy = referrerId;
+            this.referralData.set(userId, userRefData);
+
+            // 🔥 ЛОГ: Проверяем результат
+            console.log('✅ Referral final state:', {
+                userId: this.referralData.get(userId),
+                referrerId: this.referralData.get(referrerId)
+            });
+
+            logger.info('Referral registered', { userId, referrerId, referrals: referrerData.referrals.length });
+
+            this.saveUserData().catch(err => logger.error('Save referral error:', err));
+            return true;
+
+        } catch (error) {
+            logger.error('Error handling referral start:', error);
+            return false;
         }
-
-        // Обновляем данные приглашенного
-        userRefData.referredBy = referrerId;
-        this.referralData.set(userId, userRefData);
-
-        // 🔥 ЛОГ: Проверяем результат
-        console.log('✅ Referral final state:', {
-            userId: this.referralData.get(userId),
-            referrerId: this.referralData.get(referrerId)
-        });
-
-        logger.info('Referral registered', { userId, referrerId, referrals: referrerData.referrals.length });
-
-        this.saveUserData().catch(err => logger.error('Save referral error:', err));
-        return true;
-
-    } catch (error) {
-        logger.error('Error handling referral start:', error);
-        return false;
     }
-}
 
     getReferralInfo(userId) {
         try {
@@ -656,49 +650,50 @@ handleReferralStart(userId, referrerId) {
         }
     }
 
-trackUserAction(userId, userData, actionType) {
-    try {
-        if (!this.userChats.has(userId)) {
-            this.userChats.set(userId, {
-                id: userId,
-                username: userData.username || 'не указан',
-                first_name: userData.first_name,
-                last_name: userData.last_name,
-                language_code: userData.language_code,
-                joined_at: new Date().toISOString(),
-                last_activity: new Date().toISOString()
-            });
-        } else {
-            const user = this.userChats.get(userId);
-            user.last_activity = new Date().toISOString();
-            this.userChats.set(userId, user);
-        }
-        
-        // 🔥 УСИЛЕННАЯ УСТАНОВКА ТЁМНОЙ ТЕМЫ ПО УМОЛЧАНИЮ
-        if (!this.userSettings.has(userId)) {
-            this.userSettings.set(userId, {
-                hiddenCasinos: [],
-                notifications: true,
-                theme: 'dark', // ТЁМНАЯ ТЕМА ПО УМОЛЧАНИЮ
-                hasLiveAccess: false
-            });
-            console.log('🎨 Установлена тёмная тема по умолчанию для нового пользователя:', userId);
-        } else {
-            // 🔥 ДЛЯ СУЩЕСТВУЮЩИХ ПОЛЬЗОВАТЕЛЕЙ, ЕСЛИ ТЕМА НЕ УСТАНОВЛЕНА - СТАВИМ ТЁМНУЮ
-            const userSettings = this.userSettings.get(userId);
-            if (!userSettings.theme || userSettings.theme === 'light') {
-                userSettings.theme = 'dark';
-                this.userSettings.set(userId, userSettings);
-                console.log('🎨 Обновлена тема на тёмную для пользователя:', userId);
+    // ✅ Методы для работы с пользователями
+    trackUserAction(userId, userData, actionType) {
+        try {
+            if (!this.userChats.has(userId)) {
+                this.userChats.set(userId, {
+                    id: userId,
+                    username: userData.username || 'не указан',
+                    first_name: userData.first_name,
+                    last_name: userData.last_name,
+                    language_code: userData.language_code,
+                    joined_at: new Date().toISOString(),
+                    last_activity: new Date().toISOString()
+                });
+            } else {
+                const user = this.userChats.get(userId);
+                user.last_activity = new Date().toISOString();
+                this.userChats.set(userId, user);
             }
+            
+            // 🔥 УСИЛЕННАЯ УСТАНОВКА ТЁМНОЙ ТЕМЫ ПО УМОЛЧАНИЮ
+            if (!this.userSettings.has(userId)) {
+                this.userSettings.set(userId, {
+                    hiddenCasinos: [],
+                    notifications: true,
+                    theme: 'dark', // ТЁМНАЯ ТЕМА ПО УМОЛЧАНИЮ
+                    hasLiveAccess: false
+                });
+                console.log('🎨 Установлена тёмная тема по умолчанию для нового пользователя:', userId);
+            } else {
+                // 🔥 ДЛЯ СУЩЕСТВУЮЩИХ ПОЛЬЗОВАТЕЛЕЙ, ЕСЛИ ТЕМА НЕ УСТАНОВЛЕНА - СТАВИМ ТЁМНУЮ
+                const userSettings = this.userSettings.get(userId);
+                if (!userSettings.theme || userSettings.theme === 'light') {
+                    userSettings.theme = 'dark';
+                    this.userSettings.set(userId, userSettings);
+                    console.log('🎨 Обновлена тема на тёмную для пользователя:', userId);
+                }
+            }
+            
+            return true;
+        } catch (error) {
+            logger.error('Error tracking user action:', error);
+            return false;
         }
-        
-        return true;
-    } catch (error) {
-        logger.error('Error tracking user action:', error);
-        return false;
     }
-}
 
     requestApproval(userId, username) {
         try {
@@ -762,7 +757,7 @@ trackUserAction(userId, userData, actionType) {
                 settings: this.userSettings.get(userId) || {
                     hiddenCasinos: [],
                     notifications: true,
-                    theme: 'light',
+                    theme: 'dark', // 🔥 ТЁМНАЯ ПО УМОЛЧАНИЮ
                     hasLiveAccess: false
                 },
                 profile: this.userChats.get(userId) || null,
@@ -775,7 +770,7 @@ trackUserAction(userId, userData, actionType) {
                 settings: {
                     hiddenCasinos: [],
                     notifications: true,
-                    theme: 'light',
+                    theme: 'dark', // 🔥 ТЁМНАЯ ПО УМОЛЧАНИЮ
                     hasLiveAccess: false
                 },
                 profile: null,
@@ -794,7 +789,7 @@ trackUserAction(userId, userData, actionType) {
                 this.userSettings.set(userId, {
                     hiddenCasinos: [],
                     notifications: true,
-                    theme: 'light',
+                    theme: 'dark', // 🔥 ТЁМНАЯ ПО УМОЛЧАНИЮ
                     hasLiveAccess: false,
                     ...newSettings
                 });
