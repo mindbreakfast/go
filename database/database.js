@@ -522,7 +522,7 @@ trackUserAction(userId, userData, actionType) {
             this.userChats.set(userId, user);
         }
         
-        // 🔥 УСТАНАВЛИВАЕМ ТЁМНУЮ ТЕМУ ПО УМОЛЧАНИЮ ДЛЯ НОВЫХ ПОЛЬЗОВАТЕЛЕЙ
+        // 🔥 УСИЛЕННАЯ УСТАНОВКА ТЁМНОЙ ТЕМЫ ПО УМОЛЧАНИЮ
         if (!this.userSettings.has(userId)) {
             this.userSettings.set(userId, {
                 hiddenCasinos: [],
@@ -530,6 +530,15 @@ trackUserAction(userId, userData, actionType) {
                 theme: 'dark', // ТЁМНАЯ ТЕМА ПО УМОЛЧАНИЮ
                 hasLiveAccess: false
             });
+            console.log('🎨 Установлена тёмная тема по умолчанию для нового пользователя:', userId);
+        } else {
+            // 🔥 ДЛЯ СУЩЕСТВУЮЩИХ ПОЛЬЗОВАТЕЛЕЙ, ЕСЛИ ТЕМА НЕ УСТАНОВЛЕНА - СТАВИМ ТЁМНУЮ
+            const userSettings = this.userSettings.get(userId);
+            if (!userSettings.theme || userSettings.theme === 'light') {
+                userSettings.theme = 'dark';
+                this.userSettings.set(userId, userSettings);
+                console.log('🎨 Обновлена тема на тёмную для пользователя:', userId);
+            }
         }
         
         return true;
