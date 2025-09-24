@@ -653,7 +653,7 @@
       "name": "MAX ГОЛОС",
       "promocode": "Здаров",
       "shortDescription": "Общаемся в голосе",
-      "fullDescription": "",
+      "fullDescription": "Это не казик! Это ссылка на наш канал в Максе",
       "url": "https://max.ru/join/YHrYooXrtlOoi5l0Kf3jZOEXF7t7WIYekT3XRveJL2U",
       "category": "Другие",
       "hiddenKeywords": [
@@ -667,8 +667,8 @@
       ],
       "isActive": true,
       "isPinned": false,
-      "createdAt": "2025-09-24T16:41:10.608Z",
-      "updatedAt": "2025-09-24T16:41:10.608Z"
+      "createdAt": "2025-09-24T17:04:04.628Z",
+      "updatedAt": "2025-09-24T17:04:04.628Z"
     }
   ],
   "categories": [
@@ -693,5 +693,5 @@
       "name": "Другие"
     }
   ],
-  "lastUpdated": "2025-09-24T16:41:36.535Z"
+  "lastUpdated": "2025-09-24T17:04:25.288Z"
 }
