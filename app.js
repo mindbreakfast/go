@@ -272,11 +272,15 @@ function showAnnouncements(announcements) {
         return;
     }
 
-    container.innerHTML = announcements.map(announcement => `
-        <div class="announcement-banner announcement-${announcement.color || 'blue'}">
-            ${escapeHtml(announcement.text)}
-        </div>
-    `).join('');
+    // равильное применение классов цветов
+    container.innerHTML = announcements.map(announcement => {
+        const colorClass = `announcement-${announcement.color || 'blue'}`;
+        return `
+            <div class="announcement-banner ${colorClass}">
+                ${escapeHtml(announcement.text)}
+            </div>
+        `;
+    }).join('');
 }
 
 function updateStreamStatus(streamStatus) {
