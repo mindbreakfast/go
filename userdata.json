@@ -1,5 +1,13 @@
 {
   "userChats": {
+    "426818020": {
+      "id": 426818020,
+      "username": "dimasiaaa",
+      "first_name": "Микки Маус",
+      "last_name": "",
+      "joined_at": "2025-09-24T17:56:53.333Z",
+      "last_activity": "2025-09-24T18:04:15.777Z"
+    },
     "1777213824": {
       "id": 1777213824,
       "username": "NSDcode",
@@ -7,7 +15,7 @@
       "last_name": "NSD",
       "language_code": "ru",
       "joined_at": "2025-09-10T17:10:33.867Z",
-      "last_activity": "2025-09-24T17:38:11.618Z"
+      "last_activity": "2025-09-24T18:18:02.999Z"
     },
     "6770360650": {
       "id": 6770360650,
@@ -16,9 +24,42 @@
       "language_code": "ru",
       "joined_at": "2025-09-10T17:39:57.669Z",
       "last_activity": "2025-09-10T17:48:50.251Z"
+    },
+    "7670761239": {
+      "id": 7670761239,
+      "username": "Seregovr",
+      "first_name": "Имя",
+      "last_name": "Фамилия",
+      "language_code": "ru",
+      "joined_at": "2025-09-24T18:13:45.259Z",
+      "last_activity": "2025-09-24T18:14:45.917Z"
+    },
+    "6976083104": {
+      "id": 6976083104,
+      "username": "vadinara",
+      "first_name": "Billi",
+      "last_name": "Good",
+      "language_code": "ru",
+      "joined_at": "2025-09-24T18:15:50.382Z",
+      "last_activity": "2025-09-24T18:15:50.382Z"
+    },
+    "6666297900": {
+      "id": 6666297900,
+      "username": "rb_Kirochka",
+      "first_name": "Кира",
+      "language_code": "ru",
+      "joined_at": "2025-09-24T18:16:47.619Z",
+      "last_activity": "2025-09-24T18:17:30.649Z"
     }
   },
   "userSettings": {
+    "426818020": {
+      "hiddenCasinos": [],
+      "notifications": true,
+      "theme": "dark",
+      "hasLiveAccess": false,
+      "viewMode": "compact"
+    },
     "1777213824": {
       "hiddenCasinos": [
         35,
@@ -39,10 +80,52 @@
       "theme": "dark",
       "hasLiveAccess": true,
       "viewMode": "compact"
+    },
+    "7670761239": {
+      "hiddenCasinos": [],
+      "notifications": true,
+      "theme": "dark",
+      "hasLiveAccess": false
+    },
+    "6976083104": {
+      "hiddenCasinos": [],
+      "notifications": true,
+      "theme": "dark",
+      "hasLiveAccess": false
+    },
+    "6666297900": {
+      "hiddenCasinos": [],
+      "notifications": true,
+      "theme": "dark",
+      "hasLiveAccess": false,
+      "viewMode": "full"
     }
   },
   "giveaways": [],
   "pendingApprovals": [],
-  "referralData": {},
-  "lastUpdated": "2025-09-24T17:46:47.114Z"
+  "referralData": {
+    "1777213824": {
+      "referrals": [
+        6666297900
+      ],
+      "totalEarned": 10
+    },
+    "7670761239": {
+      "referrals": [
+        6976083104
+      ],
+      "totalEarned": 10
+    },
+    "6976083104": {
+      "referredBy": 7670761239,
+      "referrals": [],
+      "totalEarned": 0
+    },
+    "6666297900": {
+      "referredBy": 1777213824,
+      "referrals": [],
+      "totalEarned": 0
+    }
+  },
+  "lastUpdated": "2025-09-24T18:48:39.754Z"
 }
