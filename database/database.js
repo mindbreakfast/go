@@ -415,48 +415,69 @@ class Database {
     }
 
     // 🔥 УЛУЧШЕННАЯ РЕФЕРАЛЬНАЯ СИСТЕМА
-    handleReferralStart(userId, referrerId) {
-        try {
-            if (userId === referrerId) {
-                logger.warn('User tried to refer themselves', { userId, referrerId });
-                return false;
-            }
-
-            // Проверяем существующую связь
-            const userRefData = this.referralData.get(userId) || { referredBy: null, referrals: [], totalEarned: 0 };
-            if (userRefData.referredBy && userRefData.referredBy !== referrerId) {
-                logger.warn('User already referred by someone else', { userId, existingReferrer: userRefData.referredBy, newReferrer: referrerId });
-                return false;
-            }
-
-            // Обновляем данные реферера
-            if (!this.referralData.has(referrerId)) {
-                this.referralData.set(referrerId, { referrals: [], totalEarned: 0 });
-            }
-
-            const referrerData = this.referralData.get(referrerId);
-            if (!referrerData.referrals.includes(userId)) {
-                referrerData.referrals.push(userId);
-                referrerData.totalEarned += 10;
-                this.referralData.set(referrerId, referrerData);
-                
-                console.log('🎉 New referral:', { referrerId, userId, totalReferrals: referrerData.referrals.length });
-            }
-
-            // Обновляем данные приглашенного
-            userRefData.referredBy = referrerId;
-            this.referralData.set(userId, userRefData);
-
-            logger.info('Referral registered', { userId, referrerId, referrals: referrerData.referrals.length });
-
-            this.saveUserData().catch(err => logger.error('Save referral error:', err));
-            return true;
-
-        } catch (error) {
-            logger.error('Error handling referral start:', error);
+handleReferralStart(userId, referrerId) {
+    try {
+        console.log('🔗 Referral start processing:', { userId, referrerId }); // 🔥 ЛОГ
+        
+        if (userId === referrerId) {
+            logger.warn('User tried to refer themselves', { userId, referrerId });
             return false;
         }
+
+        // Проверяем существующую связь
+        const userRefData = this.referralData.get(userId) || { referredBy: null, referrals: [], totalEarned: 0 };
+        if (userRefData.referredBy && userRefData.referredBy !== referrerId) {
+            logger.warn('User already referred by someone else', { userId, existingReferrer: userRefData.referredBy, newReferrer: referrerId });
+            return false;
+        }
+
+        // 🔥 ЛОГ: Проверяем данные реферера
+        console.log('📊 Referrer data before:', { 
+            referrerId, 
+            hasData: this.referralData.has(referrerId),
+            existingReferrals: this.referralData.get(referrerId)?.referrals?.length || 0 
+        });
+
+        // Обновляем данные реферера
+        if (!this.referralData.has(referrerId)) {
+            this.referralData.set(referrerId, { referrals: [], totalEarned: 0 });
+        }
+
+        const referrerData = this.referralData.get(referrerId);
+        if (!referrerData.referrals.includes(userId)) {
+            referrerData.referrals.push(userId);
+            referrerData.totalEarned += 10;
+            this.referralData.set(referrerId, referrerData);
+            
+            console.log('🎉 New referral added:', { 
+                referrerId, 
+                userId, 
+                totalReferrals: referrerData.referrals.length 
+            });
+        } else {
+            console.log('⚠️ Referral already exists:', { referrerId, userId });
+        }
+
+        // Обновляем данные приглашенного
+        userRefData.referredBy = referrerId;
+        this.referralData.set(userId, userRefData);
+
+        // 🔥 ЛОГ: Проверяем результат
+        console.log('✅ Referral final state:', {
+            userId: this.referralData.get(userId),
+            referrerId: this.referralData.get(referrerId)
+        });
+
+        logger.info('Referral registered', { userId, referrerId, referrals: referrerData.referrals.length });
+
+        this.saveUserData().catch(err => logger.error('Save referral error:', err));
+        return true;
+
+    } catch (error) {
+        logger.error('Error handling referral start:', error);
+        return false;
     }
+}
 
     getReferralInfo(userId) {
         try {
