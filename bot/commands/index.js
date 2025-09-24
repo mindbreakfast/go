@@ -20,11 +20,14 @@ const commandModules = {
     referralCommands: [
         'handleReferralCommand', 'handleRefStatsCommand'
     ],
-    // 🔥 ДОБАВЛЯЕМ НОВЫЙ МОДУЛЬ С КОМАНДАМИ АНОНСОВ
+    // 🔥 ОБНОВЛЯЕМ НАЗВАНИЯ ФУНКЦИЙ
     announcementCommands: [
-        'handleClearAnnouncementsCommand', 
-        'handleDeleteAnnouncementCommand', 
-        'handleAnnouncementsListCommand'
+        'handleClearTextCommand', 
+        'handleDeleteTextCommand', 
+        'handleListTextCommand'
+    ],
+    broadcastCommands: [
+        'handleBroadcastCommand'
     ]
 };
 
