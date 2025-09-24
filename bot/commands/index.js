@@ -19,6 +19,12 @@ const commandModules = {
     ],
     referralCommands: [
         'handleReferralCommand', 'handleRefStatsCommand'
+    ],
+    // 🔥 ДОБАВЛЯЕМ НОВЫЙ МОДУЛЬ С КОМАНДАМИ АНОНСОВ
+    announcementCommands: [
+        'handleClearAnnouncementsCommand', 
+        'handleDeleteAnnouncementCommand', 
+        'handleAnnouncementsListCommand'
     ]
 };
 
