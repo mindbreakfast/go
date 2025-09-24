@@ -504,40 +504,40 @@ handleReferralStart(userId, referrerId) {
         }
     }
 
-    // ✅ Методы для работы с пользователями
-    trackUserAction(userId, userData, actionType) {
-        try {
-            if (!this.userChats.has(userId)) {
-                this.userChats.set(userId, {
-                    id: userId,
-                    username: userData.username || 'не указан',
-                    first_name: userData.first_name,
-                    last_name: userData.last_name,
-                    language_code: userData.language_code,
-                    joined_at: new Date().toISOString(),
-                    last_activity: new Date().toISOString()
-                });
-            } else {
-                const user = this.userChats.get(userId);
-                user.last_activity = new Date().toISOString();
-                this.userChats.set(userId, user);
-            }
-            
-            if (!this.userSettings.has(userId)) {
-                this.userSettings.set(userId, {
-                    hiddenCasinos: [],
-                    notifications: true,
-                    theme: 'dark',
-                    hasLiveAccess: false
-                });
-            }
-            
-            return true;
-        } catch (error) {
-            logger.error('Error tracking user action:', error);
-            return false;
+trackUserAction(userId, userData, actionType) {
+    try {
+        if (!this.userChats.has(userId)) {
+            this.userChats.set(userId, {
+                id: userId,
+                username: userData.username || 'не указан',
+                first_name: userData.first_name,
+                last_name: userData.last_name,
+                language_code: userData.language_code,
+                joined_at: new Date().toISOString(),
+                last_activity: new Date().toISOString()
+            });
+        } else {
+            const user = this.userChats.get(userId);
+            user.last_activity = new Date().toISOString();
+            this.userChats.set(userId, user);
         }
+        
+        // 🔥 УСТАНАВЛИВАЕМ ТЁМНУЮ ТЕМУ ПО УМОЛЧАНИЮ ДЛЯ НОВЫХ ПОЛЬЗОВАТЕЛЕЙ
+        if (!this.userSettings.has(userId)) {
+            this.userSettings.set(userId, {
+                hiddenCasinos: [],
+                notifications: true,
+                theme: 'dark', // ТЁМНАЯ ТЕМА ПО УМОЛЧАНИЮ
+                hasLiveAccess: false
+            });
+        }
+        
+        return true;
+    } catch (error) {
+        logger.error('Error tracking user action:', error);
+        return false;
     }
+}
 
     requestApproval(userId, username) {
         try {
