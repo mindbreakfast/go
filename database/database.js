@@ -527,7 +527,7 @@ handleReferralStart(userId, referrerId) {
                 this.userSettings.set(userId, {
                     hiddenCasinos: [],
                     notifications: true,
-                    theme: 'light',
+                    theme: 'dark',
                     hasLiveAccess: false
                 });
             }
