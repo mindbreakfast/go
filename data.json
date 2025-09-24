@@ -650,19 +650,25 @@
     },
     {
       "id": 38,
-      "name": "fg",
-      "promocode": "fdg",
-      "shortDescription": "fh",
-      "fullDescription": "df",
-      "url": "fdg",
-      "category": "pf",
+      "name": "MAX ГОЛОС",
+      "promocode": "Здаров",
+      "shortDescription": "Общаемся в голосе",
+      "fullDescription": "",
+      "url": "https://max.ru/join/YHrYooXrtlOoi5l0Kf3jZOEXF7t7WIYekT3XRveJL2U",
+      "category": "Другие",
       "hiddenKeywords": [
-        "gf"
+        "Макс",
+        "max",
+        "vfrc",
+        "ьфч",
+        "голос",
+        "golos",
+        "ujkjc"
       ],
       "isActive": true,
       "isPinned": false,
-      "createdAt": "2025-09-10T12:25:50.945Z",
-      "updatedAt": "2025-09-10T12:25:50.945Z"
+      "createdAt": "2025-09-24T16:41:10.608Z",
+      "updatedAt": "2025-09-24T16:41:10.608Z"
     }
   ],
   "categories": [
@@ -687,5 +693,5 @@
       "name": "Другие"
     }
   ],
-  "lastUpdated": "2025-09-24T12:19:33.475Z"
+  "lastUpdated": "2025-09-24T16:41:36.535Z"
 }
