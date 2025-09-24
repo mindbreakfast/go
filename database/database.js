@@ -625,30 +625,34 @@ class Database {
         }
     }
 
-    getReferralInfo(userId) {
-        try {
-            const refData = this.referralData.get(userId) || {
-                referredBy: null,
-                referrals: [],
-                totalEarned: 0
-            };
-            
-            return {
-                referredBy: refData.referredBy,
-                referrals: refData.referrals || [],
-                referralLink: `https://t.me/${process.env.BOT_TOKEN?.split(':')[0]}?start=ref${userId}`,
-                totalEarned: refData.totalEarned || 0
-            };
-        } catch (error) {
-            logger.error('Error getting referral info:', error);
-            return {
-                referredBy: null,
-                referrals: [],
-                referralLink: '',
-                totalEarned: 0
-            };
-        }
+getReferralInfo(userId) {
+    try {
+        const refData = this.referralData.get(userId) || {
+            referredBy: null,
+            referrals: [],
+            totalEarned: 0
+        };
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Используем правильное имя бота
+        const botUsername = 'ludogol_bot'; // Жестко задаем username бота
+        const referralLink = `https://t.me/${botUsername}?start=ref${userId}`;
+        
+        return {
+            referredBy: refData.referredBy,
+            referrals: refData.referrals || [],
+            referralLink: referralLink,
+            totalEarned: refData.totalEarned || 0
+        };
+    } catch (error) {
+        logger.error('Error getting referral info:', error);
+        return {
+            referredBy: null,
+            referrals: [],
+            referralLink: 'https://t.me/ludogol_bot', // 🔥 Запасная ссылка
+            totalEarned: 0
+        };
     }
+}
 
     // ✅ Методы для работы с пользователями
     trackUserAction(userId, userData, actionType) {
