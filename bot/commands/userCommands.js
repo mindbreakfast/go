@@ -88,9 +88,9 @@ function handleHelpCommand(bot, msg) {
 /live [ссылка] [описание] - Начать стрим
 /stop - Остановить стрим
 /text [сообщение] [цвет] - Добавить анонс
-/clear_text - Очистить анонсы
-/list_text - Показать анонсы
-/remove_text [ID] - Удалить анонс
+/clear_announcements - Очистить все анонсы
+/list_announcements - Показать анонсы
+/delete_announcement [ID] - Удалить анонс
 /broadcast [сообщение] - Сделать рассылку
 /add_casino - Добавить казино
 /list_casinos - Список казино
@@ -127,6 +127,9 @@ function handleMessage(bot, msg) {
 function processCommand(bot, msg, text) {
     const command = text.split(' ')[0].toLowerCase();
     const handlers = getCommandHandlers();
+    
+    // 🔥 ИМПОРТИРУЕМ casinoEditingState ДЛЯ ПЕРЕДАЧИ В КОМАНДЫ
+    const { casinoEditingState } = require(path.join(__dirname, '..', 'state'));
 
     switch (command) {
         case '/start':
@@ -199,7 +202,8 @@ function processCommand(bot, msg, text) {
             break;
         case '/add_casino':
             if (isAdmin(msg.from.id)) {
-                handlers.handleAddCasinoCommand(bot, msg);
+                // 🔥 ПЕРЕДАЕМ casinoEditingState В КОМАНДУ
+                handlers.handleAddCasinoCommand(bot, msg, casinoEditingState);
             } else {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
@@ -215,6 +219,29 @@ function processCommand(bot, msg, text) {
             if (isAdmin(msg.from.id)) {
                 const casinoId = text.substring(text.includes('@') ? text.indexOf(' ') + 1 : 12).trim();
                 handlers.handleEditCasinoCommand(bot, msg, [null, casinoId]);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        // 🔥 ДОБАВЛЯЕМ НОВЫЕ КОМАНДЫ АНОНСОВ
+        case '/clear_announcements':
+            if (isAdmin(msg.from.id)) {
+                handlers.handleClearAnnouncementsCommand(bot, msg);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        case '/delete_announcement':
+            if (isAdmin(msg.from.id)) {
+                const announcementId = text.substring(text.includes('@') ? text.indexOf(' ') + 1 : 18).trim();
+                handlers.handleDeleteAnnouncementCommand(bot, msg, [null, announcementId]);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        case '/list_announcements':
+            if (isAdmin(msg.from.id)) {
+                handlers.handleAnnouncementsListCommand(bot, msg);
             } else {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
