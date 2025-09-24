@@ -19,7 +19,13 @@ function getCommandHandlers() {
 function handleStartCommand(bot, msg) {
     const user = msg.from;
     
+    // 🔥 УСТАНАВЛИВАЕМ ТЁМНУЮ ТЕМУ ПО УМОЛЧАНИЮ ДЛЯ НОВЫХ ПОЛЬЗОВАТЕЛЕЙ
     database.trackUserAction(user.id, user, 'start');
+    
+    // 🔥 ОБНОВЛЯЕМ НАСТРОЙКИ С ТЁМНОЙ ТЕМОЙ ПО УМОЛЧАНИЮ
+    database.updateUserSettings(user.id, {
+        theme: 'dark' // Тёмная тема по умолчанию
+    });
 
     if (msg.text && msg.text.includes('giftme_')) {
         const contestId = msg.text.split(' ')[1];
@@ -48,7 +54,7 @@ function handleStartCommand(bot, msg) {
             inline_keyboard: [[
                 {
                     text: '🎰 ОТКРЫТЬ СПИСОК КАЗИНО',
-                    web_app: { url: config.WEB_APP_URL } // 🔥 Теперь config определен
+                    web_app: { url: config.WEB_APP_URL }
                 }
             ]]
         }
@@ -88,10 +94,10 @@ function handleHelpCommand(bot, msg) {
 /live [ссылка] [описание] - Начать стрим
 /stop - Остановить стрим
 /text [сообщение] [цвет] - Добавить анонс
-/clear_announcements - Очистить все анонсы
-/list_announcements - Показать анонсы
-/delete_announcement [ID] - Удалить анонс
-/broadcast [сообщение] - Сделать рассылку
+/clear_text - Очистить все анонсы
+/list_text - Показать анонсы
+/delete_text [ID] - Удалить анонс
+/vsem [сообщение] - Сделать рассылку всем пользователям
 /add_casino - Добавить казино
 /list_casinos - Список казино
 /edit_casino [ID] - Редактировать казино
@@ -223,25 +229,34 @@ function processCommand(bot, msg, text) {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
             break;
-        // 🔥 ДОБАВЛЯЕМ НОВЫЕ КОМАНДЫ АНОНСОВ
-        case '/clear_announcements':
+        // 🔥 ОБНОВЛЯЕМ КОМАНДЫ АНОНСОВ НА СТАРЫЕ НАЗВАНИЯ
+        case '/clear_text':
             if (isAdmin(msg.from.id)) {
-                handlers.handleClearAnnouncementsCommand(bot, msg);
+                handlers.handleClearTextCommand(bot, msg);
             } else {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
             break;
-        case '/delete_announcement':
+        case '/delete_text':
             if (isAdmin(msg.from.id)) {
-                const announcementId = text.substring(text.includes('@') ? text.indexOf(' ') + 1 : 18).trim();
-                handlers.handleDeleteAnnouncementCommand(bot, msg, [null, announcementId]);
+                const announcementId = text.substring(text.includes('@') ? text.indexOf(' ') + 1 : 12).trim();
+                handlers.handleDeleteTextCommand(bot, msg, [null, announcementId]);
             } else {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
             break;
-        case '/list_announcements':
+        case '/list_text':
             if (isAdmin(msg.from.id)) {
-                handlers.handleAnnouncementsListCommand(bot, msg);
+                handlers.handleListTextCommand(bot, msg);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        // 🔥 ДОБАВЛЯЕМ КОМАНДУ РАССЫЛКИ
+        case '/vsem':
+            if (isAdmin(msg.from.id)) {
+                const messageText = text.substring(text.includes('@') ? text.indexOf(' ') + 1 : 5).trim();
+                handlers.handleBroadcastCommand(bot, msg, [null, messageText]);
             } else {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
