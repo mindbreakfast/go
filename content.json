@@ -1,17 +1,10 @@
 {
-  "announcements": [
-    {
-      "id": 1757676118083,
-      "text": "А здесь типа текст любой",
-      "color": "blue",
-      "createdAt": "2025-09-12T11:21:58.083Z"
-    }
-  ],
+  "announcements": [],
   "streamStatus": {
-    "isStreamLive": true,
-    "streamUrl": "f",
-    "eventDescription": "Здесь будет ссылка на стрим",
-    "lastUpdated": "2025-09-12T10:52:28.349Z"
+    "isStreamLive": false,
+    "streamUrl": "",
+    "eventDescription": "",
+    "lastUpdated": "2025-09-24T16:39:53.936Z"
   },
-  "lastUpdated": "2025-09-24T13:19:33.477Z"
+  "lastUpdated": "2025-09-24T16:41:36.535Z"
 }
