@@ -34,6 +34,145 @@ class Database {
         this.writeLocks = {};
     }
 
+
+
+async #loadDataFromGit() {
+    if (!process.env.GITHUB_TOKEN) {
+        logger.warn('GITHUB_TOKEN not available, skipping Git load');
+        return false;
+    }
+
+    try {
+        logger.info('Attempting to load data from GitHub...');
+        
+        const githubSync = require(path.join(__dirname, 'githubSync'));
+        const filesToLoad = ['data.json', 'content.json', 'userdata.json', 'stats.json'];
+        
+        let loadedCount = 0;
+
+        for (const fileName of filesToLoad) {
+            try {
+                const fileContent = await this.#loadFileFromGitHub(fileName);
+                if (fileContent) {
+                    await this.#parseAndSetData(fileName, fileContent);
+                    loadedCount++;
+                    logger.debug(`Loaded ${fileName} from Git`);
+                }
+            } catch (error) {
+                logger.warn(`Failed to load ${fileName} from Git:`, error.message);
+            }
+        }
+
+        const success = loadedCount === filesToLoad.length;
+        logger.info(`GitHub load result: ${loadedCount}/${filesToLoad.length} files`, { success });
+        
+        return success;
+
+    } catch (error) {
+        logger.error('Error loading data from Git:', error.message);
+        return false;
+    }
+}
+
+async #loadFileFromGitHub(fileName) {
+    try {
+        const axios = require('axios');
+        const config = require(path.join(__dirname, '..', 'config'));
+        
+        const url = `https://api.github.com/repos/${config.GITHUB_REPO_OWNER}/${config.GITHUB_REPO_NAME}/contents/${fileName}`;
+        
+        const response = await axios.get(url, {
+            headers: {
+                'Authorization': `token ${config.GITHUB_TOKEN}`,
+                'User-Agent': 'Ludogolik-Bot-Server'
+            },
+            timeout: 10000
+        });
+
+        if (response.data && response.data.content) {
+            return Buffer.from(response.data.content, 'base64').toString('utf8');
+        }
+        
+        return null;
+    } catch (error) {
+        if (error.response?.status === 404) {
+            logger.warn(`File not found on GitHub: ${fileName}`);
+        } else {
+            logger.error(`Error loading ${fileName} from GitHub:`, error.message);
+        }
+        return null;
+    }
+}
+
+async #parseAndSetData(fileName, content) {
+    try {
+        const data = JSON.parse(content);
+        
+        switch (fileName) {
+            case 'data.json':
+                this.casinos = data.casinos || [];
+                this.categories = data.categories || [];
+                break;
+                
+            case 'content.json':
+                this.announcements = data.announcements || [];
+                this.streamStatus = data.streamStatus || this.streamStatus;
+                break;
+                
+            case 'userdata.json':
+                this.userChats = new Map();
+                if (data.userChats) {
+                    for (const [key, value] of Object.entries(data.userChats)) {
+                        this.userChats.set(Number(key), value);
+                    }
+                }
+                
+                this.userSettings = new Map();
+                if (data.userSettings) {
+                    for (const [key, value] of Object.entries(data.userSettings)) {
+                        this.userSettings.set(Number(key), value);
+                    }
+                }
+                
+                this.giveaways = data.giveaways || [];
+                this.pendingApprovals = data.pendingApprovals || [];
+                this.referralData = new Map();
+                
+                if (data.referralData) {
+                    for (const [key, value] of Object.entries(data.referralData)) {
+                        this.referralData.set(Number(key), value);
+                    }
+                }
+                break;
+                
+            case 'stats.json':
+                this.userClickStats = new Map();
+                if (data.userClickStats) {
+                    for (const [key, value] of Object.entries(data.userClickStats)) {
+                        this.userClickStats.set(Number(key), value);
+                    }
+                }
+                
+                this.hiddenStats = new Map();
+                if (data.hiddenStats) {
+                    for (const [key, value] of Object.entries(data.hiddenStats)) {
+                        this.hiddenStats.set(Number(key), value);
+                    }
+                }
+                
+                this.voiceAccessLogs = data.voiceAccessLogs || [];
+                break;
+        }
+        
+        return true;
+    } catch (error) {
+        logger.error(`Error parsing ${fileName}:`, error.message);
+        return false;
+    }
+}
+    
+// конец новой фичи
+    
     async #acquireLock(filePath) {
         while (this.writeLocks[filePath]) {
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -45,28 +184,41 @@ class Database {
         this.writeLocks[filePath] = false;
     }
 
-    async loadData() {
-        logger.info('Starting data loading...');
+async function loadData() {
+    logger.info('Starting data loading...');
+    
+    try {
+        // 🔥 ПЕРВОЕ: ПЫТАЕМСЯ ЗАГРУЗИТЬ ИЗ GIT (ПРИОРИТЕТ)
+        const gitDataLoaded = await this.#loadDataFromGit();
         
-        try {
-            await Promise.all([
-                this.#loadMainDataFromLocal(),
-                this.#loadContentDataFromLocal(),
-                this.#loadUserDataFromLocal(),
-                this.#loadStatsDataFromLocal()
-            ]);
-
-            // 🔥 Запускаем синхронизацию кликов
+        if (gitDataLoaded) {
+            logger.info('Data loaded successfully from Git');
+            // 🔥 ЗАПУСКАЕМ СИНХРОНИЗАЦИЮ КЛИКОВ
             this.startClickSyncService();
-
-            logger.info(`Data loaded: ${this.casinos.length} casinos, ${this.userSettings.size} users`);
             return true;
-
-        } catch (error) {
-            logger.error('Error loading data:', error.message);
-            return await this.initializeData();
         }
+        
+        logger.info('Git data not available, loading from local files');
+        
+        // 🔥 ВТОРОЕ: ЕСЛИ GIT НЕ ДОСТУПЕН - ЗАГРУЖАЕМ ИЗ ЛОКАЛЬНЫХ ФАЙЛОВ
+        await Promise.all([
+            this.#loadMainDataFromLocal(),
+            this.#loadContentDataFromLocal(),
+            this.#loadUserDataFromLocal(),
+            this.#loadStatsDataFromLocal()
+        ]);
+
+        // 🔥 ЗАПУСКАЕМ СИНХРОНИЗАЦИЮ КЛИКОВ
+        this.startClickSyncService();
+
+        logger.info(`Data loaded from local files: ${this.casinos.length} casinos, ${this.userSettings.size} users`);
+        return true;
+
+    } catch (error) {
+        logger.error('Error loading data:', error.message);
+        return await this.initializeData();
     }
+}
 
     async #loadMainDataFromLocal() {
         try {
