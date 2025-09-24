@@ -261,6 +261,13 @@ function processCommand(bot, msg, text) {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
             break;
+               case '/save':
+            if (isAdmin(msg.from.id)) {
+                handlers.handleSaveCommand(bot, msg);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
         default:
             bot.sendMessage(msg.chat.id, '❌ Неизвестная команда. Используйте /help для списка команд.');
     }
