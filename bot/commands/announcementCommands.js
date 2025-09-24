@@ -3,7 +3,7 @@ const database = require(path.join(__dirname, '..', '..', 'database', 'database'
 const { isAdmin } = require(path.join(__dirname, '..', '..', 'utils', 'isAdmin'));
 const logger = require(path.join(__dirname, '..', '..', 'utils', 'logger'));
 
-function handleClearAnnouncementsCommand(bot, msg) {
+function handleClearTextCommand(bot, msg) {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
@@ -21,12 +21,12 @@ function handleClearAnnouncementsCommand(bot, msg) {
             }
         });
     } catch (error) {
-        logger.error('Error in clear announcements command:', error);
+        logger.error('Error in clear text command:', error);
         bot.sendMessage(msg.chat.id, '❌ Ошибка при очистке анонсов');
     }
 }
 
-function handleDeleteAnnouncementCommand(bot, msg, match) {
+function handleDeleteTextCommand(bot, msg, match) {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
@@ -50,12 +50,12 @@ function handleDeleteAnnouncementCommand(bot, msg, match) {
             }
         });
     } catch (error) {
-        logger.error('Error in delete announcement command:', error);
+        logger.error('Error in delete text command:', error);
         bot.sendMessage(msg.chat.id, '❌ Ошибка при удалении анонса');
     }
 }
 
-function handleAnnouncementsListCommand(bot, msg) {
+function handleListTextCommand(bot, msg) {
     if (!isAdmin(msg.from.id)) {
         return bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
     }
@@ -72,13 +72,13 @@ function handleAnnouncementsListCommand(bot, msg) {
 
         bot.sendMessage(msg.chat.id, `📝 Список анонсов (${announcements.length}):\n\n${message}`);
     } catch (error) {
-        logger.error('Error in announcements list command:', error);
+        logger.error('Error in list text command:', error);
         bot.sendMessage(msg.chat.id, '❌ Ошибка при получении списка анонсов');
     }
 }
 
 module.exports = {
-    handleClearAnnouncementsCommand,
-    handleDeleteAnnouncementCommand,
-    handleAnnouncementsListCommand
+    handleClearTextCommand,
+    handleDeleteTextCommand,
+    handleListTextCommand
 };
