@@ -9,10 +9,9 @@ async function handleSaveCommand(bot, msg) {
     }
 
     try {
-        // 🔥 ОТПРАВЛЯЕМ СООБЩЕНИЕ О НАЧАЛЕ СОХРАНЕНИЯ
-        const progressMsg = await bot.sendMessage(msg.chat.id, '💾 Начинаю сохранение данных в Git...');
+        const progressMsg = await bot.sendMessage(msg.chat.id, '💾 Начинаю сохранение данных...');
 
-        // 🔥 СОХРАНЯЕМ ВСЕ ДАННЫЕ ЛОКАЛЬНО
+        // 🔥 ШАГ 1: СОХРАНЯЕМ ВСЕ ДАННЫЕ ЛОКАЛЬНО (ПЕРЕЗАПИСЫВАЕМ ФАЙЛЫ)
         await bot.editMessageText('💾 Сохраняю данные локально...', {
             chat_id: msg.chat.id,
             message_id: progressMsg.message_id
@@ -24,7 +23,7 @@ async function handleSaveCommand(bot, msg) {
             throw new Error('Ошибка локального сохранения');
         }
 
-        // 🔥 СИНХРОНИЗИРУЕМ С GIT
+        // 🔥 ШАГ 2: ПУШИМ В GIT
         await bot.editMessageText('🔁 Синхронизирую с GitHub...', {
             chat_id: msg.chat.id,
             message_id: progressMsg.message_id
@@ -32,7 +31,6 @@ async function handleSaveCommand(bot, msg) {
 
         const githubSync = require(path.join(__dirname, '..', '..', 'database', 'githubSync'));
         
-        // 🔥 СОХРАНЯЕМ КАЖДЫЙ ФАЙЛ ОТДЕЛЬНО В GIT
         const filesToSave = [
             { name: 'data.json', data: JSON.stringify({
                 casinos: database.getCasinos(),
@@ -80,7 +78,6 @@ async function handleSaveCommand(bot, msg) {
                     logger.error(`Failed to save ${file.name} to GitHub`);
                 }
 
-                // 🔥 НЕБОЛЬШАЯ ЗАДЕРЖКА МЕЖДУ ФАЙЛАМИ
                 await new Promise(resolve => setTimeout(resolve, 500));
 
             } catch (error) {
@@ -89,16 +86,20 @@ async function handleSaveCommand(bot, msg) {
             }
         }
 
-        // 🔥 ФИНАЛЬНОЕ СООБЩЕНИЕ
+        // 🔥 ШАГ 3: ПОДТВЕРЖДАЕМ ЧТО ДАННЫЕ СОХРАНЕНЫ И В ЛОКАЛЬНЫЕ ФАЙЛЫ И В GIT
         const resultMessage = `
 ✅ Сохранение завершено!
 
 📊 Результат:
-✅ Успешно: ${successCount} файлов
-❌ Ошибок: ${errorCount} файлов
+💾 Локальные файлы: перезаписаны
+🔁 GitHub: ${successCount}/4 файлов
 ⏰ Время: ${new Date().toLocaleString()}
 
-${errorCount > 0 ? '⚠️ Некоторые файлы не сохранены. Проверьте логи.' : '🎉 Все данные сохранены успешно!'}
+${errorCount > 0 ? 
+`⚠️ В GitHub сохранено не все файлы. 
+При следующем деплое данные могут загрузиться из локальных файлов.` : 
+'🎉 Все данные сохранены в GitHub! При деплое загрузятся актуальные данные.'
+}
         `.trim();
 
         await bot.editMessageText(resultMessage, {
@@ -115,7 +116,6 @@ ${errorCount > 0 ? '⚠️ Некоторые файлы не сохранены
     } catch (error) {
         logger.error('Error in save command:', error);
         
-        // 🔥 Пытаемся отправить сообщение об ошибке
         try {
             await bot.sendMessage(msg.chat.id, 
                 `❌ Ошибка при сохранении:\n${error.message}`
