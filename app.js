@@ -42,6 +42,15 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
+// ===== ПРИНУДИТЕЛЬНАЯ УСТАНОВКА ТЁМНОЙ ТЕМЫ ПРИ ЗАГРУЗКЕ =====
+(function forceDarkTheme() {
+    // 🔥 ПРИ ЗАГРУЗКЕ СРАЗУ УСТАНАВЛИВАЕМ ТЁМНУЮ ТЕМУ
+    if (!localStorage.getItem('theme')) {
+        localStorage.setItem('theme', 'dark');
+        document.body.classList.add('theme-dark');
+    }
+})();
+
 // ===== ТЕМНАЯ ТЕМА =====
 function initTheme() {
     const savedTheme = localStorage.getItem('theme');
@@ -66,6 +75,8 @@ function toggleTheme() {
     document.getElementById('themeSwitcher').textContent = isDark ? '☀️ Светлая тема' : '🌙 Тёмная тема';
     debouncedSaveSettings();
 }
+
+
 
 // ===== ОТКРЫТИЕ ССЫЛОК =====
 function openLink(event, url) {
