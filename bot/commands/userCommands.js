@@ -39,15 +39,23 @@ function handleStartCommand(bot, msg) {
         return;
     }
 
-    if (msg.text && msg.text.includes(' ')) {
-        const referralCode = msg.text.split(' ')[1];
-        if (referralCode.startsWith('ref')) {
-            const referrerId = parseInt(referralCode.substring(3));
-            if (!isNaN(referrerId) && referrerId !== user.id) {
-                database.handleReferralStart(user.id, referrerId);
-            }
+if (msg.text && msg.text.includes(' ')) {
+    const referralCode = msg.text.split(' ')[1];
+    if (referralCode.startsWith('ref')) {
+        const referrerId = parseInt(referralCode.substring(3));
+        if (!isNaN(referrerId) && referrerId !== user.id) {
+            database.handleReferralStart(user.id, referrerId);
+            // 🔥 ДОБАВЛЯЕМ ЛОГ ДЛЯ ПРОВЕРКИ
+            console.log('🎯 Реферальная ссылка обработана:', {
+                userId: user.id,
+                referrerId: referrerId,
+                referralCode: referralCode
+            });
+        } else {
+            console.log('⚠️ Неверный referrerId:', referrerId);
         }
     }
+}
 
     const keyboard = {
         reply_markup: {
