@@ -28,6 +28,9 @@ const commandModules = {
     ],
     broadcastCommands: [
         'handleBroadcastCommand'
+    ],
+        saveCommands: [
+        'handleSaveCommand'
     ]
 };
 
