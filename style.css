@@ -613,3 +613,38 @@ body {
         width: 100%;
     }
 }
+
+/* Стили для фильтров категорий */
+.filter-chip {
+    display: inline-block;
+    padding: 8px 16px;
+    margin: 4px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    user-select: none;
+}
+
+.filter-chip:hover {
+    background: var(--hover-color);
+    transform: translateY(-1px);
+}
+
+.filter-chip.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* Для мобильных - увеличиваем кнопки */
+@media (max-width: 768px) {
+    .filter-chip {
+        padding: 10px 18px;
+        margin: 5px;
+        font-size: 15px;
+    }
+}
