@@ -348,7 +348,7 @@ function updateStreamStatus(streamStatus) {
 }
 
 // ===== ПОИСК И ФИЛЬТРАЦИЯ =====
-function filterCasinos() {
+function function filterCasinos() {
     return allCasinos.filter(casino => {
         const matchesSearch = currentSearchQuery === '' || 
             casino.name.toLowerCase().includes(currentSearchQuery) ||
@@ -356,8 +356,39 @@ function filterCasinos() {
                 kw.toLowerCase().includes(currentSearchQuery)
             ));
 
-        const matchesCategory = activeFilters.size === 0 || 
-            (casino.category && activeFilters.has(casino.category));
+        // 🔥 ОБНОВЛЕННАЯ ЛОГИКА ФИЛЬТРАЦИИ ПО КАТЕГОРИЯМ
+        let matchesCategory = true;
+        
+        if (activeFilters.size > 0) {
+            const activeFilter = Array.from(activeFilters)[0]; // 🔥 БЕРЕМ ПЕРВЫЙ (И ЕДИНСТВЕННЫЙ) ФИЛЬТР
+            
+            switch (activeFilter) {
+                case 'top':
+                    // 🔥 ТОП - казино с наибольшим количеством кликов
+                    const topCasinos = [...allCasinos]
+                        .filter(c => c.isActive)
+                        .sort((a, b) => {
+                            const aClicks = userClickStats[a.id] || 0;
+                            const bClicks = userClickStats[b.id] || 0;
+                            return bClicks - aClicks;
+                        })
+                        .slice(0, 10)
+                        .map(c => c.id);
+                    
+                    matchesCategory = topCasinos.includes(casino.id);
+                    break;
+                    
+                case 'other':
+                    // 🔥 НеКазы - казино с категорией 'other' или без категории
+                    matchesCategory = !casino.category || casino.category === 'other' || 
+                                    ['other', 'unknown', ''].includes(casino.category);
+                    break;
+                    
+                default:
+                    // 🔥 Обычные категории
+                    matchesCategory = casino.category === activeFilter;
+            }
+        }
 
         const notHidden = !userHiddenCasinos.includes(casino.id);
         
@@ -383,28 +414,54 @@ function renderFilters(categories) {
     const container = document.getElementById('filtersContainer');
     if (!container) return;
 
-    const filteredCategories = categories.filter(cat => cat.id !== 'other');
+    // 🔥 СОЗДАЕМ СПЕЦИАЛЬНЫЕ КАТЕГОРИИ ДЛЯ ФИЛЬТРОВ
+    const filterCategories = [
+        { id: 'all', name: 'Все' },
+        { id: 'top', name: 'Топ' },
+        { id: 'kb', name: 'КБ' },
+        { id: 'royals', name: 'Роялы' },
+        { id: 'cats', name: 'Коты' },
+        { id: 'joy', name: 'Джои' },
+        { id: 'pf', name: 'ПФ' },
+        { id: 'other', name: 'НеКазы' }
+    ];
 
-    container.innerHTML = filteredCategories.map(cat => `
+    container.innerHTML = filterCategories.map(cat => `
         <div class="filter-chip" data-category="${cat.id}">
             ${cat.name}
         </div>
     `).join('');
 
+    // 🔥 ОБРАБОТЧИК КЛИКА НА ФИЛЬТРЫ
     container.querySelectorAll('.filter-chip').forEach(chip => {
         chip.addEventListener('click', () => {
             const category = chip.getAttribute('data-category');
-            chip.classList.toggle('active');
             
-            if (chip.classList.contains('active')) {
+            // 🔥 СБРАСЫВАЕМ ВСЕ ФИЛЬТРЫ ПЕРЕД ВЫБОРОМ НОВОГО
+            container.querySelectorAll('.filter-chip').forEach(c => {
+                c.classList.remove('active');
+            });
+            
+            // 🔥 АКТИВИРУЕМ ТОЛЬКО ВЫБРАННЫЙ ФИЛЬТР
+            chip.classList.add('active');
+            
+            // 🔥 ОЧИЩАЕМ ПРЕДЫДУЩИЕ ФИЛЬТРЫ И ДОБАВЛЯЕМ НОВЫЙ
+            activeFilters.clear();
+            
+            if (category !== 'all') {
                 activeFilters.add(category);
-            } else {
-                activeFilters.delete(category);
             }
             
+            // 🔥 ДЕЛАЕМ МГНОВЕННЫЙ ОТКЛИК БЕЗ ЗАДЕРЖКИ
             renderCasinos();
         });
     });
+
+    // 🔥 ПО УМОЛЧАНИЮ АКТИВИРУЕМ "Все"
+    const allChip = container.querySelector('.filter-chip[data-category="all"]');
+    if (allChip) {
+        allChip.classList.add('active');
+    }
 }
 
 function renderCasinos() {
@@ -759,7 +816,7 @@ function setupEventListeners() {
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
-            // 🔥 УВЕЛИЧИВАЕМ ДЕБАУНСИНГ ДЛЯ МОБИЛЬНЫХ
+            // 🔥 УВЕЛИЧИВАЕМ ДЕБАУНСИНГ ТОЛЬКО ДЛЯ ПОИСКА
             const debounceDelay = isMobileDevice() ? 600 : 300;
             
             searchTimeout = setTimeout(() => {
@@ -778,29 +835,8 @@ function setupEventListeners() {
         themeSwitcher.addEventListener('click', toggleTheme);
     }
 
-    // 🔥 ДОБАВЛЯЕМ ДЕБАУНСИНГ ДЛЯ ФИЛЬТРОВ КАТЕГОРИЙ
-    setTimeout(() => {
-        const filterChips = document.querySelectorAll('.filter-chip');
-        filterChips.forEach(chip => {
-            chip.addEventListener('click', () => {
-                clearTimeout(filterTimeout);
-                const debounceDelay = isMobileDevice() ? 400 : 200;
-                
-                filterTimeout = setTimeout(() => {
-                    const category = chip.getAttribute('data-category');
-                    chip.classList.toggle('active');
-                    
-                    if (chip.classList.contains('active')) {
-                        activeFilters.add(category);
-                    } else {
-                        activeFilters.delete(category);
-                    }
-                    
-                    renderCasinos();
-                }, debounceDelay);
-            });
-        });
-    }, 1000);
+    // 🔥 ФИЛЬТРЫ КАТЕГОРИЙ ТЕПЕРЬ РАБОТАЮТ МГНОВЕННО БЕЗ ЗАДЕРЖКИ
+    // (обработчики уже установлены в renderFilters)
 }
 
 // ===== УТИЛИТЫ =====
