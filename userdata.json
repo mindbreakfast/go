@@ -16,6 +16,14 @@
       "joined_at": "2025-09-25T00:58:57.528Z",
       "last_activity": "2025-09-25T00:59:05.325Z"
     },
+    "1097210873": {
+      "id": 1097210873,
+      "username": "chupachypik",
+      "first_name": "🍭̶Ч̶У̶П̶А̶ ̶",
+      "last_name": "Ч̶У̶П̶И̶К🍭",
+      "joined_at": "2025-09-25T03:20:08.949Z",
+      "last_activity": "2025-09-25T03:23:01.205Z"
+    },
     "1777213824": {
       "id": 1777213824,
       "username": "NSDcode",
@@ -23,7 +31,7 @@
       "last_name": "NSD",
       "language_code": "ru",
       "joined_at": "2025-09-10T17:10:33.867Z",
-      "last_activity": "2025-09-25T02:02:17.258Z"
+      "last_activity": "2025-09-25T03:43:03.904Z"
     },
     "6770360650": {
       "id": 6770360650,
@@ -40,7 +48,7 @@
       "last_name": "Фамилия",
       "language_code": "ru",
       "joined_at": "2025-09-24T18:13:45.259Z",
-      "last_activity": "2025-09-24T18:14:45.917Z"
+      "last_activity": "2025-09-25T03:13:20.068Z"
     },
     "6976083104": {
       "id": 6976083104,
@@ -77,6 +85,13 @@
       "viewMode": "compact"
     },
     "594143385": {
+      "hiddenCasinos": [],
+      "notifications": true,
+      "theme": "dark",
+      "hasLiveAccess": false,
+      "viewMode": "compact"
+    },
+    "1097210873": {
       "hiddenCasinos": [],
       "notifications": true,
       "theme": "dark",
@@ -156,5 +171,5 @@
       "totalEarned": 0
     }
   },
-  "lastUpdated": "2025-09-25T02:48:39.756Z"
+  "lastUpdated": "2025-09-25T03:48:39.760Z"
 }
