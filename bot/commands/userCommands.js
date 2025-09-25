@@ -39,23 +39,23 @@ function handleStartCommand(bot, msg) {
         return;
     }
 
-if (msg.text && msg.text.includes(' ')) {
-    const referralCode = msg.text.split(' ')[1];
-    if (referralCode.startsWith('ref')) {
-        const referrerId = parseInt(referralCode.substring(3));
-        if (!isNaN(referrerId) && referrerId !== user.id) {
-            database.handleReferralStart(user.id, referrerId);
-            // 🔥 ДОБАВЛЯЕМ ЛОГ ДЛЯ ПРОВЕРКИ
-            console.log('🎯 Реферальная ссылка обработана:', {
-                userId: user.id,
-                referrerId: referrerId,
-                referralCode: referralCode
-            });
-        } else {
-            console.log('⚠️ Неверный referrerId:', referrerId);
+    if (msg.text && msg.text.includes(' ')) {
+        const referralCode = msg.text.split(' ')[1];
+        if (referralCode.startsWith('ref')) {
+            const referrerId = parseInt(referralCode.substring(3));
+            if (!isNaN(referrerId) && referrerId !== user.id) {
+                database.handleReferralStart(user.id, referrerId);
+                // 🔥 ДОБАВЛЯЕМ ЛОГ ДЛЯ ПРОВЕРКИ
+                console.log('🎯 Реферальная ссылка обработана:', {
+                    userId: user.id,
+                    referrerId: referrerId,
+                    referralCode: referralCode
+                });
+            } else {
+                console.log('⚠️ Неверный referrerId:', referrerId);
+            }
         }
     }
-}
 
     const keyboard = {
         reply_markup: {
@@ -93,9 +93,6 @@ function handleHelpCommand(bot, msg) {
 Доступные команды:
 /start - Запустить бота
 /help - Показать это сообщение
-/stats - Статистика бота
-/casino_stats - Статистика казино
-/voice_audit - Аудит голосовых
 /referral - Реферальная статистика
 
 Команды для админов:
@@ -105,11 +102,17 @@ function handleHelpCommand(bot, msg) {
 /clear_text - Очистить все анонсы
 /list_text - Показать анонсы
 /delete_text [ID] - Удалить анонс
-/vsem [сообщение] - Сделать рассылку всем пользователям
+/vsem [сообщение] - Сделать рассылку
+/save - Сохранить все данные в Git
+/user_info [ID] - Информация о пользователе
+/find_user [username] - Найти пользователя
+/stats - Статистика бота
+/casino_stats - Статистика казино 🆕
+/voice_audit - Аудит голосовых
+/ref_stats - Топ рефереров
 /add_casino - Добавить казино
 /list_casinos - Список казино
 /edit_casino [ID] - Редактировать казино
-/ref_stats - Топ рефереров
     `.trim();
 
     bot.sendMessage(msg.chat.id, helpText);
@@ -269,9 +272,27 @@ function processCommand(bot, msg, text) {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
             break;
-               case '/save':
+        // 🔥 ДОБАВЛЯЕМ КОМАНДУ СОХРАНЕНИЯ
+        case '/save':
             if (isAdmin(msg.from.id)) {
                 handlers.handleSaveCommand(bot, msg);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        // 🔥 ДОБАВЛЯЕМ КОМАНДЫ ДЛЯ ИНФОРМАЦИИ О ПОЛЬЗОВАТЕЛЯХ
+        case '/user_info':
+            if (isAdmin(msg.from.id)) {
+                const userId = text.substring(text.includes('@') ? text.indexOf(' ') + 1 : 10).trim();
+                handlers.handleUserInfoCommand(bot, msg, [null, userId]);
+            } else {
+                bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
+            }
+            break;
+        case '/find_user':
+            if (isAdmin(msg.from.id)) {
+                const username = text.substring(text.includes('@') ? text.indexOf(' ') + 1 : 10).trim();
+                handlers.handleFindUserCommand(bot, msg, [null, username]);
             } else {
                 bot.sendMessage(msg.chat.id, '❌ Нет прав для выполнения этой команды!');
             }
