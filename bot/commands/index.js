@@ -20,7 +20,6 @@ const commandModules = {
     referralCommands: [
         'handleReferralCommand', 'handleRefStatsCommand'
     ],
-    // 🔥 ОБНОВЛЯЕМ НАЗВАНИЯ ФУНКЦИЙ
     announcementCommands: [
         'handleClearTextCommand', 
         'handleDeleteTextCommand', 
@@ -29,8 +28,12 @@ const commandModules = {
     broadcastCommands: [
         'handleBroadcastCommand'
     ],
-        saveCommands: [
+    saveCommands: [
         'handleSaveCommand'
+    ],
+    userInfoCommands: [
+        'handleUserInfoCommand',
+        'handleFindUserCommand'
     ]
 };
 
