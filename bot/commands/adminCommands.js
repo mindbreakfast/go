@@ -238,8 +238,8 @@ function handleCasinoStatsCommand(bot, msg) {
             return bot.sendMessage(msg.chat.id, '📊 Нет данных по статистике казино');
         }
 
-        const message = stats.slice(0, 10).map((casino, index) => 
-            `${index + 1}. ${casino.name}\n   👆 ${casino.clicks} кликов | 👻 ${casino.hides} скрытий ${casino.isPinned ? '📌' : ''}`
+        const message = stats.slice(0, 15).map((casino, index) => 
+            `${index + 1}. ${casino.name}\n   👆 ${casino.clicks} кликов | 🙈 ${casino.hides} скрыли ${casino.isPinned ? '📌' : ''}`
         ).join('\n\n');
 
         bot.sendMessage(msg.chat.id, `📊 Топ казино по кликам:\n\n${message}`);
