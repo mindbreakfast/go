@@ -648,3 +648,39 @@ body {
         font-size: 14px;
     }
 }
+
+
+
+/* Стили для drag-scroll */
+#casinoList {
+    cursor: grab;
+    user-select: none;
+}
+
+#casinoList:active {
+    cursor: grabbing;
+}
+
+/* Плавный скролл */
+#casinoList {
+    scroll-behavior: smooth;
+}
+
+/* Скрываем стандартный скроллбар для красоты */
+#casinoList::-webkit-scrollbar {
+    width: 6px;
+}
+
+#casinoList::-webkit-scrollbar-track {
+    background: var(--card-bg);
+    border-radius: 3px;
+}
+
+#casinoList::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+#casinoList::-webkit-scrollbar-thumb:hover {
+    background: #667eea;
+}
