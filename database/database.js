@@ -514,33 +514,47 @@ class Database {
     }
 
     // 🔥 ПОЛУЧЕНИЕ СТАТИСТИКИ КАЗИНО С АГРЕГАЦИЕЙ
-    getCasinoStats() {
-        try {
-            const stats = [];
-            
-            for (const casino of this.casinos) {
-                if (casino.isActive) {
-                    const clicks = this.hiddenStats.get(casino.id) || 0;
-                    const hides = this.hiddenStats.get(casino.id) || 0;
-                    
-                    stats.push({
-                        id: casino.id,
-                        name: casino.name,
-                        clicks: clicks,
-                        hides: hides,
-                        isPinned: casino.isPinned,
-                        clickThroughRate: clicks > 0 ? ((clicks - hides) / clicks * 100).toFixed(1) : 0
-                    });
+// 🔥 ИСПРАВЛЕННАЯ СТАТИСТИКА КАЗИНО
+getCasinoStats() {
+    try {
+        const stats = [];
+        const userSettings = this.getUserSettings();
+        
+        // 🔥 СЧИТАЕМ СКОЛЬКО ПОЛЬЗОВАТЕЛЕЙ СКРЫЛИ КАЖДОЕ КАЗИНО
+        const casinoHideCounts = new Map();
+        
+        // Проходим по всем пользователям и их скрытым казино
+        for (const [userId, settings] of userSettings.entries()) {
+            if (settings.hiddenCasinos && Array.isArray(settings.hiddenCasinos)) {
+                for (const casinoId of settings.hiddenCasinos) {
+                    casinoHideCounts.set(casinoId, (casinoHideCounts.get(casinoId) || 0) + 1);
                 }
             }
-            
-            return stats.sort((a, b) => b.clicks - a.clicks);
-            
-        } catch (error) {
-            logger.error('Error getting casino stats:', error);
-            return [];
         }
+        
+        for (const casino of this.casinos) {
+            if (casino.isActive) {
+                const clicks = this.hiddenStats.get(casino.id) || 0;
+                const hides = casinoHideCounts.get(casino.id) || 0; // 🔥 ТЕПЕРЬ ЭТО КОЛИЧЕСТВО ПОЛЬЗОВАТЕЛЕЙ, СКРЫВШИХ КАЗИНО
+                
+                stats.push({
+                    id: casino.id,
+                    name: casino.name,
+                    clicks: clicks,
+                    hides: hides, // 🔥 ТЕПЕРЬ ПОКАЗЫВАЕТ СКОЛЬКО ПОЛЬЗОВАТЕЛЕЙ СКРЫЛИ КАЗИНО
+                    isPinned: casino.isPinned,
+                    clickThroughRate: clicks > 0 ? ((clicks - hides) / clicks * 100).toFixed(1) : 0
+                });
+            }
+        }
+        
+        return stats.sort((a, b) => b.clicks - a.clicks);
+        
+    } catch (error) {
+        logger.error('Error getting casino stats:', error);
+        return [];
     }
+}
 
     getVoiceAccessLogs(limit = 30) {
         try {
