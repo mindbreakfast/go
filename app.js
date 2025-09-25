@@ -955,3 +955,177 @@ setTimeout(() => {
         scrollToTopButton.style.transform = 'translateY(0)';
     }
 }, 2000);
+
+
+
+
+
+// ==================== DRAG TO SCROLL (СВАЙП ДЛЯ ПК) ====================
+function enableDragToScroll() {
+    const casinoList = document.getElementById('casinoList');
+    if (!casinoList) return;
+
+    let isDragging = false;
+    let startX, startY;
+    let scrollLeft, scrollTop;
+
+    // 🔥 ФУНКЦИЯ ДЛЯ НАЧАЛА ПЕРЕТАСКИВАНИЯ
+    function startDrag(e) {
+        // 🔥 ПРОВЕРЯЕМ, ЧТО ЭТО ЛЕВАЯ КНОПКА МЫШИ ИЛИ КАСАНИЕ
+        if (e.type === 'mousedown' && e.button !== 0) return;
+        
+        isDragging = true;
+        
+        // 🔥 СОХРАНЯЕМ НАЧАЛЬНЫЕ КООРДИНАТЫ
+        startX = e.pageX || e.touches[0].pageX;
+        startY = e.pageY || e.touches[0].pageY;
+        scrollLeft = casinoList.scrollLeft;
+        scrollTop = casinoList.scrollTop;
+        
+        // 🔥 МЕНЯЕМ КУРСОР НА "GRABBING"
+        casinoList.style.cursor = 'grabbing';
+        casinoList.style.userSelect = 'none';
+        
+        // 🔥 ПРЕДОТВРАЩАЕМ ВЫДЕЛЕНИЕ ТЕКСТА
+        e.preventDefault();
+    }
+
+    // 🔥 ФУНКЦИЯ ДЛЯ ПЕРЕТАСКИВАНИЯ
+    function duringDrag(e) {
+        if (!isDragging) return;
+        
+        e.preventDefault();
+        
+        // 🔥 ВЫЧИСЛЯЕМ СМЕЩЕНИЕ
+        const x = e.pageX || (e.touches && e.touches[0].pageX);
+        const y = e.pageY || (e.touches && e.touches[0].pageY);
+        
+        if (x === undefined || y === undefined) return;
+        
+        const walkX = (x - startX) * 2; // 🔥 УМНОЖАЕМ ДЛЯ БОЛЕЕ ПЛАВНОГО СКРОЛЛА
+        const walkY = (y - startY) * 2;
+        
+        // 🔥 ПРИМЕНЯЕМ СКРОЛЛ
+        casinoList.scrollLeft = scrollLeft - walkX;
+        casinoList.scrollTop = scrollTop - walkY;
+    }
+
+    // 🔥 ФУНКЦИЯ ДЛЯ ЗАВЕРШЕНИЯ ПЕРЕТАСКИВАНИЯ
+    function endDrag() {
+        isDragging = false;
+        casinoList.style.cursor = 'grab';
+        casinoList.style.userSelect = '';
+    }
+
+    // 🔥 ДОБАВЛЯЕМ ОБРАБОТЧИКИ СОБЫТИЙ
+    casinoList.addEventListener('mousedown', startDrag);
+    casinoList.addEventListener('touchstart', startDrag);
+    
+    document.addEventListener('mousemove', duringDrag);
+    document.addEventListener('touchmove', duringDrag, { passive: false });
+    
+    document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchend', endDrag);
+    
+    // 🔥 УСТАНАВЛИВАЕМ КУРСОР ПО УМОЛЧАНИЮ
+    casinoList.style.cursor = 'grab';
+}
+
+// 🔥 ИНИЦИАЛИЗИРУЕМ DRAG-SCROLL ПОСЛЕ ЗАГРУЗКИ ДАННЫХ
+function initDragScroll() {
+    // 🔥 ЖДЕМ, ПОКА ЗАГРУЗЯТСЯ ДАННЫЕ И ОТРИСУЮТСЯ КАЗИНО
+    setTimeout(() => {
+        enableDragToScroll();
+    }, 1000);
+}
+
+// 🔥 ВЫЗЫВАЕМ ИНИЦИАЛИЗАЦИЮ В loadInitialData
+async function loadInitialData() {
+    try {
+        showLoadingState();
+        const tg = window.Telegram?.WebApp;
+        const currentUserId = tg?.initDataUnsafe?.user?.id || 'anonymous';
+        
+        console.log('🔄 Starting data loading for user:', currentUserId);
+        
+        const [casinosData, userData] = await Promise.all([
+            fetch(`${API_BASE}/api/all-data`).then(async r => {
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                return r.json();
+            }),
+            fetch(`${API_BASE}/api/user-data?userId=${currentUserId}`)
+                .then(async r => r.ok ? r.json() : { settings: {} })
+                .catch(e => ({ settings: {} }))
+        ]);
+
+        allCasinos = casinosData.casinos || [];
+        renderFilters(casinosData.categories || []);
+        
+        showAnnouncements(casinosData.announcements || []);
+        updateStreamStatus(casinosData.streamStatus);
+        
+        const userSettings = userData.settings || {};
+        userHiddenCasinos = userSettings.hiddenCasinos || [];
+        userViewMode = userSettings.viewMode || 'full';
+        
+        currentTheme = userSettings.theme || localStorage.getItem('theme') || 'dark';
+        
+        if (!userSettings.theme && !localStorage.getItem('theme')) {
+            currentTheme = 'dark';
+            localStorage.setItem('theme', 'dark');
+        }
+        
+        document.body.classList.toggle('theme-dark', currentTheme === 'dark');
+        document.getElementById('themeSwitcher').textContent = currentTheme === 'dark' ? '☀️ Светлая тема' : '🌙 Тёмная тема';
+        
+        if (currentUserId !== 'anonymous' && (!userSettings.theme || userSettings.theme === 'light')) {
+            setTimeout(() => {
+                fetch(`${API_BASE}/api/save-user-settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        theme: 'dark'
+                    })
+                }).catch(error => console.log('Ошибка сохранения темы:', error));
+            }, 1000);
+        }
+        
+        userId = currentUserId;
+        isApproved = userSettings.hasLiveAccess || false;
+        
+        document.getElementById('userIdDisplay').textContent = `ID: ${userId}`;
+        
+        renderCasinos();
+        updateLiveRooms();
+        updateReferralSection(userData.referralInfo);
+
+        // 🔥 ИНИЦИАЛИЗИРУЕМ DRAG-SCROLL ПОСЛЕ ОТРИСОВКИ КАЗИНО
+        initDragScroll();
+
+        // Трекинг визита
+        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            const user = tg.initDataUnsafe.user;
+            fetch(`${API_BASE}/api/track-visit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: user.id,
+                    userInfo: { 
+                        id: user.id, 
+                        username: user.username,
+                        first_name: user.first_name,
+                        last_name: user.last_name 
+                    },
+                    action: 'visit'
+                })
+            }).catch(error => console.log('Ошибка отправки статистики:', error));
+        }
+
+    } catch (error) {
+        console.error('❌ Load error:', error);
+        showError('Ошибка при загрузке данных. Попробуйте обновить страницу.');
+    } finally {
+        hideLoadingState();
+    }
+}
