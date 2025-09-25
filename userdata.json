@@ -31,7 +31,7 @@
       "last_name": "NSD",
       "language_code": "ru",
       "joined_at": "2025-09-10T17:10:33.867Z",
-      "last_activity": "2025-09-25T08:27:05.733Z"
+      "last_activity": "2025-09-25T11:12:58.249Z"
     },
     "6770360650": {
       "id": 6770360650,
@@ -74,6 +74,14 @@
       "language_code": "ru",
       "joined_at": "2025-09-25T01:02:05.696Z",
       "last_activity": "2025-09-25T01:02:11.492Z"
+    },
+    "8088072087": {
+      "id": 8088072087,
+      "username": "LUDOMAN_ONLINE",
+      "first_name": "𝐋𝐔𝐃𝐎𝐌𝐀𝐍_𝐎𝐍𝐋𝐈𝐍𝐄",
+      "language_code": "ru",
+      "joined_at": "2025-09-25T10:53:08.062Z",
+      "last_activity": "2025-09-25T11:04:34.460Z"
     }
   },
   "userSettings": {
@@ -100,13 +108,12 @@
     },
     "1777213824": {
       "hiddenCasinos": [
-        35,
-        28
+        35
       ],
       "notifications": true,
       "theme": "dark",
       "hasLiveAccess": true,
-      "viewMode": "compact",
+      "viewMode": "full",
       "contestState": null
     },
     "6770360650": {
@@ -143,6 +150,13 @@
       "notifications": true,
       "theme": "dark",
       "hasLiveAccess": false
+    },
+    "8088072087": {
+      "hiddenCasinos": [],
+      "notifications": true,
+      "theme": "dark",
+      "hasLiveAccess": false,
+      "viewMode": "full"
     }
   },
   "giveaways": [],
@@ -150,9 +164,10 @@
   "referralData": {
     "1777213824": {
       "referrals": [
-        6666297900
+        6666297900,
+        8088072087
       ],
-      "totalEarned": 10
+      "totalEarned": 20
     },
     "7670761239": {
       "referrals": [
@@ -169,7 +184,12 @@
       "referredBy": 1777213824,
       "referrals": [],
       "totalEarned": 0
+    },
+    "8088072087": {
+      "referredBy": 1777213824,
+      "referrals": [],
+      "totalEarned": 0
     }
   },
-  "lastUpdated": "2025-09-25T09:48:39.765Z"
+  "lastUpdated": "2025-09-25T11:27:38.331Z"
 }
