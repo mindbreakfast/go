@@ -684,3 +684,48 @@ body {
 #casinoList::-webkit-scrollbar-thumb:hover {
     background: #667eea;
 }
+
+/* Исправляем контейнер казино для скролла */
+.casino-list {
+    max-height: 60vh; /* 🔥 ОГРАНИЧИВАЕМ ВЫСОТУ */
+    overflow-y: auto; /* 🔥 ВКЛЮЧАЕМ ВЕРТИКАЛЬНЫЙ СКРОЛЛ */
+    overflow-x: hidden; /* 🔥 СКРЫВАЕМ ГОРИЗОНТАЛЬНЫЙ СКРОЛЛ */
+    padding: 10px;
+    cursor: grab;
+    user-select: none;
+}
+
+.casino-list:active {
+    cursor: grabbing;
+}
+
+/* Плавный скролл */
+.casino-list {
+    scroll-behavior: smooth;
+}
+
+/* Стилизация скроллбара */
+.casino-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.casino-list::-webkit-scrollbar-track {
+    background: var(--card-bg);
+    border-radius: 4px;
+}
+
+.casino-list::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.casino-list::-webkit-scrollbar-thumb:hover {
+    background: #667eea;
+}
+
+/* Для мобильных устройств */
+@media (max-width: 768px) {
+    .casino-list {
+        max-height: 65vh; /* 🔥 БОЛЬШЕ ВЫСОТЫ НА МОБИЛЬНЫХ */
+    }
+}
