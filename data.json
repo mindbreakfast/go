@@ -49,9 +49,10 @@
         "Kush",
         "Лгыр"
       ],
-      "category": "bandits",
+      "category": "all",
       "isActive": true,
-      "isPinned": false
+      "isPinned": false,
+      "updatedAt": "2025-09-25T14:54:03.574Z"
     },
     {
       "id": 4,
@@ -83,9 +84,10 @@
         "dfdflf",
         "мфмфвф"
       ],
-      "category": "other",
+      "category": "top",
       "isActive": true,
-      "isPinned": true
+      "isPinned": true,
+      "updatedAt": "2025-09-25T14:56:05.274Z"
     },
     {
       "id": 6,
@@ -171,9 +173,10 @@
         "Play fortuna",
         "Здфн ащкегтф"
       ],
-      "category": "other",
+      "category": "pf",
       "isActive": true,
-      "isPinned": false
+      "isPinned": false,
+      "updatedAt": "2025-09-25T14:57:28.189Z"
     },
     {
       "id": 11,
@@ -644,9 +647,10 @@
         "Joycasino",
         "Ощу"
       ],
-      "category": "other",
+      "category": "joy",
       "isActive": true,
-      "isPinned": false
+      "isPinned": false,
+      "updatedAt": "2025-09-25T14:55:27.199Z"
     },
     {
       "id": 38,
@@ -655,7 +659,7 @@
       "shortDescription": "Общаемся в голосе",
       "fullDescription": "Это не казик! Это ссылка на наш канал в Максе",
       "url": "https://max.ru/join/YHrYooXrtlOoi5l0Kf3jZOEXF7t7WIYekT3XRveJL2U",
-      "category": "Другие",
+      "category": "other",
       "hiddenKeywords": [
         "Макс",
         "max",
@@ -668,7 +672,7 @@
       "isActive": true,
       "isPinned": false,
       "createdAt": "2025-09-24T17:04:04.628Z",
-      "updatedAt": "2025-09-24T17:04:04.628Z"
+      "updatedAt": "2025-09-25T14:54:27.218Z"
     }
   ],
   "categories": [
@@ -693,5 +697,5 @@
       "name": "Другие"
     }
   ],
-  "lastUpdated": "2025-09-25T05:48:39.756Z"
+  "lastUpdated": "2025-09-25T14:57:34.049Z"
 }
