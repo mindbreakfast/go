@@ -1,17 +1,10 @@
 {
-  "announcements": [
-    {
-      "id": 1,
-      "text": "Обменяю 500р я вам на пиастру, вы на карту @NSDcode",
-      "color": "green",
-      "createdAt": "2025-09-25T11:03:45.922Z"
-    }
-  ],
+  "announcements": [],
   "streamStatus": {
     "isStreamLive": true,
     "streamUrl": "https://kick.com/ludogolik666",
     "eventDescription": "Стрима нет, это тест",
     "lastUpdated": "2025-09-25T11:03:21.022Z"
   },
-  "lastUpdated": "2025-09-25T15:32:55.834Z"
+  "lastUpdated": "2025-09-25T15:32:55.914Z"
 }
