@@ -8,6 +8,14 @@
       "joined_at": "2025-09-24T17:56:53.333Z",
       "last_activity": "2025-09-24T18:04:15.777Z"
     },
+    "594143385": {
+      "id": 594143385,
+      "username": "SASH999666LUDOGOLIK",
+      "first_name": "LUDOGOLIK",
+      "language_code": "ru",
+      "joined_at": "2025-09-25T00:58:57.528Z",
+      "last_activity": "2025-09-25T00:59:05.325Z"
+    },
     "1777213824": {
       "id": 1777213824,
       "username": "NSDcode",
@@ -50,10 +58,25 @@
       "language_code": "ru",
       "joined_at": "2025-09-24T18:16:47.619Z",
       "last_activity": "2025-09-24T18:17:30.649Z"
+    },
+    "5905497905": {
+      "id": 5905497905,
+      "username": "LUDOMYSH",
+      "first_name": "LUDOMYSH",
+      "language_code": "ru",
+      "joined_at": "2025-09-25T01:02:05.696Z",
+      "last_activity": "2025-09-25T01:02:11.492Z"
     }
   },
   "userSettings": {
     "426818020": {
+      "hiddenCasinos": [],
+      "notifications": true,
+      "theme": "dark",
+      "hasLiveAccess": false,
+      "viewMode": "compact"
+    },
+    "594143385": {
       "hiddenCasinos": [],
       "notifications": true,
       "theme": "dark",
@@ -99,6 +122,12 @@
       "theme": "dark",
       "hasLiveAccess": false,
       "viewMode": "full"
+    },
+    "5905497905": {
+      "hiddenCasinos": [],
+      "notifications": true,
+      "theme": "dark",
+      "hasLiveAccess": false
     }
   },
   "giveaways": [],
@@ -127,5 +156,5 @@
       "totalEarned": 0
     }
   },
-  "lastUpdated": "2025-09-25T00:48:39.766Z"
+  "lastUpdated": "2025-09-25T01:48:39.756Z"
 }
