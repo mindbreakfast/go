@@ -33,6 +33,12 @@ let hidePressTimer = null;
 let currentHideCandidate = null;
 let searchTimeout = null;
 let saveTimeout = null;
+let filterTimeout = null;
+
+// ===== ДЕТЕКТОР МОБИЛЬНЫХ УСТРОЙСТВ =====
+function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
 
 // ===== ИНИЦИАЛИЗАЦИЯ =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -42,27 +48,19 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
-// ===== ПРИНУДИТЕЛЬНАЯ УСТАНОВКА ТЁМНОЙ ТЕМЫ ПРИ ЗАГРУЗКЕ =====
-(function forceDarkTheme() {
-    // 🔥 ПРИ ЗАГРУЗКЕ СРАЗУ УСТАНАВЛИВАЕМ ТЁМНУЮ ТЕМУ
-    if (!localStorage.getItem('theme')) {
-        localStorage.setItem('theme', 'dark');
-        document.body.classList.add('theme-dark');
-    }
-})();
-
 // ===== ТЕМНАЯ ТЕМА =====
 function initTheme() {
+    // 🔥 ПО УМОЛЧАНИЮ ВСЕГДА ТЁМНАЯ ТЕМА, ЕСЛИ НЕ ВЫБРАНА ЯВНО СВЕТЛАЯ
     const savedTheme = localStorage.getItem('theme');
     
-    const isDark = savedTheme === 'dark' || 
-                  (savedTheme === null && true) ||
-                  (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    // ЕСЛИ ПОЛЬЗОВАТЕЛЬ ЯВНО ВЫБРАЛ СВЕТЛУЮ ТЕМУ - ИСПОЛЬЗУЕМ ЕЁ, ИНАЧЕ ТЁМНУЮ
+    const isDark = savedTheme !== 'light'; // 🔥 ИЗМЕНЕНИЕ: по умолчанию тёмная
     
     currentTheme = isDark ? 'dark' : 'light';
     document.body.classList.toggle('theme-dark', isDark);
     document.getElementById('themeSwitcher').textContent = isDark ? '☀️ Светлая тема' : '🌙 Тёмная тема';
     
+    // 🔥 ЕСЛИ ТЕМА НЕ СОХРАНЕНА, СОХРАНЯЕМ ТЁМНУЮ ПО УМОЛЧАНИЮ
     if (savedTheme === null) {
         localStorage.setItem('theme', 'dark');
     }
@@ -76,7 +74,18 @@ function toggleTheme() {
     debouncedSaveSettings();
 }
 
+// ===== ИНДИКАТОР ЗАГРУЗКИ ДЛЯ ФИЛЬТРАЦИИ =====
+function showFilterLoading() {
+    const container = document.getElementById('casinoList');
+    if (container) {
+        container.innerHTML = '<div class="loader">Фильтруем...</div>';
+    }
+}
 
+function hideFilterLoading() {
+    const loader = document.querySelector('.loader');
+    if (loader) loader.style.display = 'none';
+}
 
 // ===== ОТКРЫТИЕ ССЫЛОК =====
 function openLink(event, url) {
@@ -222,13 +231,37 @@ async function loadInitialData() {
         const userSettings = userData.settings || {};
         userHiddenCasinos = userSettings.hiddenCasinos || [];
         userViewMode = userSettings.viewMode || 'full';
-        currentTheme = userSettings.theme || 'light';
-        userId = currentUserId;
-        isApproved = userSettings.hasLiveAccess || false;
+        
+        // 🔥 ИСПРАВЛЕНИЕ: ПРИОРИТЕТ ТЁМНОЙ ТЕМЫ
+        // Сначала проверяем настройки пользователя из базы, потом локальные, потом по умолчанию тёмная
+        currentTheme = userSettings.theme || localStorage.getItem('theme') || 'dark';
+        
+        // 🔥 ОБЕСПЕЧИВАЕМ ТЁМНУЮ ТЕМУ ДЛЯ НОВЫХ ПОЛЬЗОВАТЕЛЕЙ
+        if (!userSettings.theme && !localStorage.getItem('theme')) {
+            currentTheme = 'dark';
+            localStorage.setItem('theme', 'dark');
+        }
         
         document.body.classList.toggle('theme-dark', currentTheme === 'dark');
         document.getElementById('themeSwitcher').textContent = currentTheme === 'dark' ? '☀️ Светлая тема' : '🌙 Тёмная тема';
-        localStorage.setItem('theme', currentTheme);
+        
+        // 🔥 ЕСЛИ ПОЛЬЗОВАТЕЛЬ НОВЫЙ, СОХРАНЯЕМ ТЁМНУЮ ТЕМУ В ЕГО НАСТРОЙКИ
+        if (currentUserId !== 'anonymous' && (!userSettings.theme || userSettings.theme === 'light')) {
+            // Асинхронно обновляем настройки пользователя
+            setTimeout(() => {
+                fetch(`${API_BASE}/api/save-user-settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: currentUserId,
+                        theme: 'dark'
+                    })
+                }).catch(error => console.log('Ошибка сохранения темы:', error));
+            }, 1000);
+        }
+        
+        userId = currentUserId;
+        isApproved = userSettings.hasLiveAccess || false;
         
         document.getElementById('userIdDisplay').textContent = `ID: ${userId}`;
         
@@ -283,7 +316,7 @@ function showAnnouncements(announcements) {
         return;
     }
 
-    // равильное применение классов цветов
+    // 🔥 ИСПРАВЛЕНИЕ: Правильное применение классов цветов
     container.innerHTML = announcements.map(announcement => {
         const colorClass = `announcement-${announcement.color || 'blue'}`;
         return `
@@ -381,6 +414,21 @@ function renderCasinos() {
         return;
     }
 
+    // 🔥 ПОКАЗЫВАЕМ ИНДИКАТОР ЗАГРУЗКИ НА МОБИЛЬНЫХ
+    if (isMobileDevice()) {
+        showFilterLoading();
+        
+        // 🔥 ДАЕМ ВРЕМЯ ДЛЯ ОТРИСОВКИ ИНДИКАТОРА
+        setTimeout(() => {
+            renderCasinosContent(container);
+        }, 50);
+    } else {
+        renderCasinosContent(container);
+    }
+}
+
+// 🔥 ВЫНОСИМ ОСНОВНУЮ ЛОГИКУ В ОТДЕЛЬНУЮ ФУНКЦИЮ
+function renderCasinosContent(container) {
     const filteredCasinos = filterCasinos();
     const sortedCasinos = sortCasinos(filteredCasinos);
 
@@ -457,17 +505,30 @@ function renderCasinos() {
             </div>
         `;
     }
+    
+    // 🔥 СКРЫВАЕМ ИНДИКАТОР ПОСЛЕ ЗАГРУЗКИ
+    hideFilterLoading();
 }
 
 // ===== УПРАВЛЕНИЕ КАЗИНО =====
 function startHideTimer(casinoId, event) {
+    // 🔥 ПРЕДОТВРАЩАЕМ КОНФЛИКТ С НАТИВНЫМ СКРОЛЛОМ НА МОБИЛЬНЫХ
     if (event.type === 'touchstart') {
         event.preventDefault();
+        
+        // 🔥 ПРОВЕРЯЕМ ЧТО ЭТО НЕ СКРОЛЛ
+        const touch = event.touches[0];
+        startHideTimer.startX = touch.clientX;
+        startHideTimer.startY = touch.clientY;
+        startHideTimer.isScrolling = false;
     }
     
     currentHideCandidate = casinoId;
     hidePressTimer = setTimeout(() => {
-        showHideConfirmation(casinoId);
+        // 🔥 ПРОВЕРЯЕМ ЧТО ПОЛЬЗОВАТЕЛЬ НЕ ПРОСКРОЛЛИЛ
+        if (!startHideTimer.isScrolling) {
+            showHideConfirmation(casinoId);
+        }
     }, 1000);
 }
 
@@ -475,6 +536,21 @@ function cancelHideTimer() {
     clearTimeout(hidePressTimer);
     currentHideCandidate = null;
 }
+
+// 🔥 ДОБАВЛЯЕМ ОБРАБОТЧИК ДВИЖЕНИЯ ПАЛЬЦА ДЛЯ МОБИЛЬНЫХ
+document.addEventListener('touchmove', function(e) {
+    if (currentHideCandidate && startHideTimer.startX && startHideTimer.startY) {
+        const touch = e.touches[0];
+        const deltaX = Math.abs(touch.clientX - startHideTimer.startX);
+        const deltaY = Math.abs(touch.clientY - startHideTimer.startY);
+        
+        // 🔥 ЕСЛИ ПЕРЕМЕЩЕНИЕ БОЛЬШЕ 10px - ЭТО СКРОЛЛ
+        if (deltaX > 10 || deltaY > 10) {
+            startHideTimer.isScrolling = true;
+            cancelHideTimer();
+        }
+    }
+});
 
 function showHideConfirmation(casinoId) {
     const casinoCard = document.querySelector(`.casino-card[data-id="${casinoId}"]`);
@@ -635,9 +711,16 @@ function copyReferralLink() {
     const referralLinkInput = document.getElementById('referralLinkInput');
     const copyButton = document.querySelector('.btn-copy');
     
-    if (referralLinkInput && referralLinkInput.value) {
-        navigator.clipboard.writeText(referralLinkInput.value).then(() => {
-            // 🔥 КАК У ПРОМОКОДОВ - БЕЗ ALERT
+    // 🔥 СОЗДАЕМ ПРАВИЛЬНУЮ ССЫЛКУ ЕСЛИ ТЕКУЩАЯ НЕВЕРНАЯ
+    let referralLink = referralLinkInput.value;
+    
+    if (referralLink.includes('8368808338')) {
+        referralLink = `https://t.me/ludogol_bot?start=ref${userId}`;
+        referralLinkInput.value = referralLink;
+    }
+    
+    if (referralLink) {
+        navigator.clipboard.writeText(referralLink).then(() => {
             copyButton.textContent = '✅';
             copyButton.classList.add('copied');
             setTimeout(() => {
@@ -652,8 +735,8 @@ function copyReferralLink() {
             }, 2000);
         });
     } else if (userId && userId !== 'anonymous') {
-        const referralLink = `https://t.me/Ludogol_bot?start=ref${userId}`;
-        navigator.clipboard.writeText(referralLink).then(() => {
+        const correctLink = `https://t.me/ludogol_bot?start=ref${userId}`;
+        navigator.clipboard.writeText(correctLink).then(() => {
             copyButton.textContent = '✅';
             copyButton.classList.add('copied');
             setTimeout(() => {
@@ -676,10 +759,13 @@ function setupEventListeners() {
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
+            // 🔥 УВЕЛИЧИВАЕМ ДЕБАУНСИНГ ДЛЯ МОБИЛЬНЫХ
+            const debounceDelay = isMobileDevice() ? 600 : 300;
+            
             searchTimeout = setTimeout(() => {
                 currentSearchQuery = e.target.value.toLowerCase();
                 renderCasinos();
-            }, 300);
+            }, debounceDelay);
         });
 
         setTimeout(() => {
@@ -691,6 +777,30 @@ function setupEventListeners() {
     if (themeSwitcher) {
         themeSwitcher.addEventListener('click', toggleTheme);
     }
+
+    // 🔥 ДОБАВЛЯЕМ ДЕБАУНСИНГ ДЛЯ ФИЛЬТРОВ КАТЕГОРИЙ
+    setTimeout(() => {
+        const filterChips = document.querySelectorAll('.filter-chip');
+        filterChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                clearTimeout(filterTimeout);
+                const debounceDelay = isMobileDevice() ? 400 : 200;
+                
+                filterTimeout = setTimeout(() => {
+                    const category = chip.getAttribute('data-category');
+                    chip.classList.toggle('active');
+                    
+                    if (chip.classList.contains('active')) {
+                        activeFilters.add(category);
+                    } else {
+                        activeFilters.delete(category);
+                    }
+                    
+                    renderCasinos();
+                }, debounceDelay);
+            });
+        });
+    }, 1000);
 }
 
 // ===== УТИЛИТЫ =====
@@ -762,15 +872,27 @@ scrollToTopButton.addEventListener('click', scrollToTop);
 
 window.addEventListener('scroll', function() {
     const scrollPosition = window.scrollY || document.documentElement.scrollTop;
-    const windowHeight = window.innerHeight;
-    const documentHeight = document.documentElement.scrollHeight;
     
-    if (scrollPosition > windowHeight * 2) {
-        scrollToTopButton.style.opacity = '1';
-        scrollToTopButton.style.transform = 'translateY(0)';
+    // 🔥 УПРОЩАЕМ УСЛОВИЯ ДЛЯ МОБИЛЬНЫХ
+    if (isMobileDevice()) {
+        // 🔥 ПРОСТОЕ УСЛОВИЕ ДЛЯ МОБИЛЬНЫХ
+        if (scrollPosition > 300) {
+            scrollToTopButton.style.opacity = '1';
+            scrollToTopButton.style.transform = 'translateY(0)';
+        } else {
+            scrollToTopButton.style.opacity = '0';
+            scrollToTopButton.style.transform = 'translateY(100px)';
+        }
     } else {
-        scrollToTopButton.style.opacity = '0';
-        scrollToTopButton.style.transform = 'translateY(100px)';
+        // 🔥 СТАРАЯ ЛОГИКА ДЛЯ ДЕСКТОПА
+        const windowHeight = window.innerHeight;
+        if (scrollPosition > windowHeight * 2) {
+            scrollToTopButton.style.opacity = '1';
+            scrollToTopButton.style.transform = 'translateY(0)';
+        } else {
+            scrollToTopButton.style.opacity = '0';
+            scrollToTopButton.style.transform = 'translateY(100px)';
+        }
     }
     
     if (scrollPosition < 50) {
@@ -779,8 +901,28 @@ window.addEventListener('scroll', function() {
     }
 });
 
+// 🔥 ДОБАВЛЯЕМ ОБРАБОТЧИК ИЗМЕНЕНИЯ РАЗМЕРА ОКНА
+window.addEventListener('resize', function() {
+    const scrollPosition = window.scrollY || document.documentElement.scrollTop;
+    
+    if (isMobileDevice() && scrollPosition > 300) {
+        scrollToTopButton.style.opacity = '1';
+        scrollToTopButton.style.transform = 'translateY(0)';
+    }
+});
+
+// 🔥 УВЕЛИЧИВАЕМ ЧАСТОТУ ПРОВЕРКИ НА МОБИЛЬНЫХ
+setInterval(() => {
+    const scrollPosition = window.scrollY || document.documentElement.scrollTop;
+    
+    if (isMobileDevice() && scrollPosition > 300) {
+        scrollToTopButton.style.opacity = '1';
+        scrollToTopButton.style.transform = 'translateY(0)';
+    }
+}, 200); // 🔥 Проверяем каждые 200ms
+
 setTimeout(() => {
-    if (window.scrollY > window.innerHeight * 2) {
+    if (window.scrollY > (isMobileDevice() ? 300 : window.innerHeight * 2)) {
         scrollToTopButton.style.opacity = '1';
         scrollToTopButton.style.transform = 'translateY(0)';
     }
