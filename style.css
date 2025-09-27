@@ -650,4 +650,80 @@ body {
 }
 
 
+/* 🔥 ИСПРАВЛЕНИЯ ДЛЯ МОБИЛЬНОГО СКРОЛЛА И КАСАНИЙ */
+
+/* Разрешаем скролл даже при касании casino-card */
+.casino-list {
+    -webkit-overflow-scrolling: touch; /* 🔥 ПЛАВНЫЙ СКРОЛЛ НА iOS */
+    overflow-scrolling: touch;
+    touch-action: pan-y; /* 🔥 РАЗРЕШАЕМ ВЕРТИКАЛЬНЫЙ СКРОЛЛ */
+}
+
+.casino-card {
+    touch-action: pan-y; /* 🔥 КАРТОЧКИ НЕ МЕШАЮТ СКРОЛЛУ */
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* 🔥 УЛУЧШАЕМ КНОПКИ ПОДТВЕРЖДЕНИЯ ДЛЯ МОБИЛЬНЫХ */
+.hide-confirm-buttons {
+    position: relative !important;
+    z-index: 1000 !important;
+}
+
+.hide-confirm-buttons .btn {
+    padding: 14px 24px !important;
+    font-size: 16px !important;
+    min-height: 48px !important;
+    z-index: 1001 !important;
+    position: relative !important;
+    touch-action: manipulation; /* 🔥 УСТРАНЯЕМ ЗАДЕРЖКУ НА iOS */
+}
+
+/* 🔥 УВЕЛИЧИВАЕМ ОБЛАСТЬ КАСАНИЯ ДЛЯ ВСЕХ КНОПОК НА МОБИЛЬНЫХ */
+@media (max-width: 768px) {
+    .btn {
+        min-height: 44px;
+        padding: 12px 20px;
+        font-size: 16px;
+    }
+    
+    .action-buttons .btn {
+        min-width: 120px;
+    }
+    
+    /* 🔥 УВЕЛИЧИВАЕМ ОБЛАСТЬ КАСАНИЯ ДЛЯ ФИЛЬТРОВ */
+    .filter-chip {
+        padding: 12px 20px;
+        min-height: 44px;
+    }
+}
+
+/* 🔥 ИСПРАВЛЯЕМ ПРОБЛЕМЫ С КАСАНИЕМ НА iOS */
+@media (hover: none) and (pointer: coarse) {
+    .casino-card {
+        cursor: default;
+    }
+    
+    /* 🔥 УСТРАНЯЕМ ЗАДЕРЖКУ :HOVER НА ТАЧСКРИНАХ */
+    .btn:active, .filter-chip:active {
+        transform: scale(0.98);
+        transition: transform 0.1s;
+    }
+}
+
+/* 🔥 ОБЕСПЕЧИВАЕМ КОРРЕКТНЫЙ Z-INDEX */
+.casino-card {
+    position: relative;
+    z-index: 1;
+}
+
+.casino-card.hide-confirm {
+    z-index: 999;
+}
+
+.hide-confirm-buttons {
+    z-index: 1000 !important;
+}
+
 
