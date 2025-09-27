@@ -35,6 +35,15 @@ let searchTimeout = null;
 let saveTimeout = null;
 let filterTimeout = null;
 
+// ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ДЛЯ TOUCH-СОБЫТИЙ =====
+const touchState = {
+    startX: 0,
+    startY: 0,
+    casinoId: null,
+    isScrolling: false,
+    touchStartTime: 0
+};
+
 // ===== ДЕТЕКТОР МОБИЛЬНЫХ УСТРОЙСТВ =====
 function isMobileDevice() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -46,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadUserStats();
     loadInitialData();
     setupEventListeners();
+    setupGlobalTouchHandlers(); // 🔥 ДОБАВЛЯЕМ ГЛОБАЛЬНЫЕ ОБРАБОТЧИКИ
 });
 
 // ===== ТЕМНАЯ ТЕМА =====
@@ -54,7 +64,7 @@ function initTheme() {
     const savedTheme = localStorage.getItem('theme');
     
     // ЕСЛИ ПОЛЬЗОВАТЕЛЬ ЯВНО ВЫБРАЛ СВЕТЛУЮ ТЕМУ - ИСПОЛЬЗУЕМ ЕЁ, ИНАЧЕ ТЁМНУЮ
-    const isDark = savedTheme !== 'light'; // 🔥 ИЗМЕНЕНИЕ: по умолчанию тёмная
+    const isDark = savedTheme !== 'light';
     
     currentTheme = isDark ? 'dark' : 'light';
     document.body.classList.toggle('theme-dark', isDark);
@@ -87,6 +97,46 @@ function hideFilterLoading() {
     if (loader) loader.style.display = 'none';
 }
 
+// ===== ГЛОБАЛЬНЫЕ ОБРАБОТЧИКИ TOUCH-СОБЫТИЙ =====
+function setupGlobalTouchHandlers() {
+    // 🔥 ОБРАБОТЧИК ДВИЖЕНИЯ ПАЛЬЦА ДЛЯ ОПРЕДЕЛЕНИЯ СКРОЛЛА
+    document.addEventListener('touchmove', function(e) {
+        if (touchState.casinoId && !touchState.isScrolling) {
+            const touch = e.touches[0];
+            const deltaX = Math.abs(touch.clientX - touchState.startX);
+            const deltaY = Math.abs(touch.clientY - touchState.startY);
+            
+            // 🔥 ЕСЛИ ПЕРЕМЕЩЕНИЕ БОЛЬШЕ 10px - ЭТО СКРОЛЛ
+            if (deltaX > 10 || deltaY > 10) {
+                touchState.isScrolling = true;
+                cancelHideTimer();
+            }
+        }
+    }, { passive: true }); // 🔥 PASSIVE: TRUE ДЛЯ ПЛАВНОГО СКРОЛЛА
+
+    // 🔥 ОБРАБОТЧИК ОКОНЧАНИЯ КАСАНИЯ
+    document.addEventListener('touchend', function(e) {
+        if (touchState.casinoId && !touchState.isScrolling) {
+            const touchDuration = Date.now() - touchState.touchStartTime;
+            
+            // 🔥 ЕСЛИ КАСАНИЕ ДОЛГОЕ (БОЛЕЕ 500ms) - ПОКАЗЫВАЕМ ПОДТВЕРЖДЕНИЕ
+            if (touchDuration > 500) {
+                currentHideCandidate = touchState.casinoId;
+                showHideConfirmation(touchState.casinoId);
+            }
+        }
+        
+        // 🔥 СБРАСЫВАЕМ СОСТОЯНИЕ
+        touchState.casinoId = null;
+        touchState.isScrolling = false;
+    });
+
+    document.addEventListener('touchcancel', function() {
+        touchState.casinoId = null;
+        touchState.isScrolling = false;
+    });
+}
+
 // ===== ОТКРЫТИЕ ССЫЛОК =====
 function openLink(event, url) {
     event.preventDefault();
@@ -99,7 +149,7 @@ function openLink(event, url) {
         if (userViewMode === 'compact') {
             setTimeout(() => {
                 window.Telegram.WebApp.close();
-            }, 1000); // Даем время на открытие ссылки
+            }, 1000);
         }
     } else {
         window.open(url, '_blank');
@@ -167,7 +217,6 @@ function incrementClickCount(casinoId) {
             })
             .catch(error => {
                 console.log('❌ Error sending click:', error);
-                // Сохраняем в очередь для повторной отправки
                 const failedClicks = JSON.parse(localStorage.getItem('failedClicks') || '[]');
                 failedClicks.push({ casinoId, userId, timestamp: Date.now() });
                 localStorage.setItem('failedClicks', JSON.stringify(failedClicks));
@@ -223,7 +272,6 @@ async function loadInitialData() {
         ]);
 
         allCasinos = casinosData.casinos || [];
-        
         renderFilters(casinosData.categories || []);
         
         showAnnouncements(casinosData.announcements || []);
@@ -234,7 +282,6 @@ async function loadInitialData() {
         userViewMode = userSettings.viewMode || 'full';
         
         // 🔥 ИСПРАВЛЕНИЕ: ПРИОРИТЕТ ТЁМНОЙ ТЕМЫ
-        // Сначала проверяем настройки пользователя из базы, потом локальные, потом по умолчанию тёмная
         currentTheme = userSettings.theme || localStorage.getItem('theme') || 'dark';
         
         // 🔥 ОБЕСПЕЧИВАЕМ ТЁМНУЮ ТЕМУ ДЛЯ НОВЫХ ПОЛЬЗОВАТЕЛЕЙ
@@ -248,7 +295,6 @@ async function loadInitialData() {
         
         // 🔥 ЕСЛИ ПОЛЬЗОВАТЕЛЬ НОВЫЙ, СОХРАНЯЕМ ТЁМНУЮ ТЕМУ В ЕГО НАСТРОЙКИ
         if (currentUserId !== 'anonymous' && (!userSettings.theme || userSettings.theme === 'light')) {
-            // Асинхронно обновляем настройки пользователя
             setTimeout(() => {
                 fetch(`${API_BASE}/api/save-user-settings`, {
                     method: 'POST',
@@ -401,21 +447,15 @@ function renderFilters(categories) {
     const container = document.getElementById('filtersContainer');
     if (!container) return;
 
-    // 🔥 ВОЗВРАЩАЕМ ОРИГИНАЛЬНЫЕ КАТЕГОРИИ ИЗ CONFIG
     const filteredCategories = categories.filter(cat => cat.id !== 'other');
 
     // 🔥 ДОБАВЛЯЕМ КАТЕГОРИИ "Все" и "Топ" в начало
     const allCategories = [
         { id: 'all', name: 'Все' },
         { id: 'top', name: 'Топ' },
-        { id: 'kb', name: 'КБ' },
-        { id: 'royals', name: 'Роялы' },
-        { id: 'cats', name: 'Коты' },
-        { id: 'joy', name: 'Джои' },
-        { id: 'pf', name: 'ПФ' },
+        ...filteredCategories,
         { id: 'other', name: 'НеКазы' }
     ];
-
 
     container.innerHTML = allCategories.map(cat => `
         <div class="filter-chip" data-category="${cat.id}">
@@ -454,7 +494,6 @@ function renderFilters(categories) {
         allChip.classList.add('active');
     }
 }
-        
 
 function renderCasinos() {
     const container = document.getElementById('casinoList');
@@ -561,23 +600,21 @@ function renderCasinosContent(container) {
 
 // ===== УПРАВЛЕНИЕ КАЗИНО =====
 function startHideTimer(casinoId, event) {
-    // 🔥 ПРЕДОТВРАЩАЕМ КОНФЛИКТ С НАТИВНЫМ СКРОЛЛОМ НА МОБИЛЬНЫХ
     if (event.type === 'touchstart') {
-        event.preventDefault();
-        
-        // 🔥 ПРОВЕРЯЕМ ЧТО ЭТО НЕ СКРОЛЛ
+        // 🔥 ДЛЯ МОБИЛЬНЫХ - ИСПОЛЬЗУЕМ ГЛОБАЛЬНУЮ СИСТЕМУ
         const touch = event.touches[0];
-        startHideTimer.startX = touch.clientX;
-        startHideTimer.startY = touch.clientY;
-        startHideTimer.isScrolling = false;
+        touchState.startX = touch.clientX;
+        touchState.startY = touch.clientY;
+        touchState.casinoId = casinoId;
+        touchState.isScrolling = false;
+        touchState.touchStartTime = Date.now();
+        return;
     }
     
+    // 🔥 ДЛЯ DESKTOP - СТАРАЯ ЛОГИКА
     currentHideCandidate = casinoId;
     hidePressTimer = setTimeout(() => {
-        // 🔥 ПРОВЕРЯЕМ ЧТО ПОЛЬЗОВАТЕЛЬ НЕ ПРОСКРОЛЛИЛ
-        if (!startHideTimer.isScrolling) {
-            showHideConfirmation(casinoId);
-        }
+        showHideConfirmation(casinoId);
     }, 1000);
 }
 
@@ -586,35 +623,46 @@ function cancelHideTimer() {
     currentHideCandidate = null;
 }
 
-// 🔥 ДОБАВЛЯЕМ ОБРАБОТЧИК ДВИЖЕНИЯ ПАЛЬЦА ДЛЯ МОБИЛЬНЫХ
-document.addEventListener('touchmove', function(e) {
-    if (currentHideCandidate && startHideTimer.startX && startHideTimer.startY) {
-        const touch = e.touches[0];
-        const deltaX = Math.abs(touch.clientX - startHideTimer.startX);
-        const deltaY = Math.abs(touch.clientY - startHideTimer.startY);
-        
-        // 🔥 ЕСЛИ ПЕРЕМЕЩЕНИЕ БОЛЬШЕ 10px - ЭТО СКРОЛЛ
-        if (deltaX > 10 || deltaY > 10) {
-            startHideTimer.isScrolling = true;
-            cancelHideTimer();
-        }
-    }
-});
-
 function showHideConfirmation(casinoId) {
     const casinoCard = document.querySelector(`.casino-card[data-id="${casinoId}"]`);
     if (casinoCard) {
         casinoCard.classList.add('hide-confirm');
-        casinoCard.innerHTML += `
-            <div class="hide-confirm-buttons">
-                <button class="btn btn-outline" onclick="hideCasino(${casinoId})">
+        
+        // 🔥 СОЗДАЕМ КНОПКИ С ЛУЧШИМИ CSS СВОЙСТВАМИ ДЛЯ МОБИЛЬНЫХ
+        const confirmHTML = `
+            <div class="hide-confirm-buttons" style="
+                position: relative;
+                z-index: 1000;
+                margin-top: 10px;
+                padding: 10px;
+                background: var(--card-bg);
+                border-radius: 10px;
+                display: flex;
+                gap: 10px;
+                justify-content: center;
+            ">
+                <button class="btn btn-outline" onclick="hideCasino(${casinoId})" style="
+                    padding: 12px 20px;
+                    font-size: 16px;
+                    z-index: 1001;
+                    position: relative;
+                    min-height: 44px;
+                ">
                     ✅ Скрыть
                 </button>
-                <button class="btn btn-outline" onclick="cancelHide(${casinoId})">
+                <button class="btn btn-outline" onclick="cancelHide(${casinoId})" style="
+                    padding: 12px 20px;
+                    font-size: 16px;
+                    z-index: 1001;
+                    position: relative;
+                    min-height: 44px;
+                ">
                     ❌ Отмена
                 </button>
             </div>
         `;
+        
+        casinoCard.innerHTML += confirmHTML;
     }
 }
 
@@ -671,7 +719,7 @@ function openCasino(casinoId, viewMode) {
     const casino = allCasinos.find(c => c.id === casinoId);
     if (casino && casino.url) {
         incrementClickCount(casinoId);
-        openLink(event, casino.url); // 🔥 openLink сам решит когда закрывать WebApp
+        openLink(event, casino.url);
     }
 }
 
@@ -731,7 +779,6 @@ function updateReferralSection(referralInfo = {}) {
     if (userId && userId !== 'anonymous') {
         const refInfo = referralInfo || {
             referrals: [],
-            // 🔥 ИСПРАВЛЕНИЕ: Используем правильную ссылку
             referralLink: `https://t.me/ludogol_bot?start=ref${userId}`
         };
         
@@ -744,13 +791,6 @@ function updateReferralSection(referralInfo = {}) {
             
         referralLinkInput.value = finalReferralLink;
         referralSection.style.display = 'block';
-        
-        // 🔥 ЛОГ ДЛЯ ПРОВЕРКИ
-        console.log('🔗 Реферальная ссылка:', {
-            userId: userId,
-            referralLink: finalReferralLink,
-            fromDatabase: refInfo.referralLink
-        });
     } else {
         referralSection.style.display = 'none';
     }
@@ -808,7 +848,7 @@ function setupEventListeners() {
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
-            // 🔥 УВЕЛИЧИВАЕМ ДЕБАУНСИНГ ТОЛЬКО ДЛЯ ПОИСКА
+            // 🔥 УВЕЛИЧИВАЕМ ДЕБАУНСИНГ ДЛЯ МОБИЛЬНЫХ
             const debounceDelay = isMobileDevice() ? 600 : 300;
             
             searchTimeout = setTimeout(() => {
@@ -826,9 +866,6 @@ function setupEventListeners() {
     if (themeSwitcher) {
         themeSwitcher.addEventListener('click', toggleTheme);
     }
-
-    // 🔥 ФИЛЬТРЫ КАТЕГОРИЙ ТЕПЕРЬ РАБОТАЮТ МГНОВЕННО БЕЗ ЗАДЕРЖКИ
-    // (обработчики уже установлены в renderFilters)
 }
 
 // ===== УТИЛИТЫ =====
@@ -947,7 +984,7 @@ setInterval(() => {
         scrollToTopButton.style.opacity = '1';
         scrollToTopButton.style.transform = 'translateY(0)';
     }
-}, 200); // 🔥 Проверяем каждые 200ms
+}, 200);
 
 setTimeout(() => {
     if (window.scrollY > (isMobileDevice() ? 300 : window.innerHeight * 2)) {
@@ -955,6 +992,3 @@ setTimeout(() => {
         scrollToTopButton.style.transform = 'translateY(0)';
     }
 }, 2000);
-
-
-
