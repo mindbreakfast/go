@@ -31,7 +31,7 @@
       "last_name": "NSD",
       "language_code": "ru",
       "joined_at": "2025-09-10T17:10:33.867Z",
-      "last_activity": "2025-09-27T08:29:33.480Z"
+      "last_activity": "2025-09-27T10:45:49.392Z"
     },
     "6770360650": {
       "id": 6770360650,
@@ -107,7 +107,10 @@
       "viewMode": "compact"
     },
     "1777213824": {
-      "hiddenCasinos": [],
+      "hiddenCasinos": [
+        30,
+        29
+      ],
       "notifications": true,
       "theme": "dark",
       "hasLiveAccess": true,
@@ -189,5 +192,5 @@
       "totalEarned": 0
     }
   },
-  "lastUpdated": "2025-09-27T09:28:39.767Z"
+  "lastUpdated": "2025-09-27T10:59:11.859Z"
 }
